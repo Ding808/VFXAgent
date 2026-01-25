@@ -1,0 +1,8 @@
+{
+	"BuildId": "37670630",
+	"Modules": 
+	{
+		"VFXAgentCore": "UnrealEditor-VFXAgentCore.dll",
+		"VFXAgentEditor": "UnrealEditor-VFXAgentEditor.dll"
+	}
+}

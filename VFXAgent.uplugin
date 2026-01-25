@@ -1,0 +1,35 @@
+{
+	"FileVersion": 3,
+	"Version": 1,
+	"VersionName": "1.0",
+	"FriendlyName": "VFXAgent",
+	"Description": "AI-powered Niagara VFX generation plugin",
+	"Category": "Other",
+	"CreatedBy": "PigeonD",
+	"CreatedByURL": "",
+	"DocsURL": "",
+	"MarketplaceURL": "",
+	"SupportURL": "",
+	"CanContainContent": true,
+	"IsBetaVersion": true,
+	"IsExperimentalVersion": false,
+	"Installed": false,
+	"Plugins": [
+		{
+			"Name": "Niagara",
+			"Enabled": true
+		}
+	],
+	"Modules": [
+		{
+			"Name": "VFXAgentCore",
+			"Type": "Runtime",
+			"LoadingPhase": "Default"
+		},
+		{
+			"Name": "VFXAgentEditor",
+			"Type": "Editor",
+			"LoadingPhase": "Default"
+		}
+	]
+}
