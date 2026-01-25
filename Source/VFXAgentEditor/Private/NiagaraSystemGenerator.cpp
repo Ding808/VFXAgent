@@ -8,6 +8,7 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "Factories/Factory.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "UNiagaraSystemGenerator"
 
@@ -25,7 +26,30 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	}
 
 	// Create package
-	FString PackagePath = OutputPath / SystemName;
+	// Validate and sanitize inputs
+	FString SafeOutputPath = OutputPath;
+	if (!SafeOutputPath.StartsWith(TEXT("/Game")))
+	{
+		SafeOutputPath = FString::Printf(TEXT("/Game/%s"), *SafeOutputPath.TrimStartAndEnd());
+	}
+
+	FString SafeSystemName = SystemName;
+	if (SafeSystemName.IsEmpty())
+	{
+		SafeSystemName = TEXT("VFX_GeneratedSystem");
+	}
+	// Replace invalid characters in name
+	for (int32 i = 0; i < SafeSystemName.Len(); ++i)
+	{
+		TCHAR& C = SafeSystemName[i];
+		if (!(FChar::IsAlnum(C) || C == TCHAR('_')))
+		{
+			C = TCHAR('_');
+		}
+	}
+
+	FString PackagePath = SafeOutputPath / SafeSystemName;
+	UE_LOG(LogVFXAgent, Log, TEXT("PackagePath computed: %s"), *PackagePath);
 	UPackage* Package = CreatePackage(*PackagePath);
 	if (!Package)
 	{
@@ -34,7 +58,9 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	}
 
 	// Create the Niagara System object
-	UNiagaraSystem* NewSystem = NewObject<UNiagaraSystem>(Package, FName(*SystemName), RF_Public | RF_Standalone);
+	// Use the sanitized system name when creating the UObject to avoid invalid name characters
+	UNiagaraSystem* NewSystem = NewObject<UNiagaraSystem>(Package, FName(*SafeSystemName), RF_Public | RF_Standalone);
+	UE_LOG(LogVFXAgent, Log, TEXT("NewSystem pointer after NewObject: %p (Name: %s)"), NewSystem, *SafeSystemName);
 	if (!NewSystem)
 	{
 		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create UNiagaraSystem object"));
@@ -54,23 +80,29 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	// For now, just mark the system as needing saving
 	NewSystem->MarkPackageDirty();
 
-	// Save the package
-	FString PackageFilename = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
-	
-	// Mark package as dirty to force save
-	Package->MarkPackageDirty();
-	
-	// Use the simple SavePackage call with filename
-	if (UPackage::SavePackage(Package, NewSystem, RF_Public | RF_Standalone, *PackageFilename, GError, nullptr, true))
+	// Register the new asset with the asset registry and mark package dirty.
+	// Register the asset with the Asset Registry if available
+	if (FModuleManager::Get().IsModuleLoaded("AssetRegistry"))
 	{
-		UE_LOG(LogVFXAgent, Log, TEXT("Successfully saved Niagara System to: %s"), *PackageFilename);
-		return NewSystem;
+		FAssetRegistryModule* AssetRegistryModulePtr = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry");
+		if (AssetRegistryModulePtr)
+		{
+			AssetRegistryModulePtr->Get().AssetCreated(NewSystem);
+		}
+		else
+		{
+			UE_LOG(LogVFXAgent, Warning, TEXT("AssetRegistry module pointer null despite IsModuleLoaded reporting true"));
+		}
 	}
 	else
 	{
-		UE_LOG(LogVFXAgent, Error, TEXT("Failed to save Niagara System"));
-		return nullptr;
+		UE_LOG(LogVFXAgent, Warning, TEXT("AssetRegistry module not loaded; asset not registered"));
 	}
+
+	Package->MarkPackageDirty();
+	UE_LOG(LogVFXAgent, Log, TEXT("Registered Niagara System asset: %s"), *PackagePath);
+
+	return NewSystem;
 }
 
 bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const FVFXRecipe& Recipe)

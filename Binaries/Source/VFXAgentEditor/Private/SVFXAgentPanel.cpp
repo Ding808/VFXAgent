@@ -4,6 +4,10 @@
 #include "ILLMProvider.h"
 #include "MockLLMProvider.h"
 #include "NiagaraSystemGenerator.h"
+#include "DesktopPlatformModule.h"
+#include "IDesktopPlatform.h"
+#include "Framework/Application/SlateApplication.h"
+#include "Misc/Paths.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SButton.h"
@@ -89,9 +93,23 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				.Padding(5.0f)
 				[
-					SAssignNew(OutputPathTextBox, SEditableTextBox)
-					.Text(FText::FromString(Settings->DefaultOutputPath))
-					.IsReadOnly(false)
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					[
+						SAssignNew(OutputPathTextBox, SEditableTextBox)
+						.Text(FText::FromString(Settings->DefaultOutputPath))
+						.IsReadOnly(false)
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("..."))
+						.OnClicked(this, &SVFXAgentPanel::OnChooseOutputPathClicked)
+					]
 				]
 
 				+ SVerticalBox::Slot()
@@ -306,6 +324,57 @@ FReply SVFXAgentPanel::OnApplyRefinementClicked()
 	else
 	{
 		LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
+	}
+
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnChooseOutputPathClicked()
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (!DesktopPlatform)
+	{
+		LogMessage("ERROR: DesktopPlatform not available");
+		return FReply::Handled();
+	}
+
+	const void* ParentWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+
+	FString DefaultPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : TEXT("");
+	FString SelectedFolder;
+	const bool bFolderPicked = DesktopPlatform->OpenDirectoryDialog(const_cast<void*>(ParentWindowHandle), TEXT("Choose Output Folder"), DefaultPath, SelectedFolder);
+
+	if (bFolderPicked && !SelectedFolder.IsEmpty())
+	{
+		// Try to convert filesystem path under Content to /Game/ virtual path
+		FString FullSelected = FPaths::ConvertRelativePathToFull(SelectedFolder);
+		FString ContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
+		FString NewPath;
+		if (FullSelected.StartsWith(ContentDir))
+		{
+			FString Relative = FullSelected.RightChop(ContentDir.Len());
+			// Remove leading slashes
+			Relative = Relative.TrimStartAndEnd();
+			Relative = Relative.Replace(TEXT("\\"), TEXT("/"));
+			NewPath = FString::Printf(TEXT("/Game/%s"), *Relative);
+			// Remove trailing slash if any
+			if (NewPath.EndsWith(TEXT("/")))
+			{
+				NewPath.LeftChopInline(1);
+			}
+		}
+		else
+		{
+			// Use raw filesystem path if not under Content
+			NewPath = SelectedFolder;
+		}
+
+		if (OutputPathTextBox.IsValid())
+		{
+			OutputPathTextBox->SetText(FText::FromString(NewPath));
+		}
+
+		LogMessage(FString::Printf(TEXT("Selected Output Path: %s"), *NewPath));
 	}
 
 	return FReply::Handled();

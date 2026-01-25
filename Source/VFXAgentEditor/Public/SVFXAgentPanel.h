@@ -19,6 +19,7 @@ private:
 	// UI callbacks
 	FReply OnGenerateClicked();
 	FReply OnApplyRefinementClicked();
+	FReply OnChooseOutputPathClicked();
 
 	// Helper functions
 	void LogMessage(const FString& Message);
