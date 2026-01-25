@@ -41,6 +41,7 @@ public class VFXAgentNiagara : ModuleRules
 				"Niagara",
 				"UnrealEd",
 				"AssetTools",
+				"AssetRegistry",
 				"VFXAgentCore"
 			}
 			);

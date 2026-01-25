@@ -3,8 +3,10 @@
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraScriptSourceBase.h"
+#include "NiagaraScript.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Misc/Paths.h"
+#include "Misc/PackageName.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "Factories/Factory.h"
@@ -27,18 +29,24 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 
 	// Create package
 	// Validate and sanitize inputs
-	FString SafeOutputPath = OutputPath;
-	if (!SafeOutputPath.StartsWith(TEXT("/Game")))
+	FString SafeOutputPath = OutputPath.TrimStartAndEnd();
+	if (SafeOutputPath.IsEmpty())
 	{
-		SafeOutputPath = FString::Printf(TEXT("/Game/%s"), *SafeOutputPath.TrimStartAndEnd());
+		UE_LOG(LogVFXAgent, Error, TEXT("Output path is empty - cannot compute package path"));
+		return nullptr;
 	}
 
+	if (!SafeOutputPath.StartsWith(TEXT("/Game")))
+	{
+		SafeOutputPath = FString::Printf(TEXT("/Game/%s"), *SafeOutputPath);
+	}
+
+	// Sanitize system name for package creation
 	FString SafeSystemName = SystemName;
 	if (SafeSystemName.IsEmpty())
 	{
 		SafeSystemName = TEXT("VFX_GeneratedSystem");
 	}
-	// Replace invalid characters in name
 	for (int32 i = 0; i < SafeSystemName.Len(); ++i)
 	{
 		TCHAR& C = SafeSystemName[i];
@@ -49,6 +57,12 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	}
 
 	FString PackagePath = SafeOutputPath / SafeSystemName;
+	if (!FPackageName::IsValidLongPackageName(PackagePath))
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Computed package path is not valid: %s"), *PackagePath);
+		return nullptr;
+	}
+
 	UE_LOG(LogVFXAgent, Log, TEXT("PackagePath computed: %s"), *PackagePath);
 	UPackage* Package = CreatePackage(*PackagePath);
 	if (!Package)
@@ -58,7 +72,6 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	}
 
 	// Create the Niagara System object
-	// Use the sanitized system name when creating the UObject to avoid invalid name characters
 	UNiagaraSystem* NewSystem = NewObject<UNiagaraSystem>(Package, FName(*SafeSystemName), RF_Public | RF_Standalone);
 	UE_LOG(LogVFXAgent, Log, TEXT("NewSystem pointer after NewObject: %p (Name: %s)"), NewSystem, *SafeSystemName);
 	if (!NewSystem)
@@ -67,40 +80,53 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 		return nullptr;
 	}
 
+	// Initialize system scripts - use built-in GetSystemSpawnScript/GetSystemUpdateScript
+	UNiagaraScript* SystemSpawnScript = NewSystem->GetSystemSpawnScript();
+	UNiagaraScript* SystemUpdateScript = NewSystem->GetSystemUpdateScript();
+
+	if (!SystemSpawnScript || !SystemUpdateScript)
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to get system scripts from Niagara system"));
+		return nullptr;
+	}
+
+	// Create and assign script source
+	UNiagaraScriptSourceBase* SpawnScriptSource = NewObject<UNiagaraScriptSourceBase>(
+		SystemSpawnScript, NAME_None, RF_Transactional);
+	
+	if (SpawnScriptSource)
+	{
+		SystemSpawnScript->SetLatestSource(SpawnScriptSource);
+		SystemUpdateScript->SetLatestSource(SpawnScriptSource);
+		UE_LOG(LogVFXAgent, Log, TEXT("Created and assigned script source to spawn and update scripts"));
+	}
+	else
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("Failed to create script source - system may still function"));
+	}
+
 	// Set basic properties
 	// TODO: Set Looping, Duration, WarmupTime through Niagara system properties
-	// The Niagara API may require different approaches in UE5.5+
-
-	// TODO: Set bounds
-	// NewSystem->SetSystemBounds(FBox(FVector::ZeroVector, Recipe.Bounds));
 
 	UE_LOG(LogVFXAgent, Log, TEXT("Created base Niagara System: %s"), *SystemName);
 
 	// TODO: Add emitters from recipe
 	// For now, just mark the system as needing saving
-	NewSystem->MarkPackageDirty();
-
-	// Register the new asset with the asset registry and mark package dirty.
-	// Register the asset with the Asset Registry if available
-	if (FModuleManager::Get().IsModuleLoaded("AssetRegistry"))
+	if (NewSystem)
 	{
-		FAssetRegistryModule* AssetRegistryModulePtr = FModuleManager::GetModulePtr<FAssetRegistryModule>("AssetRegistry");
-		if (AssetRegistryModulePtr)
-		{
-			AssetRegistryModulePtr->Get().AssetCreated(NewSystem);
-		}
-		else
-		{
-			UE_LOG(LogVFXAgent, Warning, TEXT("AssetRegistry module pointer null despite IsModuleLoaded reporting true"));
-		}
+		NewSystem->MarkPackageDirty();
 	}
 	else
 	{
-		UE_LOG(LogVFXAgent, Warning, TEXT("AssetRegistry module not loaded; asset not registered"));
+		UE_LOG(LogVFXAgent, Warning, TEXT("NewSystem invalid; skipping MarkPackageDirty"));
 	}
 
+	// Mark package dirty to ensure it gets saved
 	Package->MarkPackageDirty();
 	UE_LOG(LogVFXAgent, Log, TEXT("Registered Niagara System asset: %s"), *PackagePath);
+
+	// Do NOT register with AssetRegistry immediately - let the system initialization complete first
+	// The asset registry will pick it up when the package is saved
 
 	return NewSystem;
 }

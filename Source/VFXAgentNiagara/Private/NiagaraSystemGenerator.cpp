@@ -5,9 +5,12 @@
 #include "NiagaraScriptSourceBase.h"
 #include "Particles/ParticleSystemComponent.h"
 #include "Misc/Paths.h"
+#include "Misc/PackageName.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "Factories/Factory.h"
+#include "Serialization/ObjectWriter.h"
+#include "UObject/SavePackage.h"
 
 #define LOCTEXT_NAMESPACE "UNiagaraSystemGenerator"
 
@@ -24,8 +27,42 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 		return nullptr;
 	}
 
-	// Create package
-	FString PackagePath = OutputPath / SystemName;
+	// Create package and validate
+	FString SafeOutputPath = OutputPath.TrimStartAndEnd();
+	if (SafeOutputPath.IsEmpty())
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Output path is empty - cannot compute package path"));
+		return nullptr;
+	}
+
+	if (!SafeOutputPath.StartsWith(TEXT("/Game")))
+	{
+		SafeOutputPath = FString::Printf(TEXT("/Game/%s"), *SafeOutputPath);
+	}
+
+	// Sanitize system name
+	FString SafeSystemName = SystemName;
+	if (SafeSystemName.IsEmpty())
+	{
+		SafeSystemName = TEXT("VFX_GeneratedSystem");
+	}
+	for (int32 i = 0; i < SafeSystemName.Len(); ++i)
+	{
+		TCHAR& C = SafeSystemName[i];
+		if (!(FChar::IsAlnum(C) || C == TCHAR('_')))
+		{
+			C = TCHAR('_');
+		}
+	}
+
+	FString PackagePath = SafeOutputPath / SafeSystemName;
+	if (!FPackageName::IsValidLongPackageName(PackagePath))
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Computed package path is not valid: %s"), *PackagePath);
+		return nullptr;
+	}
+
+	UE_LOG(LogVFXAgent, Log, TEXT("Creating package at: %s"), *PackagePath);
 	UPackage* Package = CreatePackage(*PackagePath);
 	if (!Package)
 	{
@@ -33,13 +70,16 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 		return nullptr;
 	}
 
+	UE_LOG(LogVFXAgent, Log, TEXT("Creating Niagara System object with name: %s"), *SafeSystemName);
 	// Create the Niagara System object
-	UNiagaraSystem* NewSystem = NewObject<UNiagaraSystem>(Package, FName(*SystemName), RF_Public | RF_Standalone);
+	UNiagaraSystem* NewSystem = NewObject<UNiagaraSystem>(Package, FName(*SafeSystemName), RF_Public | RF_Standalone);
 	if (!NewSystem)
 	{
 		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create UNiagaraSystem object"));
 		return nullptr;
 	}
+
+	UE_LOG(LogVFXAgent, Log, TEXT("Successfully created UNiagaraSystem object at %p"), NewSystem);
 
 	// Set basic properties
 	// TODO: Set Looping, Duration, WarmupTime through Niagara system properties
@@ -48,27 +88,36 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	// TODO: Set bounds
 	// NewSystem->SetSystemBounds(FBox(FVector::ZeroVector, Recipe.Bounds));
 
-	UE_LOG(LogVFXAgent, Log, TEXT("Created base Niagara System: %s"), *SystemName);
+	// Mark the system and package as needing save
+	NewSystem->MarkPackageDirty();
+	Package->MarkPackageDirty();
+
+	UE_LOG(LogVFXAgent, Log, TEXT("Created base Niagara System: %s"), *SafeSystemName);
 
 	// TODO: Add emitters from recipe
-	// For now, just mark the system as needing saving
-	NewSystem->MarkPackageDirty();
+	// For now, the system is created with default properties
 
 	// Save the package
 	FString PackageFilename = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
+	UE_LOG(LogVFXAgent, Log, TEXT("Saving package to: %s"), *PackageFilename);
 	
-	// Mark package as dirty to force save
-	Package->MarkPackageDirty();
+	// Use the correct SavePackage API for UE5.x
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	SaveArgs.bForceByteSwapping = false;
+	SaveArgs.bWarnOfLongFilenames = true;
+	SaveArgs.SaveFilter = SAVE_NoError;
 	
-	// Use the simple SavePackage call with filename
-	if (UPackage::SavePackage(Package, NewSystem, RF_Public | RF_Standalone, *PackageFilename, GError, nullptr, true))
+	if (UPackage::SavePackage(Package, NewSystem, SaveArgs))
 	{
 		UE_LOG(LogVFXAgent, Log, TEXT("Successfully saved Niagara System to: %s"), *PackageFilename);
+		// Force asset registry to recognize the new asset
+		FAssetRegistryModule::AssetCreated(NewSystem);
 		return NewSystem;
 	}
 	else
 	{
-		UE_LOG(LogVFXAgent, Error, TEXT("Failed to save Niagara System"));
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to save Niagara System to: %s"), *PackageFilename);
 		return nullptr;
 	}
 }

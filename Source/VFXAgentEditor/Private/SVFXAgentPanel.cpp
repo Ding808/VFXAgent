@@ -310,23 +310,36 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		Recipe.Version));
 
 	// Generate Niagara System
-	UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage());
-	if (Generator)
+	try
 	{
+		UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
+		if (!Generator)
+		{
+			LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
+			return FReply::Handled();
+		}
+
 		UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator: %p"), Generator);
+		LogMessage("Generating Niagara System, please wait...");
+
 		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, Recipe);
 		if (System)
 		{
 			LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
+			LogMessage(TEXT("VFX generation completed!"));
 		}
 		else
 		{
-			LogMessage(FString::Printf(TEXT("ERROR: Failed to generate Niagara System")));
+			LogMessage(TEXT("ERROR: Failed to generate Niagara System - check log for details"));
 		}
 	}
-	else
+	catch (const std::exception& e)
 	{
-		LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
+		LogMessage(FString::Printf(TEXT("ERROR: Exception during VFX generation: %s"), *FString(e.what())));
+	}
+	catch (...)
+	{
+		LogMessage(TEXT("ERROR: Unknown exception during VFX generation"));
 	}
 
 	return FReply::Handled();
@@ -403,23 +416,36 @@ FReply SVFXAgentPanel::OnApplyRefinementClicked()
 		}
 	}
 
-	UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage());
-	if (Generator)
+	UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
+	if (!Generator)
+	{
+		LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
+		return FReply::Handled();
+	}
+
+	try
 	{
 		UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator (refine): %p"), Generator);
+		LogMessage("Generating refined Niagara System, please wait...");
+
 		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, RefinedRecipe);
 		if (System)
 		{
 			LogMessage(FString::Printf(TEXT("Successfully generated refined Niagara System: %s"), *NewAssetName));
+			LogMessage(TEXT("VFX refinement completed!"));
 		}
 		else
 		{
-			LogMessage("ERROR: Failed to generate refined Niagara System");
+			LogMessage(TEXT("ERROR: Failed to generate refined Niagara System - check log for details"));
 		}
 	}
-	else
+	catch (const std::exception& e)
 	{
-		LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
+		LogMessage(FString::Printf(TEXT("ERROR: Exception during refinement: %s"), *FString(e.what())));
+	}
+	catch (...)
+	{
+		LogMessage(TEXT("ERROR: Unknown exception during refinement"));
 	}
 
 	return FReply::Handled();
