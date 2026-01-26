@@ -2,15 +2,15 @@
 #include "VFXAgentLog.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
-#include "NiagaraScriptSourceBase.h"
-#include "Particles/ParticleSystemComponent.h"
 #include "Misc/Paths.h"
 #include "Misc/PackageName.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "AssetToolsModule.h"
 #include "Factories/Factory.h"
-#include "Serialization/ObjectWriter.h"
+#include "Modules/ModuleManager.h"
 #include "UObject/SavePackage.h"
+#include "HAL/FileManager.h"
+#include "Runtime/Launch/Resources/Version.h"
 
 #define LOCTEXT_NAMESPACE "UNiagaraSystemGenerator"
 
@@ -62,24 +62,46 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 		return nullptr;
 	}
 
-	UE_LOG(LogVFXAgent, Log, TEXT("Creating package at: %s"), *PackagePath);
-	UPackage* Package = CreatePackage(*PackagePath);
-	if (!Package)
+	UNiagaraSystem* NewSystem = nullptr;
+#if WITH_EDITOR
+	// Create the Niagara system via AssetTools + Niagara's factory to ensure the asset is fully initialized.
+	// Avoid referencing UNiagaraSystemFactoryNew directly (it may not be exported for linking in some setups).
+	FModuleManager::LoadModuleChecked<IModuleInterface>(TEXT("NiagaraEditor"));
+	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
+
+	FString UniquePackageName;
+	FString UniqueAssetName;
+	AssetToolsModule.Get().CreateUniqueAssetName(PackagePath, TEXT(""), UniquePackageName, UniqueAssetName);
+	const FString UniquePackagePath = FPackageName::GetLongPackagePath(UniquePackageName);
+
+	UClass* FactoryClass = StaticLoadClass(UFactory::StaticClass(), nullptr, TEXT("/Script/NiagaraEditor.NiagaraSystemFactoryNew"));
+	if (!FactoryClass)
 	{
-		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create package: %s"), *PackagePath);
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to load NiagaraSystemFactoryNew class. Is the NiagaraEditor module available?"));
 		return nullptr;
 	}
 
-	UE_LOG(LogVFXAgent, Log, TEXT("Creating Niagara System object with name: %s"), *SafeSystemName);
-	// Create the Niagara System object
-	UNiagaraSystem* NewSystem = NewObject<UNiagaraSystem>(Package, FName(*SafeSystemName), RF_Public | RF_Standalone);
+	UFactory* Factory = NewObject<UFactory>(GetTransientPackage(), FactoryClass);
+	if (!Factory)
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to instantiate NiagaraSystemFactoryNew"));
+		return nullptr;
+	}
+
+	UE_LOG(LogVFXAgent, Log, TEXT("Creating Niagara System asset via AssetTools: %s"), *UniqueAssetName);
+	UObject* CreatedAsset = AssetToolsModule.Get().CreateAsset(UniqueAssetName, UniquePackagePath, UNiagaraSystem::StaticClass(), Factory);
+	NewSystem = Cast<UNiagaraSystem>(CreatedAsset);
 	if (!NewSystem)
 	{
-		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create UNiagaraSystem object"));
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create Niagara System asset via AssetTools"));
 		return nullptr;
 	}
+#else
+	UE_LOG(LogVFXAgent, Error, TEXT("Niagara System generation requires editor"));
+	return nullptr;
+#endif
 
-	UE_LOG(LogVFXAgent, Log, TEXT("Successfully created UNiagaraSystem object at %p"), NewSystem);
+	UE_LOG(LogVFXAgent, Log, TEXT("Successfully created UNiagaraSystem asset at %p"), NewSystem);
 
 	// Set basic properties
 	// TODO: Set Looping, Duration, WarmupTime through Niagara system properties
@@ -89,8 +111,12 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	// NewSystem->SetSystemBounds(FBox(FVector::ZeroVector, Recipe.Bounds));
 
 	// Mark the system and package as needing save
+	UPackage* OutermostPackage = NewSystem->GetOutermost();
 	NewSystem->MarkPackageDirty();
-	Package->MarkPackageDirty();
+	if (OutermostPackage)
+	{
+		OutermostPackage->MarkPackageDirty();
+	}
 
 	UE_LOG(LogVFXAgent, Log, TEXT("Created base Niagara System: %s"), *SafeSystemName);
 
@@ -98,28 +124,40 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	// For now, the system is created with default properties
 
 	// Save the package
-	FString PackageFilename = FPackageName::LongPackageNameToFilename(PackagePath, FPackageName::GetAssetPackageExtension());
+	if (!OutermostPackage)
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to resolve package for Niagara System"));
+		return nullptr;
+	}
+
+	const FString SavedPackagePath = OutermostPackage->GetName();
+	FString PackageFilename = FPackageName::LongPackageNameToFilename(SavedPackagePath, FPackageName::GetAssetPackageExtension());
 	UE_LOG(LogVFXAgent, Log, TEXT("Saving package to: %s"), *PackageFilename);
-	
+
+	// Ensure the output directory exists
+	const FString PackageDir = FPaths::GetPath(PackageFilename);
+	if (!PackageDir.IsEmpty())
+	{
+		IFileManager::Get().MakeDirectory(*PackageDir, true);
+	}
+
 	// Use the correct SavePackage API for UE5.x
 	FSavePackageArgs SaveArgs;
 	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
 	SaveArgs.bForceByteSwapping = false;
-	SaveArgs.bWarnOfLongFilenames = true;
-	SaveArgs.SaveFilter = SAVE_NoError;
-	
-	if (UPackage::SavePackage(Package, NewSystem, SaveArgs))
+	SaveArgs.bWarnOfLongFilename = true;
+
+	const bool bSaved = UPackage::SavePackage(OutermostPackage, NewSystem, *PackageFilename, SaveArgs);
+
+	if (bSaved)
 	{
 		UE_LOG(LogVFXAgent, Log, TEXT("Successfully saved Niagara System to: %s"), *PackageFilename);
-		// Force asset registry to recognize the new asset
-		FAssetRegistryModule::AssetCreated(NewSystem);
+		OutermostPackage->SetDirtyFlag(false);
 		return NewSystem;
 	}
-	else
-	{
-		UE_LOG(LogVFXAgent, Error, TEXT("Failed to save Niagara System to: %s"), *PackageFilename);
-		return nullptr;
-	}
+
+	UE_LOG(LogVFXAgent, Error, TEXT("Failed to save Niagara System to: %s"), *PackageFilename);
+	return nullptr;
 }
 
 bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const FVFXRecipe& Recipe)

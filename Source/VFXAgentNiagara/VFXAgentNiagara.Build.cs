@@ -39,6 +39,7 @@ public class VFXAgentNiagara : ModuleRules
 				"CoreUObject",
 				"Engine",
 				"Niagara",
+				"NiagaraEditor",
 				"UnrealEd",
 				"AssetTools",
 				"AssetRegistry",

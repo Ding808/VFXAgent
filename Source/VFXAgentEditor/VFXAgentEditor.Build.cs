@@ -9,6 +9,7 @@ public class VFXAgentEditor : ModuleRules
 		PublicIncludePaths.AddRange(
 			new string[] {
 				// ... add public include paths required here ...
+				System.IO.Path.Combine(ModuleDirectory, "..")
 			}
 			);
 				
@@ -33,7 +34,9 @@ public class VFXAgentEditor : ModuleRules
 				"ToolMenus",
 				"DeveloperSettings",
 				"Niagara",
-				"VFXAgentCore"
+				"NiagaraEditor",
+				"VFXAgentCore",
+				"VFXAgentNiagara"
 			}
 			);
 			
@@ -52,7 +55,8 @@ public class VFXAgentEditor : ModuleRules
 				"AssetTools",
 				"Json",
 				"JsonUtilities",
-				"Niagara"
+				"Niagara",
+				"NiagaraEditor"
 			}
 			);
 		

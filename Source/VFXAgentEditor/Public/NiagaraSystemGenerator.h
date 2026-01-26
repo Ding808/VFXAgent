@@ -1,36 +1,5 @@
 #pragma once
 
-#include "CoreMinimal.h"
-#include "INiagaraSystemGenerator.h"
-#include "NiagaraSystemGenerator.generated.h"
-
-UCLASS()
-class UNiagaraSystemGenerator : public UObject, public INiagaraSystemGenerator
-{
-	GENERATED_BODY()
-
-public:
-	virtual UNiagaraSystem* GenerateNiagaraSystem(
-		const FString& SystemName,
-		const FString& OutputPath,
-		const FVFXRecipe& Recipe) override;
-
-	virtual bool UpdateNiagaraSystem(
-		UNiagaraSystem* System,
-		const FVFXRecipe& Recipe) override;
-
-private:
-	// Helper functions
-	class UNiagaraEmitter* CreateBasicEmitter(
-		const FVFXEmitterRecipe& EmitterRecipe,
-		UNiagaraSystem* ParentSystem);
-
-	bool BindMaterialToEmitter(
-		class UNiagaraEmitter* Emitter,
-		const FVFXMaterialRecipe& MaterialRecipe);
-
-	// Get or create a basic material
-	class UMaterialInstanceConstant* GetOrCreateBasicMaterial(
-		const FString& Path,
-		const FVFXMaterialRecipe& MaterialRecipe);
-};
+// Forwarding header kept for compatibility.
+// The real implementation lives in the VFXAgentNiagara module.
+#include "VFXAgentNiagara/Public/NiagaraSystemGenerator.h"
