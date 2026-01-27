@@ -3,7 +3,9 @@
 #include "VFXAgentSettings.h"
 #include "ILLMProvider.h"
 #include "MockLLMProvider.h"
+#include "HttpLLMProvider.h"
 #include "NiagaraSystemGenerator.h"
+#include "JsonObjectConverter.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SButton.h"
@@ -24,17 +26,40 @@
 
 void SVFXAgentPanel::Construct(const FArguments& InArgs)
 {
+	const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+
 	if (!LLMProvider)
 	{
-		UMockLLMProvider* ProviderObj = NewObject<UMockLLMProvider>(GetTransientPackage());
-		if (ProviderObj)
+		const FString BackendStr = Settings ? Settings->LLMBackend : TEXT("Mock");
+		const bool bUseOpenAI = BackendStr.Equals(TEXT("OpenAI"), ESearchCase::IgnoreCase);
+		const bool bUseOllama = BackendStr.Equals(TEXT("Ollama"), ESearchCase::IgnoreCase);
+
+		if (bUseOpenAI || bUseOllama)
 		{
-			ProviderObj->AddToRoot();
-			LLMProvider = ProviderObj;
+			UHttpLLMProvider* ProviderObj = NewObject<UHttpLLMProvider>(GetTransientPackage());
+			if (ProviderObj)
+			{
+				ProviderObj->AddToRoot();
+				const EVFXAgentLLMBackend Backend = bUseOllama ? EVFXAgentLLMBackend::OllamaGenerate : EVFXAgentLLMBackend::OpenAIChatCompletions;
+				ProviderObj->Configure(
+					Backend,
+					Settings ? Settings->LLMEndpoint : TEXT(""),
+					Settings ? Settings->LLMModel : TEXT(""),
+					Settings ? Settings->LLMApiKey : TEXT(""),
+					30.0f);
+				LLMProvider = ProviderObj;
+			}
+		}
+		else
+		{
+			UMockLLMProvider* ProviderObj = NewObject<UMockLLMProvider>(GetTransientPackage());
+			if (ProviderObj)
+			{
+				ProviderObj->AddToRoot();
+				LLMProvider = ProviderObj;
+			}
 		}
 	}
-
-	const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
 
 	ChildSlot
 	[
@@ -302,6 +327,18 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 	FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
 	LastRecipe = Recipe;
 	LastPrompt = Prompt;
+
+	{
+		FString RecipeJson;
+		if (FJsonObjectConverter::UStructToJsonObjectString(Recipe, RecipeJson))
+		{
+			LogMessage(FString::Printf(TEXT("Recipe JSON (debug): %s"), *RecipeJson.Left(4000)));
+		}
+		else
+		{
+			LogMessage(TEXT("Recipe JSON (debug): <failed to serialize>"));
+		}
+	}
 
 	LogMessage(FString::Printf(TEXT("Recipe generated:\nEmitters: %d\nLoop: %s\nDuration: %.2f\nVersion: %d"),
 		Recipe.Emitters.Num(),

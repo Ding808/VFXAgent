@@ -16,6 +16,13 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "LLM")
 	FString LLMModel = "llama2";
 
+	// For OpenAI-compatible endpoints (e.g. https://api.openai.com/v1/chat/completions)
+	UPROPERTY(EditAnywhere, config, Category = "LLM")
+	FString LLMApiKey = "";
+
+	UPROPERTY(EditAnywhere, config, Category = "LLM")
+	FString LLMBackend = "Mock"; // Mock | OpenAI | Ollama
+
 	UPROPERTY(EditAnywhere, config, Category = "Generation")
 	FString DefaultOutputPath = "/Game/VFXAgent/Generated";
 

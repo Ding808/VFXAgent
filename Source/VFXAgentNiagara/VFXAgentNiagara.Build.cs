@@ -26,6 +26,7 @@ public class VFXAgentNiagara : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"NiagaraCore",
 				"Niagara",
 				"VFXAgentCore"
 			}
@@ -38,6 +39,7 @@ public class VFXAgentNiagara : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"NiagaraCore",
 				"Niagara",
 				"NiagaraEditor",
 				"UnrealEd",

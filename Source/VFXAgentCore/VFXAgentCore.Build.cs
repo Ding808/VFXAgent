@@ -26,6 +26,7 @@ public class VFXAgentCore : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"HTTP",
 				"Json",
 				"JsonUtilities"
 			}
@@ -38,6 +39,7 @@ public class VFXAgentCore : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"HTTP",
 				"Json",
 				"JsonUtilities"
 			}
