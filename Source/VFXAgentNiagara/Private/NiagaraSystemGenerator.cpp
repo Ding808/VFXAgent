@@ -15,15 +15,55 @@
 #include "UObject/SavePackage.h"
 #include "HAL/FileManager.h"
 #include "Runtime/Launch/Resources/Version.h"
+#include "UObject/UObjectGlobals.h"
+
+static FString NormalizeSystemObjectPath(const FString& InPath)
+{
+	FString Path = InPath;
+	Path.TrimStartAndEndInline();
+	if (Path.IsEmpty())
+	{
+		return FString();
+	}
+	// If the path already looks like an object path (/Game/X/Y.Asset), keep it.
+	if (Path.Contains(TEXT(".")))
+	{
+		return Path;
+	}
+	// Otherwise, append .<AssetName> where AssetName is the last segment.
+	int32 LastSlash = INDEX_NONE;
+	Path.FindLastChar(TCHAR('/'), LastSlash);
+	const FString AssetName = (LastSlash != INDEX_NONE) ? Path.Mid(LastSlash + 1) : Path;
+	if (AssetName.IsEmpty())
+	{
+		return Path;
+	}
+	return FString::Printf(TEXT("%s.%s"), *Path, *AssetName);
+}
 
 #define LOCTEXT_NAMESPACE "UNiagaraSystemGenerator"
 
 UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	const FString& SystemName,
 	const FString& OutputPath,
-	const FVFXRecipe& Recipe)
+	const FVFXRecipe& Recipe,
+	const FString& TemplateSystemPath)
 {
 	UE_LOG(LogVFXAgent, Log, TEXT("Generating Niagara System: %s at %s"), *SystemName, *OutputPath);
+
+	// Load optional template system (used to clone initialized emitters so the result isn't empty).
+	TemplateSystem = nullptr;
+	{
+		const FString ObjPath = NormalizeSystemObjectPath(TemplateSystemPath);
+		if (!ObjPath.IsEmpty())
+		{
+			TemplateSystem = LoadObject<UNiagaraSystem>(nullptr, *ObjPath);
+			if (!TemplateSystem)
+			{
+				UE_LOG(LogVFXAgent, Warning, TEXT("Template system not found: %s (normalized: %s)"), *TemplateSystemPath, *ObjPath);
+			}
+		}
+	}
 
 	if (Recipe.Emitters.Num() == 0)
 	{
@@ -167,6 +207,130 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 	return nullptr;
 }
 
+static UNiagaraEmitter* FindFirstEmitterSubobject(UNiagaraSystem* System)
+{
+	if (!System)
+	{
+		return nullptr;
+	}
+
+	UNiagaraEmitter* Found = nullptr;
+	ForEachObjectWithOuter(System, [&Found](UObject* Obj)
+	{
+		if (Found)
+		{
+			return;
+		}
+		if (UNiagaraEmitter* E = Cast<UNiagaraEmitter>(Obj))
+		{
+			Found = E;
+		}
+	}, true);
+	return Found;
+}
+
+// Helper to apply recipe parameters to an emitter's scripts (Rapid Iteration Parameters)
+static void ApplyEmitterParameters(UNiagaraEmitter* Emitter, const FVFXEmitterRecipe& Recipe)
+{
+	if (!Emitter)
+	{
+		return;
+	}
+
+	TArray<UNiagaraScript*> Scripts;
+	ForEachObjectWithOuter(Emitter, [&Scripts](UObject* Obj)
+	{
+		if (UNiagaraScript* Script = Cast<UNiagaraScript>(Obj))
+		{
+			Scripts.AddUnique(Script);
+		}
+	}, true);
+
+	auto TrySetFloat = [](FNiagaraParameterStore& Store, const FString& NameContains, float Value) -> bool
+	{
+		for (const FNiagaraVariableWithOffset& ParamWithOffset : Store.ReadParameterVariables())
+		{
+			if (ParamWithOffset.GetType() != FNiagaraTypeDefinition::GetFloatDef())
+			{
+				continue;
+			}
+			const FString VarName = ParamWithOffset.GetName().ToString();
+			if (!VarName.Contains(NameContains, ESearchCase::IgnoreCase))
+			{
+				continue;
+			}
+
+			FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+			return Store.SetParameterData(reinterpret_cast<const uint8*>(&Value), Param, false);
+		}
+		return false;
+	};
+
+	auto TrySetInt = [](FNiagaraParameterStore& Store, const FString& NameContains, int32 Value) -> bool
+	{
+		for (const FNiagaraVariableWithOffset& ParamWithOffset : Store.ReadParameterVariables())
+		{
+			if (ParamWithOffset.GetType() != FNiagaraTypeDefinition::GetIntDef())
+			{
+				continue;
+			}
+			const FString VarName = ParamWithOffset.GetName().ToString();
+			if (!VarName.Contains(NameContains, ESearchCase::IgnoreCase))
+			{
+				continue;
+			}
+
+			FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+			return Store.SetParameterData(reinterpret_cast<const uint8*>(&Value), Param, false);
+		}
+		return false;
+	};
+
+	auto TrySetColor = [](FNiagaraParameterStore& Store, const FString& NameContains, const FLinearColor& Value) -> bool
+	{
+		for (const FNiagaraVariableWithOffset& ParamWithOffset : Store.ReadParameterVariables())
+		{
+			const FString VarName = ParamWithOffset.GetName().ToString();
+			if (!VarName.Contains(NameContains, ESearchCase::IgnoreCase))
+			{
+				continue;
+			}
+			
+			if (ParamWithOffset.GetType() == FNiagaraTypeDefinition::GetColorDef())
+			{
+				FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+				return Store.SetParameterData(reinterpret_cast<const uint8*>(&Value), Param, false);
+			}
+			if (ParamWithOffset.GetType() == FNiagaraTypeDefinition::GetVec4Def())
+			{
+				const FVector4f V(Value.R, Value.G, Value.B, Value.A);
+				FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+				return Store.SetParameterData(reinterpret_cast<const uint8*>(&V), Param, false);
+			}
+		}
+		return false;
+	};
+
+	for (UNiagaraScript* Script : Scripts)
+	{
+		if (!Script) continue;
+
+		FNiagaraParameterStore& Store = Script->RapidIterationParameters;
+
+		TrySetFloat(Store, TEXT("SpawnRate"), FMath::Max(0.0f, Recipe.SpawnRate));
+		
+		if (Recipe.BurstCount > 0)
+		{
+			TrySetInt(Store, TEXT("Burst"), Recipe.BurstCount);
+		}
+   
+		TrySetFloat(Store, TEXT("Lifetime"), FMath::Max(0.01f, Recipe.Lifetime));
+		TrySetColor(Store, TEXT("Color"), Recipe.Color);
+
+		Script->MarkPackageDirty();
+	}
+}
+
 bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const FVFXRecipe& Recipe)
 {
 	if (!System)
@@ -190,6 +354,44 @@ bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const 
 	}
 
 #if WITH_EDITOR
+	// Try to clone from a template emitter (preferred), otherwise fall back to factory-created emitters.
+	UNiagaraEmitter* TemplateEmitter = nullptr;
+	if (TemplateSystem)
+	{
+		TemplateEmitter = FindFirstEmitterSubobject(TemplateSystem);
+	}
+	if (!TemplateEmitter)
+	{
+		// As a fallback, if the system already contains an emitter, use it as a template.
+		TemplateEmitter = FindFirstEmitterSubobject(System);
+	}
+
+	// Fallback to loading a default engine emitter if possible
+	if (!TemplateEmitter)
+	{
+		// Try a few standard locations
+		const TCHAR* FallbackPaths[] = {
+			TEXT("/Niagara/Emitters/Omnidirectional/Fountain.Fountain"),
+			TEXT("/Niagara/Emitters/Fountain.Fountain"),
+			TEXT("/Engine/Plugins/FX/Niagara/Content/Emitters/Omnidirectional/Fountain.Fountain")
+		};
+
+		for (const TCHAR* Path : FallbackPaths)
+		{
+			TemplateEmitter = LoadObject<UNiagaraEmitter>(nullptr, Path);
+			if (TemplateEmitter)
+			{
+				UE_LOG(LogVFXAgent, Log, TEXT("Loaded fallback template emitter from: %s"), Path);
+				break;
+			}
+		}
+	}
+
+	if (!TemplateEmitter && TemplateSystem)
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("Template system loaded but contained no UNiagaraEmitter subobjects: %s"), *TemplateSystem->GetPathName());
+	}
+
 	// Clear existing emitters.
 	{
 		// RemoveEmitterHandle takes a handle reference in UE 5.5.
@@ -203,14 +405,42 @@ bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const 
 	for (int32 Index = 0; Index < Recipe.Emitters.Num(); ++Index)
 	{
 		const FVFXEmitterRecipe& EmitterRecipe = Recipe.Emitters[Index];
-		UNiagaraEmitter* EmitterAsset = CreateBasicEmitter(EmitterRecipe, System);
+		UNiagaraEmitter* EmitterAsset = nullptr;
+		if (TemplateEmitter)
+		{
+			const FString BaseEmitterObjectName = FString::Printf(TEXT("%s_%s_Emitter"), *System->GetName(), *EmitterRecipe.RendererType);
+			const FName UniqueObjectName = MakeUniqueObjectName(System, UNiagaraEmitter::StaticClass(), FName(*BaseEmitterObjectName));
+			EmitterAsset = DuplicateObject<UNiagaraEmitter>(TemplateEmitter, System, UniqueObjectName);
+		}
+		if (!EmitterAsset)
+		{
+			EmitterAsset = CreateBasicEmitter(EmitterRecipe, System);
+		}
 		if (!EmitterAsset)
 		{
 			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to create emitter %d"), Index);
 			continue;
 		}
 
-		const FString EmitterNameStr = FString::Printf(TEXT("%s_%s_%02d"), *System->GetName(), *EmitterRecipe.RendererType, Index);
+		// Apply recipe parameters (Spawn, Lifetime, etc.)
+		ApplyEmitterParameters(EmitterAsset, EmitterRecipe);
+
+		FString LayerName = EmitterRecipe.Name;
+		LayerName.TrimStartAndEndInline();
+		if (LayerName.IsEmpty())
+		{
+			LayerName = EmitterRecipe.RendererType;
+		}
+		// Sanitize for object/name safety.
+		for (int32 i = 0; i < LayerName.Len(); ++i)
+		{
+			TCHAR& C = LayerName[i];
+			if (!(FChar::IsAlnum(C) || C == TCHAR('_')))
+			{
+				C = TCHAR('_');
+			}
+		}
+		const FString EmitterNameStr = FString::Printf(TEXT("%s_%s_%02d"), *System->GetName(), *LayerName, Index);
 		const FGuid VersionGuid = EmitterAsset->GetExposedVersion().VersionGuid;
 		System->AddEmitterHandle(*EmitterAsset, FName(*EmitterNameStr), VersionGuid);
 	}
@@ -235,17 +465,6 @@ UNiagaraEmitter* UNiagaraSystemGenerator::CreateBasicEmitter(
 
 #if WITH_EDITOR
 	FModuleManager::LoadModuleChecked<IModuleInterface>(TEXT("NiagaraEditor"));
-	FAssetToolsModule& AssetToolsModule = FModuleManager::LoadModuleChecked<FAssetToolsModule>(TEXT("AssetTools"));
-
-	const FString SystemPackageName = ParentSystem->GetOutermost() ? ParentSystem->GetOutermost()->GetName() : FString();
-	const FString FolderPath = SystemPackageName.IsEmpty() ? TEXT("/Game/VFXAgent/Generated") : FPackageName::GetLongPackagePath(SystemPackageName);
-	const FString BaseEmitterName = FString::Printf(TEXT("%s_%s_Emitter"), *ParentSystem->GetName(), *EmitterRecipe.RendererType);
-	const FString DesiredPath = FolderPath / BaseEmitterName;
-
-	FString UniquePackageName;
-	FString UniqueAssetName;
-	AssetToolsModule.Get().CreateUniqueAssetName(DesiredPath, TEXT(""), UniquePackageName, UniqueAssetName);
-	const FString UniquePackagePath = FPackageName::GetLongPackagePath(UniquePackageName);
 
 	UClass* FactoryClass = StaticLoadClass(UFactory::StaticClass(), nullptr, TEXT("/Script/NiagaraEditor.NiagaraEmitterFactoryNew"));
 	if (!FactoryClass)
@@ -261,15 +480,30 @@ UNiagaraEmitter* UNiagaraSystemGenerator::CreateBasicEmitter(
 		return nullptr;
 	}
 
-	UObject* CreatedAsset = AssetToolsModule.Get().CreateAsset(UniqueAssetName, UniquePackagePath, UNiagaraEmitter::StaticClass(), Factory);
-	UNiagaraEmitter* NewEmitter = Cast<UNiagaraEmitter>(CreatedAsset);
+	// Create an embedded emitter (subobject of the system) so users get ONE Niagara System asset,
+	// instead of a clutter of separate NiagaraEmitter assets.
+	const FString BaseEmitterObjectName = FString::Printf(TEXT("%s_%s_Emitter"), *ParentSystem->GetName(), *EmitterRecipe.RendererType);
+	const FName UniqueObjectName = MakeUniqueObjectName(ParentSystem, UNiagaraEmitter::StaticClass(), FName(*BaseEmitterObjectName));
+	UObject* CreatedObj = Factory->FactoryCreateNew(
+		UNiagaraEmitter::StaticClass(),
+		ParentSystem,
+		UniqueObjectName,
+		RF_Transactional,
+		nullptr,
+		GWarn);
+	UNiagaraEmitter* NewEmitter = Cast<UNiagaraEmitter>(CreatedObj);
 	if (!NewEmitter)
 	{
-		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create Niagara Emitter asset"));
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create embedded Niagara Emitter"));
 		return nullptr;
 	}
 
-	NewEmitter->MarkPackageDirty();
+	// Mark the parent system package dirty since the emitter lives inside it.
+	ParentSystem->MarkPackageDirty();
+	if (UPackage* Pkg = ParentSystem->GetOutermost())
+	{
+		Pkg->MarkPackageDirty();
+	}
 
 	// Best-effort: push recipe values into scripts' rapid-iteration parameters.
 	// This avoids needing pre-made template assets, and works as long as the emitter has the default SpawnRate/Initialize modules.
@@ -375,30 +609,6 @@ UNiagaraEmitter* UNiagaraSystemGenerator::CreateBasicEmitter(
 		if (Scripts.Num() == 0)
 		{
 			UE_LOG(LogVFXAgent, Warning, TEXT("CreateBasicEmitter: No UNiagaraScript subobjects found; cannot apply SpawnRate/Lifetime/Color overrides"));
-		}
-	}
-
-	if (UPackage* Pkg = NewEmitter->GetOutermost())
-	{
-		Pkg->MarkPackageDirty();
-
-		const FString SavedPackagePath = Pkg->GetName();
-		FString PackageFilename = FPackageName::LongPackageNameToFilename(SavedPackagePath, FPackageName::GetAssetPackageExtension());
-		const FString PackageDir = FPaths::GetPath(PackageFilename);
-		if (!PackageDir.IsEmpty())
-		{
-			IFileManager::Get().MakeDirectory(*PackageDir, true);
-		}
-
-		FSavePackageArgs SaveArgs;
-		SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-		SaveArgs.bForceByteSwapping = false;
-		SaveArgs.bWarnOfLongFilename = true;
-
-		const bool bSaved = UPackage::SavePackage(Pkg, NewEmitter, *PackageFilename, SaveArgs);
-		if (!bSaved)
-		{
-			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to save emitter package: %s"), *PackageFilename);
 		}
 	}
 

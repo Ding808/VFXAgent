@@ -9,8 +9,21 @@
 #include "Serialization/JsonSerializer.h"
 
 #include "HttpModule.h"
+#include "HttpManager.h"
 #include "Interfaces/IHttpRequest.h"
 #include "Interfaces/IHttpResponse.h"
+
+static const TCHAR* HttpRequestStatusToString(EHttpRequestStatus::Type Status)
+{
+	switch (Status)
+	{
+	case EHttpRequestStatus::NotStarted: return TEXT("NotStarted");
+	case EHttpRequestStatus::Processing: return TEXT("Processing");
+	case EHttpRequestStatus::Failed: return TEXT("Failed");
+	case EHttpRequestStatus::Succeeded: return TEXT("Succeeded");
+	default: return TEXT("Unknown");
+	}
+}
 
 void UHttpLLMProvider::Configure(
 	EVFXAgentLLMBackend InBackend,
@@ -39,7 +52,7 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 		"  \"warmupTime\": 0.0,\n"
 		"  \"bounds\": {\"x\":100,\"y\":100,\"z\":100},\n"
 		"  \"emitters\": [\n"
-		"    {\"spawnRate\":10,\"burstCount\":0,\"rendererType\":\"Sprite\",\"color\":{\"r\":1,\"g\":1,\"b\":1,\"a\":1},\"lifetime\":5}\n"
+		"    {\"name\":\"Core\",\"spawnRate\":10,\"burstCount\":0,\"rendererType\":\"Sprite\",\"color\":{\"r\":1,\"g\":1,\"b\":1,\"a\":1},\"lifetime\":5}\n"
 		"  ],\n"
 		"  \"parameters\": {\"Color\":\"Blue\", \"Intensity\":\"1.0\"},\n"
 		"  \"materials\": [{\"description\":\"Basic additive material\",\"bIsAdditive\":true,\"baseMaterialPath\":\"/Engine/EngineMaterials/ParticleSpriteMaterial\"}],\n"
@@ -47,7 +60,9 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 		"}\n"
 		"Rules:\n"
 		"- rendererType must be one of Sprite|Ribbon|Mesh.\n"
-		"- IMPORTANT: Generate a layered Niagara system by using MULTIPLE emitters (typically 2-5) unless the user explicitly asks for a single emitter.\n"
+		"- IMPORTANT: Generate a layered Niagara system by using MULTIPLE emitters unless the user explicitly asks for a single emitter.\n"
+		"- Choose the number of emitters based on the prompt's layers (usually 2-6, sometimes up to 8 for complex effects). Do NOT always output exactly 3.\n"
+		"- Each emitter should represent ONE layer/purpose and should set a meaningful 'name' (e.g. CoreBurst, Sparks, Smoke, Shockwave, Trails, Glows).\n"
 		"- Split layers into separate emitters, e.g.:\n"
 		"  explosion: core burst (Sprite burstCount), sparks (Sprite spawnRate), smoke (Sprite long lifetime), shockwave (Ribbon burst).\n"
 		"  magic/electric: arcs (Ribbon), glow particles (Sprite), secondary smoke/dust (Sprite).\n"
@@ -103,7 +118,16 @@ static bool WaitForHttp(FHttpRequestPtr Request, float TimeoutSeconds)
 	const double Start = FPlatformTime::Seconds();
 	while (Request.IsValid() && Request->GetStatus() == EHttpRequestStatus::Processing)
 	{
-		FPlatformProcess::Sleep(0.01f);
+		// Avoid deadlocking the editor/game thread: UE's HTTP manager is normally ticked on the game thread.
+		// If a caller blocks the game thread waiting for completion, the request can never finish.
+		if (IsInGameThread())
+		{
+			FHttpModule::Get().GetHttpManager().Tick(0.01f);
+		}
+		else
+		{
+			FPlatformProcess::Sleep(0.01f);
+		}
 		if ((FPlatformTime::Seconds() - Start) > TimeoutSeconds)
 		{
 			return false;
@@ -112,13 +136,18 @@ static bool WaitForHttp(FHttpRequestPtr Request, float TimeoutSeconds)
 	return true;
 }
 
-bool UHttpLLMProvider::TryRequestRecipeJson(const FString& UserPrompt, FString& OutRecipeJson, FString& OutError) const
+void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnRecipeJsonComplete OnComplete) const
 {
+	if (!OnComplete)
+	{
+		return;
+	}
+
 	FString EffectiveEndpoint = Endpoint;
 	if (EffectiveEndpoint.IsEmpty())
 	{
-		OutError = TEXT("LLM endpoint is empty");
-		return false;
+		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
+		return;
 	}
 
 	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
@@ -138,6 +167,7 @@ bool UHttpLLMProvider::TryRequestRecipeJson(const FString& UserPrompt, FString& 
 		// OpenAI-compatible chat completions.
 		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
 		BodyRef->SetNumberField(TEXT("temperature"), 0.2);
+		BodyRef->SetNumberField(TEXT("max_tokens"), 800);
 
 		TArray<TSharedPtr<FJsonValue>> Messages;
 		{
@@ -176,6 +206,8 @@ bool UHttpLLMProvider::TryRequestRecipeJson(const FString& UserPrompt, FString& 
 	Req->SetURL(EffectiveEndpoint);
 	Req->SetVerb(TEXT("POST"));
 	Req->SetHeader(TEXT("Content-Type"), ContentType);
+	Req->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	Req->SetHeader(TEXT("User-Agent"), TEXT("VFXAgent/1.0 (UnrealEngine)"));
 	for (const TPair<FString, FString>& KV : ExtraHeaders)
 	{
 		Req->SetHeader(KV.Key, KV.Value);
@@ -183,108 +215,214 @@ bool UHttpLLMProvider::TryRequestRecipeJson(const FString& UserPrompt, FString& 
 	Req->SetContentAsString(BodyText);
 	Req->SetTimeout(TimeoutSeconds);
 
-	FString ResponseText;
-	int32 ResponseCode = 0;
-	bool bOk = false;
-
+	const EVFXAgentLLMBackend EffectiveBackend = Backend;
 	Req->OnProcessRequestComplete().BindLambda([
-		&ResponseText,
-		&ResponseCode,
-		&bOk
+		OnComplete,
+		EffectiveBackend
 	](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
 	{
-		bOk = bSucceeded && Response.IsValid();
-		if (Response.IsValid())
+		if (!bSucceeded || !Response.IsValid())
 		{
-			ResponseCode = Response->GetResponseCode();
-			ResponseText = Response->GetContentAsString();
+			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
+			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
+			return;
 		}
+
+		const int32 Code = Response->GetResponseCode();
+		const FString ResponseText = Response->GetContentAsString();
+		if (Code < 200 || Code >= 300)
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("LLM returned HTTP %d: %s"), Code, *ResponseText.Left(800)));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Root;
+		FString JsonError;
+		if (!ParseJsonObject(ResponseText, Root, JsonError))
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("LLM response is not JSON: %s"), *ResponseText.Left(200)));
+			return;
+		}
+
+		FString OutRecipeJson;
+		if (EffectiveBackend == EVFXAgentLLMBackend::OllamaGenerate)
+		{
+			FString Resp;
+			if (!Root->TryGetStringField(TEXT("response"), Resp))
+			{
+				OnComplete(false, FString(), TEXT("Ollama response missing 'response' field"));
+				return;
+			}
+			OutRecipeJson = Resp;
+			OnComplete(true, OutRecipeJson, FString());
+			return;
+		}
+
+		// OpenAI chat completions: choices[0].message.content
+		const TArray<TSharedPtr<FJsonValue>>* Choices = nullptr;
+		if (!Root->TryGetArrayField(TEXT("choices"), Choices) || !Choices || Choices->Num() == 0)
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing 'choices' array"));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Choice0 = (*Choices)[0]->AsObject();
+		if (!Choice0.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response choice[0] is not an object"));
+			return;
+		}
+
+		const TSharedPtr<FJsonObject> Msg = Choice0->GetObjectField(TEXT("message"));
+		if (!Msg.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing message object"));
+			return;
+		}
+
+		FString Content;
+		if (!Msg->TryGetStringField(TEXT("content"), Content))
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing message.content"));
+			return;
+		}
+
+		OutRecipeJson = Content;
+		OnComplete(true, OutRecipeJson, FString());
 	});
 
 	if (!Req->ProcessRequest())
 	{
-		OutError = TEXT("Failed to start HTTP request");
-		return false;
+		OnComplete(false, FString(), TEXT("Failed to start HTTP request"));
+		return;
 	}
+}
 
-	if (!WaitForHttp(Req, TimeoutSeconds))
+bool UHttpLLMProvider::TryRequestRecipeJson(const FString& UserPrompt, FString& OutRecipeJson, FString& OutError) const
+{
+	bool bDone = false;
+	bool bOk = false;
+	FString RecipeJson;
+	FString Error;
+
+	RequestRecipeJsonAsync(UserPrompt, [
+		&bDone,
+		&bOk,
+		&RecipeJson,
+		&Error
+	](bool bSuccess, const FString& InRecipeJson, const FString& InError)
 	{
-		OutError = TEXT("HTTP request timed out");
-		return false;
+		bOk = bSuccess;
+		RecipeJson = InRecipeJson;
+		Error = InError;
+		bDone = true;
+	});
+
+	// If called on the game thread, we tick the HTTP manager to avoid deadlocks.
+	const double Start = FPlatformTime::Seconds();
+	while (!bDone)
+	{
+		if ((FPlatformTime::Seconds() - Start) > TimeoutSeconds)
+		{
+			OutError = TEXT("HTTP request timed out");
+			return false;
+		}
+		if (IsInGameThread())
+		{
+			FHttpModule::Get().GetHttpManager().Tick(0.01f);
+		}
+		FPlatformProcess::Sleep(0.01f);
 	}
 
 	if (!bOk)
 	{
-		OutError = FString::Printf(TEXT("HTTP request failed (code=%d)"), ResponseCode);
+		OutError = Error.IsEmpty() ? TEXT("HTTP request failed") : Error;
 		return false;
 	}
 
-	if (ResponseCode < 200 || ResponseCode >= 300)
-	{
-		OutError = FString::Printf(TEXT("LLM returned HTTP %d: %s"), ResponseCode, *ResponseText.Left(500));
-		return false;
-	}
-
-	// Extract the recipe JSON from backend-specific response envelope.
-	TSharedPtr<FJsonObject> Root;
-	if (!ParseJsonObject(ResponseText, Root, OutError))
-	{
-		OutError = FString::Printf(TEXT("LLM response is not JSON: %s"), *ResponseText.Left(200));
-		return false;
-	}
-
-	if (Backend == EVFXAgentLLMBackend::OllamaGenerate)
-	{
-		FString Resp;
-		if (!Root->TryGetStringField(TEXT("response"), Resp))
-		{
-			OutError = TEXT("Ollama response missing 'response' field");
-			return false;
-		}
-		OutRecipeJson = Resp;
-		return true;
-	}
-
-	// OpenAI chat completions: choices[0].message.content
-	const TArray<TSharedPtr<FJsonValue>>* Choices = nullptr;
-	if (!Root->TryGetArrayField(TEXT("choices"), Choices) || !Choices || Choices->Num() == 0)
-	{
-		OutError = TEXT("OpenAI response missing 'choices' array");
-		return false;
-	}
-
-	TSharedPtr<FJsonObject> Choice0 = (*Choices)[0]->AsObject();
-	if (!Choice0.IsValid())
-	{
-		OutError = TEXT("OpenAI response choice[0] is not an object");
-		return false;
-	}
-
-	TSharedPtr<FJsonObject> Msg = Choice0->GetObjectField(TEXT("message"));
-	if (!Msg.IsValid())
-	{
-		OutError = TEXT("OpenAI response missing message object");
-		return false;
-	}
-
-	FString Content;
-	if (!Msg->TryGetStringField(TEXT("content"), Content))
-	{
-		OutError = TEXT("OpenAI response missing message.content");
-		return false;
-	}
-
-	OutRecipeJson = Content;
+	OutRecipeJson = RecipeJson;
 	return true;
+}
+
+void UHttpLLMProvider::GenerateRecipeAsync(const FString& Prompt, FOnRecipeComplete OnComplete)
+{
+	ClearLastError();
+	RequestRecipeJsonAsync(Prompt, [this, OnComplete](bool bSuccess, const FString& RecipeJson, const FString& Error)
+	{
+		if (!OnComplete)
+		{
+			return;
+		}
+
+		if (!bSuccess)
+		{
+			SetLastError(Error);
+			OnComplete(FVFXRecipe(), Error);
+			return;
+		}
+
+		FVFXRecipe Parsed;
+		FString ParseError;
+		if (!TryParseRecipeJson(RecipeJson, Parsed, ParseError))
+		{
+			SetLastError(ParseError);
+			OnComplete(FVFXRecipe(), ParseError);
+			return;
+		}
+
+		Parsed.Version = FMath::Max(1, Parsed.Version);
+		OnComplete(Parsed, FString());
+	});
+}
+
+void UHttpLLMProvider::RefineRecipeAsync(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt, FOnRecipeComplete OnComplete)
+{
+	ClearLastError();
+	FString OldJson;
+	FJsonObjectConverter::UStructToJsonObjectString(OldRecipe, OldJson);
+
+	const FString CombinedPrompt = FString::Printf(
+		TEXT("Here is the current recipe JSON:\n%s\n\nRefinement request: %s\n\nReturn the FULL updated recipe JSON."),
+		*OldJson,
+		*RefinementPrompt);
+
+	RequestRecipeJsonAsync(CombinedPrompt, [this, OnComplete, OldRecipe](bool bSuccess, const FString& RecipeJson, const FString& Error)
+	{
+		if (!OnComplete)
+		{
+			return;
+		}
+
+		if (!bSuccess)
+		{
+			SetLastError(Error);
+			OnComplete(OldRecipe, Error);
+			return;
+		}
+
+		FVFXRecipe Parsed;
+		FString ParseError;
+		if (!TryParseRecipeJson(RecipeJson, Parsed, ParseError))
+		{
+			SetLastError(ParseError);
+			OnComplete(OldRecipe, ParseError);
+			return;
+		}
+
+		Parsed.Version = OldRecipe.Version + 1;
+		OnComplete(Parsed, FString());
+	});
 }
 
 FVFXRecipe UHttpLLMProvider::GenerateRecipe(const FString& Prompt)
 {
+	ClearLastError();
 	FString RecipeJson;
 	FString Error;
 	if (!TryRequestRecipeJson(Prompt, RecipeJson, Error))
 	{
 		UE_LOG(LogVFXAgent, Error, TEXT("HttpLLMProvider: GenerateRecipe failed: %s"), *Error);
+		SetLastError(Error);
 		return FVFXRecipe();
 	}
 
@@ -292,6 +430,7 @@ FVFXRecipe UHttpLLMProvider::GenerateRecipe(const FString& Prompt)
 	if (!TryParseRecipeJson(RecipeJson, Parsed, Error))
 	{
 		UE_LOG(LogVFXAgent, Error, TEXT("HttpLLMProvider: Failed to parse recipe JSON: %s. Raw: %s"), *Error, *RecipeJson.Left(400));
+		SetLastError(Error);
 		return FVFXRecipe();
 	}
 
@@ -301,6 +440,7 @@ FVFXRecipe UHttpLLMProvider::GenerateRecipe(const FString& Prompt)
 
 FVFXRecipe UHttpLLMProvider::RefineRecipe(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt)
 {
+	ClearLastError();
 	// Simple refinement strategy: provide previous recipe as JSON and ask for an updated JSON.
 	FString OldJson;
 	FJsonObjectConverter::UStructToJsonObjectString(OldRecipe, OldJson);
@@ -315,6 +455,7 @@ FVFXRecipe UHttpLLMProvider::RefineRecipe(const FVFXRecipe& OldRecipe, const FSt
 	if (!TryRequestRecipeJson(CombinedPrompt, RecipeJson, Error))
 	{
 		UE_LOG(LogVFXAgent, Error, TEXT("HttpLLMProvider: RefineRecipe failed: %s"), *Error);
+		SetLastError(Error);
 		return OldRecipe;
 	}
 
@@ -322,6 +463,7 @@ FVFXRecipe UHttpLLMProvider::RefineRecipe(const FVFXRecipe& OldRecipe, const FSt
 	if (!TryParseRecipeJson(RecipeJson, Parsed, Error))
 	{
 		UE_LOG(LogVFXAgent, Error, TEXT("HttpLLMProvider: Failed to parse refined recipe JSON: %s. Raw: %s"), *Error, *RecipeJson.Left(400));
+		SetLastError(Error);
 		return OldRecipe;
 	}
 

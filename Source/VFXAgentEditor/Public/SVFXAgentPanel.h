@@ -20,10 +20,12 @@ private:
 	FReply OnGenerateClicked();
 	FReply OnApplyRefinementClicked();
 	FReply OnChooseOutputPathClicked();
+	FReply OnTestLLMClicked();
 
 	// Helper functions
 	void LogMessage(const FString& Message);
 	void UpdateLastRecipe(const FVFXRecipe& Recipe);
+	void RefreshLLMSettingsFromConfig();
 
 	// UI elements
 	TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;
@@ -37,5 +39,15 @@ private:
 	FString LastPrompt;
 
 	// LLM Provider
+	UObject* LLMProviderObject = nullptr;
 	ILLMProvider* LLMProvider = nullptr;
+
+	// Cached LLM settings for logging/debug
+	FString CachedLLMEndpoint;
+	FString CachedLLMModel;
+	FString CachedLLMBackend;
+	float CachedLLMTimeoutSeconds = 30.0f;
+	bool bCachedHasApiKey = false;
+
+	bool bRequestInFlight = false;
 };

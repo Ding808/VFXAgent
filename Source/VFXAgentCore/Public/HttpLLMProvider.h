@@ -26,6 +26,14 @@ public:
 		const FString& InApiKey,
 		float InTimeoutSeconds = 30.0f);
 
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|LLM")
+	FString GetLastError() const { return LastError; }
+
+	// Async variants (recommended for editor UI to avoid blocking the game thread).
+	using FOnRecipeComplete = TFunction<void(const FVFXRecipe& /*Recipe*/, const FString& /*Error*/)>;
+	void GenerateRecipeAsync(const FString& Prompt, FOnRecipeComplete OnComplete);
+	void RefineRecipeAsync(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt, FOnRecipeComplete OnComplete);
+
 	virtual FVFXRecipe GenerateRecipe(const FString& Prompt) override;
 	virtual FVFXRecipe RefineRecipe(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt) override;
 
@@ -47,5 +55,13 @@ private:
 
 	FString BuildSystemPrompt() const;
 	bool TryRequestRecipeJson(const FString& UserPrompt, FString& OutRecipeJson, FString& OutError) const;
+	using FOnRecipeJsonComplete = TFunction<void(bool /*bSuccess*/, const FString& /*RecipeJson*/, const FString& /*Error*/)>;
+	void RequestRecipeJsonAsync(const FString& UserPrompt, FOnRecipeJsonComplete OnComplete) const;
 	static bool TryParseRecipeJson(const FString& RecipeJson, FVFXRecipe& OutRecipe, FString& OutError);
+
+	void SetLastError(const FString& InError) { LastError = InError; }
+	void ClearLastError() { LastError.Reset(); }
+
+	UPROPERTY(VisibleAnywhere, Category = "VFXAgent|LLM")
+	FString LastError;
 };

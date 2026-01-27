@@ -8,6 +8,11 @@ struct FVFXEmitterRecipe
 {
 	GENERATED_BODY()
 
+	// Optional human-readable layer name/purpose (e.g. "CoreBurst", "Sparks", "Smoke", "Shockwave").
+	// Used for naming within the generated Niagara System.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	FString Name;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	float SpawnRate = 10.0f;
 

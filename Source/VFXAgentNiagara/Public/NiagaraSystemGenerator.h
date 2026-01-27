@@ -13,7 +13,8 @@ public:
 	virtual UNiagaraSystem* GenerateNiagaraSystem(
 		const FString& SystemName,
 		const FString& OutputPath,
-		const FVFXRecipe& Recipe) override;
+		const FVFXRecipe& Recipe,
+		const FString& TemplateSystemPath) override;
 
 	virtual bool UpdateNiagaraSystem(
 		UNiagaraSystem* System,
@@ -30,6 +31,10 @@ private:
 	class UNiagaraEmitter* CreateBasicEmitter(
 		const FVFXEmitterRecipe& EmitterRecipe,
 		UNiagaraSystem* ParentSystem);
+
+	// Optional template system used as a source of initialized emitters/modules.
+	UPROPERTY(Transient)
+	TObjectPtr<class UNiagaraSystem> TemplateSystem;
 
 	bool BindMaterialToEmitter(
 		class UNiagaraEmitter* Emitter,

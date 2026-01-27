@@ -22,44 +22,14 @@
 #include "Misc/Paths.h"
 #include "Misc/Paths.h"
 
+#include "Async/Async.h"
+
 #define LOCTEXT_NAMESPACE "SVFXAgentPanel"
 
 void SVFXAgentPanel::Construct(const FArguments& InArgs)
 {
+	RefreshLLMSettingsFromConfig();
 	const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-
-	if (!LLMProvider)
-	{
-		const FString BackendStr = Settings ? Settings->LLMBackend : TEXT("Mock");
-		const bool bUseOpenAI = BackendStr.Equals(TEXT("OpenAI"), ESearchCase::IgnoreCase);
-		const bool bUseOllama = BackendStr.Equals(TEXT("Ollama"), ESearchCase::IgnoreCase);
-
-		if (bUseOpenAI || bUseOllama)
-		{
-			UHttpLLMProvider* ProviderObj = NewObject<UHttpLLMProvider>(GetTransientPackage());
-			if (ProviderObj)
-			{
-				ProviderObj->AddToRoot();
-				const EVFXAgentLLMBackend Backend = bUseOllama ? EVFXAgentLLMBackend::OllamaGenerate : EVFXAgentLLMBackend::OpenAIChatCompletions;
-				ProviderObj->Configure(
-					Backend,
-					Settings ? Settings->LLMEndpoint : TEXT(""),
-					Settings ? Settings->LLMModel : TEXT(""),
-					Settings ? Settings->LLMApiKey : TEXT(""),
-					30.0f);
-				LLMProvider = ProviderObj;
-			}
-		}
-		else
-		{
-			UMockLLMProvider* ProviderObj = NewObject<UMockLLMProvider>(GetTransientPackage());
-			if (ProviderObj)
-			{
-				ProviderObj->AddToRoot();
-				LLMProvider = ProviderObj;
-			}
-		}
-	}
 
 	ChildSlot
 	[
@@ -167,7 +137,18 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 				[
 					SNew(SButton)
 					.Text(FText::FromString("Generate"))
+					.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
 					.OnClicked(this, &SVFXAgentPanel::OnGenerateClicked)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(SButton)
+					.Text(FText::FromString("Test LLM Connection"))
+					.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
+					.OnClicked(this, &SVFXAgentPanel::OnTestLLMClicked)
 				]
 			]
 		]
@@ -216,6 +197,7 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 				[
 					SNew(SButton)
 					.Text(FText::FromString("Apply Refinement"))
+					.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
 					.OnClicked(this, &SVFXAgentPanel::OnApplyRefinementClicked)
 				]
 			]
@@ -257,6 +239,12 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 
 FReply SVFXAgentPanel::OnGenerateClicked()
 {
+	RefreshLLMSettingsFromConfig();
+	if (bRequestInFlight)
+	{
+		LogMessage(TEXT("NOTE: LLM request already in progress..."));
+		return FReply::Handled();
+	}
 	if (!PromptTextBox.IsValid())
 	{
 		LogMessage("ERROR: Prompt text box is not valid");
@@ -316,6 +304,12 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 	}
 
 	LogMessage(FString::Printf(TEXT("Generating VFX...\nPrompt: %s\nOutput Path: %s\nAsset Name: %s"), *Prompt, *OutputPath, *AssetName));
+	LogMessage(FString::Printf(TEXT("LLM Settings: Backend=%s, Endpoint=%s, Model=%s, Timeout=%.1fs, ApiKey=%s"),
+		*CachedLLMBackend,
+		*CachedLLMEndpoint,
+		*CachedLLMModel,
+		CachedLLMTimeoutSeconds,
+		bCachedHasApiKey ? TEXT("set") : TEXT("missing")));
 
 	if (!LLMProvider)
 	{
@@ -323,43 +317,113 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		return FReply::Handled();
 	}
 
-	// Call LLM to generate recipe
-	FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
-	LastRecipe = Recipe;
-	LastPrompt = Prompt;
-
+	bRequestInFlight = true;
+	LogMessage(TEXT("Requesting recipe from LLM (async)..."));
+	
+	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
 	{
-		FString RecipeJson;
-		if (FJsonObjectConverter::UStructToJsonObjectString(Recipe, RecipeJson))
+		UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+		HttpProvider->GenerateRecipeAsync(Prompt, [this, Prompt, SafeAssetName, SafeOutputPath](const FVFXRecipe& Recipe, const FString& Error)
 		{
-			LogMessage(FString::Printf(TEXT("Recipe JSON (debug): %s"), *RecipeJson.Left(4000)));
-		}
-		else
-		{
-			LogMessage(TEXT("Recipe JSON (debug): <failed to serialize>"));
-		}
+			if (!Error.IsEmpty())
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("WARNING: LLM failed: %s"), *Error));
+				return;
+			}
+
+			LastRecipe = Recipe;
+			LastPrompt = Prompt;
+
+			{
+				FString RecipeJson;
+				if (FJsonObjectConverter::UStructToJsonObjectString(Recipe, RecipeJson))
+				{
+					LogMessage(FString::Printf(TEXT("Recipe JSON (debug): %s"), *RecipeJson.Left(4000)));
+				}
+				else
+				{
+					LogMessage(TEXT("Recipe JSON (debug): <failed to serialize>"));
+				}
+			}
+
+			LogMessage(FString::Printf(TEXT("Recipe generated:\nEmitters: %d\nLoop: %s\nDuration: %.2f\nVersion: %d"),
+				Recipe.Emitters.Num(),
+				Recipe.bLoop ? TEXT("true") : TEXT("false"),
+				Recipe.Duration,
+				Recipe.Version));
+
+			if (Recipe.Emitters.Num() == 0)
+			{
+				bRequestInFlight = false;
+				LogMessage(TEXT("WARNING: LLM returned no emitters."));
+				return;
+			}
+
+			// Generate Niagara System
+			try
+			{
+				UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
+				if (!Generator)
+				{
+					LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
+					return;
+				}
+
+				UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator: %p"), Generator);
+				LogMessage("Generating Niagara System, please wait...");
+
+				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+				const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
+				class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, Recipe, TemplatePath);
+				if (System)
+				{
+					LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
+					LogMessage(TEXT("VFX generation completed!"));
+				}
+				else
+				{
+					LogMessage(TEXT("ERROR: Failed to generate Niagara System - check log for details"));
+				}
+			}
+			catch (const std::exception& e)
+			{
+				LogMessage(FString::Printf(TEXT("ERROR: Exception during VFX generation: %s"), *FString(e.what())));
+			}
+			catch (...)
+			{
+				LogMessage(TEXT("ERROR: Unknown exception during VFX generation"));
+			}
+
+			bRequestInFlight = false;
+		});
 	}
-
-	LogMessage(FString::Printf(TEXT("Recipe generated:\nEmitters: %d\nLoop: %s\nDuration: %.2f\nVersion: %d"),
-		Recipe.Emitters.Num(),
-		Recipe.bLoop ? TEXT("true") : TEXT("false"),
-		Recipe.Duration,
-		Recipe.Version));
-
-	// Generate Niagara System
-	try
+	else
 	{
-		UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
-		if (!Generator)
+		// Fallback (e.g. mock provider): synchronous call.
+		FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
+		bRequestInFlight = false;
+		LastRecipe = Recipe;
+		LastPrompt = Prompt;
+		LogMessage(FString::Printf(TEXT("Recipe generated. Emitters: %d"), Recipe.Emitters.Num()));
+
+		if (Recipe.Emitters.Num() == 0)
 		{
-			LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
+			LogMessage(TEXT("WARNING: LLM returned no emitters."));
 			return FReply::Handled();
 		}
 
-		UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator: %p"), Generator);
-		LogMessage("Generating Niagara System, please wait...");
+		UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
+		if (!Generator)
+		{
+			LogMessage(TEXT("ERROR: Failed to create NiagaraSystemGenerator"));
+			return FReply::Handled();
+		}
 
-		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, Recipe);
+		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+		const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
+		LogMessage(TEXT("Generating Niagara System, please wait..."));
+		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, Recipe, TemplatePath);
 		if (System)
 		{
 			LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
@@ -370,13 +434,58 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 			LogMessage(TEXT("ERROR: Failed to generate Niagara System - check log for details"));
 		}
 	}
-	catch (const std::exception& e)
+
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnTestLLMClicked()
+{
+	RefreshLLMSettingsFromConfig();
+	if (bRequestInFlight)
 	{
-		LogMessage(FString::Printf(TEXT("ERROR: Exception during VFX generation: %s"), *FString(e.what())));
+		LogMessage(TEXT("NOTE: LLM request already in progress..."));
+		return FReply::Handled();
 	}
-	catch (...)
+	LogMessage(TEXT("Testing LLM connection..."));
+	LogMessage(FString::Printf(TEXT("LLM Settings: Backend=%s, Endpoint=%s, Model=%s, Timeout=%.1fs, ApiKey=%s"),
+		*CachedLLMBackend,
+		*CachedLLMEndpoint,
+		*CachedLLMModel,
+		CachedLLMTimeoutSeconds,
+		bCachedHasApiKey ? TEXT("set") : TEXT("missing")));
+
+	if (!LLMProvider)
 	{
-		LogMessage(TEXT("ERROR: Unknown exception during VFX generation"));
+		LogMessage(TEXT("ERROR: LLM Provider not initialized"));
+		return FReply::Handled();
+	}
+
+	const FString TestPrompt = TEXT("A small blue spark with a short smoke puff");
+	bRequestInFlight = true;
+
+	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+	{
+		UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+		HttpProvider->GenerateRecipeAsync(TestPrompt, [this](const FVFXRecipe& Recipe, const FString& Error)
+		{
+			bRequestInFlight = false;
+			LogMessage(FString::Printf(TEXT("LLM test completed. Emitters: %d"), Recipe.Emitters.Num()));
+			if (!Error.IsEmpty())
+			{
+				LogMessage(FString::Printf(TEXT("WARNING: LLM failed: %s"), *Error));
+				return;
+			}
+			if (Recipe.Emitters.Num() == 0)
+			{
+				LogMessage(TEXT("WARNING: LLM returned no emitters. Check endpoint, API key, and network connectivity."));
+			}
+		});
+	}
+	else
+	{
+		FVFXRecipe Recipe = LLMProvider->GenerateRecipe(TestPrompt);
+		bRequestInFlight = false;
+		LogMessage(FString::Printf(TEXT("LLM test completed. Emitters: %d"), Recipe.Emitters.Num()));
 	}
 
 	return FReply::Handled();
@@ -384,6 +493,12 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 
 FReply SVFXAgentPanel::OnApplyRefinementClicked()
 {
+	RefreshLLMSettingsFromConfig();
+	if (bRequestInFlight)
+	{
+		LogMessage(TEXT("NOTE: LLM request already in progress..."));
+		return FReply::Handled();
+	}
 	if (!RefinementTextBox.IsValid())
 	{
 		LogMessage("ERROR: Refinement text box is not valid");
@@ -400,10 +515,116 @@ FReply SVFXAgentPanel::OnApplyRefinementClicked()
 		return FReply::Handled();
 	}
 
-	// Refine the recipe
-	FVFXRecipe RefinedRecipe = LLMProvider->RefineRecipe(LastRecipe, RefinementPrompt);
-	LastRecipe = RefinedRecipe;
+	bRequestInFlight = true;
+	LogMessage(TEXT("Requesting refinement from LLM (async)..."));
 
+	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+	{
+		UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+		HttpProvider->RefineRecipeAsync(LastRecipe, RefinementPrompt, [this](const FVFXRecipe& RefinedRecipe, const FString& Error)
+		{
+			if (!Error.IsEmpty())
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("WARNING: Refinement failed: %s"), *Error));
+				return;
+			}
+
+			LastRecipe = RefinedRecipe;
+			LogMessage(FString::Printf(TEXT("Recipe refined:\nVersion: %d\nEmitters: %d"),
+				RefinedRecipe.Version,
+				RefinedRecipe.Emitters.Num()));
+
+			// Generate a new version of the Niagara System
+			FString OutputPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : "/Game/VFXAgent/Generated";
+			FString BaseAssetName = AssetNameTextBox.IsValid() ? AssetNameTextBox->GetText().ToString() : "VFX_GeneratedEffect";
+
+			// Sanitize base asset name
+			FString SafeBaseName = BaseAssetName;
+			if (SafeBaseName.IsEmpty())
+			{
+				SafeBaseName = TEXT("VFX_GeneratedEffect");
+			}
+			for (int32 i = 0; i < SafeBaseName.Len(); ++i)
+			{
+				TCHAR& C = SafeBaseName[i];
+				if (!(FChar::IsAlnum(C) || C == TCHAR('_')))
+				{
+					C = TCHAR('_');
+				}
+			}
+
+			FString NewAssetName = FString::Printf(TEXT("%s_v%d"), *SafeBaseName, RefinedRecipe.Version);
+
+			// Validate OutputPath (must be /Game/... or inside Content)
+			FString SafeOutputPath = OutputPath.TrimStartAndEnd();
+			if (!SafeOutputPath.StartsWith(TEXT("/Game")))
+			{
+				FString FullSelected = FPaths::ConvertRelativePathToFull(SafeOutputPath);
+				FString ContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
+				if (FullSelected.StartsWith(ContentDir))
+				{
+					FString Relative = FullSelected.Mid(ContentDir.Len());
+					Relative = Relative.Replace(TEXT("\\"), TEXT("/"));
+					Relative = Relative.TrimStartAndEnd();
+					SafeOutputPath = FString::Printf(TEXT("/Game/%s"), *Relative);
+					if (SafeOutputPath.EndsWith(TEXT("/")))
+					{
+						SafeOutputPath.LeftChopInline(1);
+					}
+				}
+				else
+				{
+					LogMessage(FString::Printf(TEXT("ERROR: Output path must be inside the project's Content folder or start with /Game/: %s"), *OutputPath));
+					bRequestInFlight = false;
+					return;
+				}
+			}
+
+			UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
+			if (!Generator)
+			{
+				LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
+				bRequestInFlight = false;
+				return;
+			}
+
+			try
+			{
+				UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator (refine): %p"), Generator);
+				LogMessage("Generating refined Niagara System, please wait...");
+
+				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+				const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
+				class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, RefinedRecipe, TemplatePath);
+				if (System)
+				{
+					LogMessage(FString::Printf(TEXT("Successfully generated refined Niagara System: %s"), *NewAssetName));
+					LogMessage(TEXT("VFX refinement completed!"));
+				}
+				else
+				{
+					LogMessage(TEXT("ERROR: Failed to generate refined Niagara System - check log for details"));
+				}
+			}
+			catch (const std::exception& e)
+			{
+				LogMessage(FString::Printf(TEXT("ERROR: Exception during refinement: %s"), *FString(e.what())));
+			}
+			catch (...)
+			{
+				LogMessage(TEXT("ERROR: Unknown exception during refinement"));
+			}
+
+			bRequestInFlight = false;
+		});
+		return FReply::Handled();
+	}
+
+	// Fallback: synchronous refine for mock provider.
+	FVFXRecipe RefinedRecipe = LLMProvider->RefineRecipe(LastRecipe, RefinementPrompt);
+	bRequestInFlight = false;
+	LastRecipe = RefinedRecipe;
 	LogMessage(FString::Printf(TEXT("Recipe refined:\nVersion: %d\nEmitters: %d"),
 		RefinedRecipe.Version,
 		RefinedRecipe.Emitters.Num()));
@@ -465,7 +686,9 @@ FReply SVFXAgentPanel::OnApplyRefinementClicked()
 		UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator (refine): %p"), Generator);
 		LogMessage("Generating refined Niagara System, please wait...");
 
-		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, RefinedRecipe);
+		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+		const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
+		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, RefinedRecipe, TemplatePath);
 		if (System)
 		{
 			LogMessage(FString::Printf(TEXT("Successfully generated refined Niagara System: %s"), *NewAssetName));
@@ -502,6 +725,64 @@ void SVFXAgentPanel::LogMessage(const FString& Message)
 void SVFXAgentPanel::UpdateLastRecipe(const FVFXRecipe& Recipe)
 {
 	LastRecipe = Recipe;
+}
+
+void SVFXAgentPanel::RefreshLLMSettingsFromConfig()
+{
+	const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+	CachedLLMEndpoint = Settings ? Settings->LLMEndpoint : TEXT("");
+	CachedLLMModel = Settings ? Settings->LLMModel : TEXT("");
+	CachedLLMBackend = Settings ? Settings->LLMBackend : TEXT("Mock");
+	CachedLLMTimeoutSeconds = Settings ? Settings->LLMTimeoutSeconds : 30.0f;
+	bCachedHasApiKey = Settings && !Settings->LLMApiKey.IsEmpty();
+
+	const bool bUseOpenAI =
+		CachedLLMBackend.Equals(TEXT("OpenAI"), ESearchCase::IgnoreCase) ||
+		CachedLLMBackend.Equals(TEXT("ChatGPT"), ESearchCase::IgnoreCase) ||
+		CachedLLMBackend.Equals(TEXT("OpenAIChatCompletions"), ESearchCase::IgnoreCase);
+	const bool bUseOllama = CachedLLMBackend.Equals(TEXT("Ollama"), ESearchCase::IgnoreCase);
+
+	if (bUseOpenAI || bUseOllama)
+	{
+		UHttpLLMProvider* ProviderObj = (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+			? static_cast<UHttpLLMProvider*>(LLMProviderObject)
+			: nullptr;
+		if (!ProviderObj)
+		{
+			ProviderObj = NewObject<UHttpLLMProvider>(GetTransientPackage());
+			if (ProviderObj)
+			{
+				ProviderObj->AddToRoot();
+				LLMProviderObject = ProviderObj;
+				LLMProvider = ProviderObj;
+			}
+		}
+
+		if (ProviderObj)
+		{
+			const EVFXAgentLLMBackend Backend = bUseOllama ? EVFXAgentLLMBackend::OllamaGenerate : EVFXAgentLLMBackend::OpenAIChatCompletions;
+			ProviderObj->Configure(
+				Backend,
+				CachedLLMEndpoint,
+				CachedLLMModel,
+				Settings ? Settings->LLMApiKey : TEXT(""),
+				CachedLLMTimeoutSeconds);
+		}
+	}
+	else
+	{
+		const bool bHasMock = LLMProviderObject && LLMProviderObject->IsA(UMockLLMProvider::StaticClass());
+		if (!LLMProvider || !bHasMock)
+		{
+			UMockLLMProvider* ProviderObj = NewObject<UMockLLMProvider>(GetTransientPackage());
+			if (ProviderObj)
+			{
+				ProviderObj->AddToRoot();
+				LLMProviderObject = ProviderObj;
+				LLMProvider = ProviderObj;
+			}
+		}
+	}
 }
 
 #undef LOCTEXT_NAMESPACE

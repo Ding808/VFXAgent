@@ -12,7 +12,8 @@ public:
 	virtual class UNiagaraSystem* GenerateNiagaraSystem(
 		const FString& SystemName,
 		const FString& OutputPath,
-		const FVFXRecipe& Recipe) = 0;
+		const FVFXRecipe& Recipe,
+		const FString& TemplateSystemPath) = 0;
 
 	// Update an existing Niagara system
 	virtual bool UpdateNiagaraSystem(
