@@ -392,9 +392,9 @@ bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const 
 		UE_LOG(LogVFXAgent, Warning, TEXT("Template system loaded but contained no UNiagaraEmitter subobjects: %s"), *TemplateSystem->GetPathName());
 	}
 
+
 	// Clear existing emitters.
 	{
-		// RemoveEmitterHandle takes a handle reference in UE 5.5.
 		TArray<FNiagaraEmitterHandle> HandlesCopy = System->GetEmitterHandles();
 		for (const FNiagaraEmitterHandle& Handle : HandlesCopy)
 		{
@@ -402,23 +402,106 @@ bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const 
 		}
 	}
 
+
 	for (int32 Index = 0; Index < Recipe.Emitters.Num(); ++Index)
 	{
 		const FVFXEmitterRecipe& EmitterRecipe = Recipe.Emitters[Index];
+		UNiagaraEmitter* TargetTemplate = nullptr;
+
+		// 1. Try to load specific template requested by LLM
+		if (!EmitterRecipe.TemplateName.IsEmpty())
+		{
+			// Map friendly names to potential paths
+			TArray<FString> CandidatePaths;
+			
+			auto AddCandidate = [&](const FString& InPath) { CandidatePaths.Add(InPath); };
+
+			if (EmitterRecipe.TemplateName.Equals(TEXT("Fountain"), ESearchCase::IgnoreCase))
+			{
+				AddCandidate(TEXT("/Niagara/Emitters/Omnidirectional/Fountain.Fountain"));
+				AddCandidate(TEXT("/Engine/Plugins/FX/Niagara/Content/Emitters/Omnidirectional/Fountain.Fountain"));
+			}
+			else if (EmitterRecipe.TemplateName.Equals(TEXT("DirectionalBurst"), ESearchCase::IgnoreCase))
+			{
+				AddCandidate(TEXT("/Niagara/Emitters/DirectionalBurst.DirectionalBurst"));
+				AddCandidate(TEXT("/Engine/Plugins/FX/Niagara/Content/Emitters/DirectionalBurst.DirectionalBurst"));
+			}
+			else if (EmitterRecipe.TemplateName.Equals(TEXT("OmnidirectionalBurst"), ESearchCase::IgnoreCase))
+			{
+				AddCandidate(TEXT("/Niagara/Emitters/Omnidirectional/OmnidirectionalBurst.OmnidirectionalBurst"));
+				AddCandidate(TEXT("/Niagara/Emitters/OmnidirectionalBurst.OmnidirectionalBurst"));
+				AddCandidate(TEXT("/Engine/Plugins/FX/Niagara/Content/Emitters/Omnidirectional/OmnidirectionalBurst.OmnidirectionalBurst"));
+			}
+			else if (EmitterRecipe.TemplateName.Equals(TEXT("HangingParticulates"), ESearchCase::IgnoreCase))
+			{
+				AddCandidate(TEXT("/Niagara/Emitters/HangingParticulates.HangingParticulates"));
+				AddCandidate(TEXT("/Engine/Plugins/FX/Niagara/Content/Emitters/HangingParticulates.HangingParticulates"));
+			}
+			else if (EmitterRecipe.TemplateName.Equals(TEXT("UpwardMeshBurst"), ESearchCase::IgnoreCase))
+			{
+				AddCandidate(TEXT("/Niagara/Emitters/UpwardMeshBurst.UpwardMeshBurst"));
+				AddCandidate(TEXT("/Engine/Plugins/FX/Niagara/Content/Emitters/UpwardMeshBurst.UpwardMeshBurst"));
+			}
+			else if (EmitterRecipe.TemplateName.Equals(TEXT("Beam"), ESearchCase::IgnoreCase) || EmitterRecipe.RendererType.Equals(TEXT("Ribbon"), ESearchCase::IgnoreCase))
+			{
+				AddCandidate(TEXT("/Niagara/Emitters/Beams/Beam.Beam"));
+				AddCandidate(TEXT("/Niagara/Emitters/Beam.Beam"));
+				AddCandidate(TEXT("/Niagara/Emitters/Beams/DynamicBeam.DynamicBeam"));
+				AddCandidate(TEXT("/Engine/Plugins/FX/Niagara/Content/Emitters/Beams/Beam.Beam"));
+			}
+			else
+			{
+				// User provided a direct path or something unknown
+				AddCandidate(EmitterRecipe.TemplateName);
+			}
+
+			// Try to load
+			for (const FString& Path : CandidatePaths)
+			{
+				TargetTemplate = LoadObject<UNiagaraEmitter>(nullptr, *Path);
+				if (TargetTemplate)
+				{
+					UE_LOG(LogVFXAgent, Log, TEXT("Index %d: Loaded template '%s' from %s"), Index, *EmitterRecipe.TemplateName, *Path);
+					break;
+				}
+				else
+				{
+					UE_LOG(LogVFXAgent, Verbose, TEXT("Index %d: Failed to load template candidate: %s"), Index, *Path);
+				}
+			}
+			
+			if (!TargetTemplate)
+			{
+				UE_LOG(LogVFXAgent, Warning, TEXT("Index %d: Could not find any valid template for '%s'"), Index, *EmitterRecipe.TemplateName);
+			}
+		}
+
+		// 2. Fallback to default TemplateEmitter (Fountain) if specific one failed
+		if (!TargetTemplate)
+		{
+			TargetTemplate = TemplateEmitter;
+			UE_LOG(LogVFXAgent, Log, TEXT("Index %d: Falling back to global template (Fountain)"), Index);
+		}
+
 		UNiagaraEmitter* EmitterAsset = nullptr;
-		if (TemplateEmitter)
+		if (TargetTemplate)
 		{
 			const FString BaseEmitterObjectName = FString::Printf(TEXT("%s_%s_Emitter"), *System->GetName(), *EmitterRecipe.RendererType);
 			const FName UniqueObjectName = MakeUniqueObjectName(System, UNiagaraEmitter::StaticClass(), FName(*BaseEmitterObjectName));
-			EmitterAsset = DuplicateObject<UNiagaraEmitter>(TemplateEmitter, System, UniqueObjectName);
+			// Use DuplicateObject to create a deep copy of the template as a new object inside the System package
+			EmitterAsset = DuplicateObject<UNiagaraEmitter>(TargetTemplate, System, UniqueObjectName);
 		}
+		
 		if (!EmitterAsset)
 		{
+			// Last resort
 			EmitterAsset = CreateBasicEmitter(EmitterRecipe, System);
+			UE_LOG(LogVFXAgent, Warning, TEXT("Index %d: Created Basic Emitter (Empty fallback)"), Index);
 		}
+
 		if (!EmitterAsset)
 		{
-			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to create emitter %d"), Index);
+			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to create emitter %d (Template: %s)"), Index, *EmitterRecipe.TemplateName);
 			continue;
 		}
 
@@ -441,11 +524,28 @@ bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const 
 			}
 		}
 		const FString EmitterNameStr = FString::Printf(TEXT("%s_%s_%02d"), *System->GetName(), *LayerName, Index);
+		// IMPORTANT: Ensure the emitter is Public/Standalone so it survives and acts as a proper subobject? 
+		// Actually, DuplicateObject with Outer=System usually makes it part of the package.
+		EmitterAsset->SetFlags(RF_Transactional | RF_Public);
+
 		const FGuid VersionGuid = EmitterAsset->GetExposedVersion().VersionGuid;
 		System->AddEmitterHandle(*EmitterAsset, FName(*EmitterNameStr), VersionGuid);
 	}
 
+	// Force a full recompile and resource refresh to ensure emitters show up
 	System->RequestCompile(false);
+
+	// HACK: Sometimes emitters don't appear in the editor graph until the system is post-loaded or inspected.
+	// Force update the graph representation if possible.
+	// In some versions of UE5, we might need to notify the asset registry or something similar, 
+	// but MarkPackageDirty + RequestCompile is standard.
+	// Ensuring the handles are properly "Enabled" might be needed.
+	for (int32 i = 0; i < System->GetNumEmitters(); ++i)
+	{
+		// Just ensuring we touch them
+		System->GetEmitterHandle(i).SetIsEnabled(true, *System, true);
+	}
+	
 	System->MarkPackageDirty();
 	return true;
 #else

@@ -22,6 +22,11 @@ struct FVFXEmitterRecipe
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	FString RendererType = "Sprite"; // Sprite, Mesh, Ribbon
 
+	// New: Specify a preferred Niagara template to base this emitter on.
+	// Examples: "Fountain", "DirectionalBurst", "HangingParticulates", "OmnidirectionalBurst", "UpwardMeshBurst", "Beam"
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	FString TemplateName = "Fountain";
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	FLinearColor Color = FLinearColor::White;
 
