@@ -1,8 +1,0 @@
-{
-	"OutputFiles": [
-		"..\\..\\..\\x64\\UnrealGame\\Development\\VFXAgentCore\\Module.VFXAgentCore.cpp.obj",
-		"..\\..\\..\\x64\\UnrealGame\\Development\\VFXAgentCore\\HttpLLMProvider.cpp.obj",
-		"..\\..\\..\\x64\\UnrealGame\\Development\\VFXAgentCore\\VFXAgentCoreModule.cpp.obj",
-		"..\\..\\..\\x64\\UnrealGame\\Development\\VFXAgentCore\\VFXAgentLog.cpp.obj"
-	]
-}

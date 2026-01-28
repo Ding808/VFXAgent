@@ -135,10 +135,52 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 				.AutoHeight()
 				.Padding(5.0f)
 				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Reference Image (optional):"))
+					.Font(FCoreStyle::Get().GetFontStyle("SmallFont"))
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					[
+						SAssignNew(ImagePathTextBox, SEditableTextBox)
+						.Text(FText::FromString(""))
+						.IsReadOnly(false)
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("..."))
+						.OnClicked(this, &SVFXAgentPanel::OnChooseImagePathClicked)
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
 					SNew(SButton)
 					.Text(FText::FromString("Generate"))
 					.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
 					.OnClicked(this, &SVFXAgentPanel::OnGenerateClicked)
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(SButton)
+					.Text(FText::FromString("Generate From Image"))
+					.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
+					.OnClicked(this, &SVFXAgentPanel::OnGenerateFromImageClicked)
 				]
 
 				+ SVerticalBox::Slot()
@@ -374,8 +416,17 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 				LogMessage("Generating Niagara System, please wait...");
 
 				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-				const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
-				class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, Recipe, TemplatePath);
+				const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
+				const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
+				FVFXRecipe FinalRecipe = Recipe;
+				if (!bUseTemplates)
+				{
+					for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
+					{
+						Emitter.TemplateName.Empty();
+					}
+				}
+				class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, FinalRecipe, TemplatePath);
 				if (System)
 				{
 					LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
@@ -421,9 +472,18 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		}
 
 		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-		const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
+		const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
+		const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
+		FVFXRecipe FinalRecipe = Recipe;
+		if (!bUseTemplates)
+		{
+			for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
+			{
+				Emitter.TemplateName.Empty();
+			}
+		}
 		LogMessage(TEXT("Generating Niagara System, please wait..."));
-		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, Recipe, TemplatePath);
+		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, FinalRecipe, TemplatePath);
 		if (System)
 		{
 			LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
@@ -435,6 +495,201 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		}
 	}
 
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnGenerateFromImageClicked()
+{
+	RefreshLLMSettingsFromConfig();
+	if (bRequestInFlight)
+	{
+		LogMessage(TEXT("NOTE: LLM request already in progress..."));
+		return FReply::Handled();
+	}
+
+	if (!ImagePathTextBox.IsValid())
+	{
+		LogMessage(TEXT("ERROR: Image path text box is not valid"));
+		return FReply::Handled();
+	}
+
+	FString ImagePath = ImagePathTextBox->GetText().ToString();
+	ImagePath = ImagePath.TrimStartAndEnd();
+	if (ImagePath.IsEmpty())
+	{
+		LogMessage(TEXT("ERROR: Please choose a reference image first."));
+		return FReply::Handled();
+	}
+
+	FString Prompt = PromptTextBox.IsValid() ? PromptTextBox->GetText().ToString() : FString();
+	FString OutputPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : "/Game/VFXAgent/Generated";
+	FString AssetName = AssetNameTextBox.IsValid() ? AssetNameTextBox->GetText().ToString() : "VFX_GeneratedEffect";
+
+	// Validate and sanitize AssetName
+	FString SafeAssetName = AssetName;
+	if (SafeAssetName.IsEmpty())
+	{
+		SafeAssetName = TEXT("VFX_GeneratedEffect");
+	}
+	bool bAssetChanged = false;
+	for (int32 i = 0; i < SafeAssetName.Len(); ++i)
+	{
+		TCHAR& C = SafeAssetName[i];
+		if (!(FChar::IsAlnum(C) || C == TCHAR('_')))
+		{
+			C = TCHAR('_');
+			bAssetChanged = true;
+		}
+	}
+	if (bAssetChanged)
+	{
+		LogMessage(FString::Printf(TEXT("Note: Asset name contained invalid characters, sanitized to: %s"), *SafeAssetName));
+	}
+
+	// Validate OutputPath: accept /Game/... virtual paths or filesystem folders under Content/
+	FString SafeOutputPath = OutputPath;
+	SafeOutputPath = SafeOutputPath.TrimStartAndEnd();
+	if (!SafeOutputPath.StartsWith(TEXT("/Game")))
+	{
+		// Maybe a filesystem path; convert to full
+		FString FullSelected = FPaths::ConvertRelativePathToFull(SafeOutputPath);
+		FString ContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
+		if (FullSelected.StartsWith(ContentDir))
+		{
+			FString Relative = FullSelected.Mid(ContentDir.Len());
+			Relative = Relative.Replace(TEXT("\\"), TEXT("/"));
+			Relative = Relative.TrimStartAndEnd();
+			SafeOutputPath = FString::Printf(TEXT("/Game/%s"), *Relative);
+			if (SafeOutputPath.EndsWith(TEXT("/")))
+			{
+				SafeOutputPath.LeftChopInline(1);
+			}
+			LogMessage(FString::Printf(TEXT("Converted filesystem path to virtual path: %s"), *SafeOutputPath));
+		}
+		else
+		{
+			LogMessage(FString::Printf(TEXT("ERROR: Output path must be inside the project's Content folder or start with /Game/: %s"), *OutputPath));
+			return FReply::Handled();
+		}
+	}
+
+	LogMessage(FString::Printf(TEXT("Generating VFX from image...\nImage: %s\nPrompt: %s\nOutput Path: %s\nAsset Name: %s"), *ImagePath, *Prompt, *OutputPath, *AssetName));
+	LogMessage(FString::Printf(TEXT("LLM Settings: Backend=%s, Endpoint=%s, Model=%s, Timeout=%.1fs, ApiKey=%s"),
+		*CachedLLMBackend,
+		*CachedLLMEndpoint,
+		*CachedLLMModel,
+		CachedLLMTimeoutSeconds,
+		bCachedHasApiKey ? TEXT("set") : TEXT("missing")));
+
+	if (!LLMProvider)
+	{
+		LogMessage(TEXT("ERROR: LLM Provider not initialized"));
+		return FReply::Handled();
+	}
+
+	bRequestInFlight = true;
+	LogMessage(TEXT("Requesting recipe from LLM (image+prompt, async)..."));
+
+	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+	{
+		UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+		HttpProvider->GenerateRecipeFromImageAsync(ImagePath, Prompt, [this, Prompt, SafeAssetName, SafeOutputPath](const FVFXRecipe& Recipe, const FString& Error)
+		{
+			if (!Error.IsEmpty())
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("WARNING: LLM failed: %s"), *Error));
+				return;
+			}
+
+			if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+			{
+				UHttpLLMProvider* Provider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+				const FString RawJson = Provider->GetLastRawRecipeJson();
+				if (!RawJson.IsEmpty())
+				{
+					LogMessage(FString::Printf(TEXT("Image Analysis JSON (raw): %s"), *RawJson.Left(4000)));
+				}
+			}
+
+			LastRecipe = Recipe;
+			LastPrompt = Prompt;
+
+			{
+				FString RecipeJson;
+				if (FJsonObjectConverter::UStructToJsonObjectString(Recipe, RecipeJson))
+				{
+					LogMessage(FString::Printf(TEXT("Recipe JSON (debug): %s"), *RecipeJson.Left(4000)));
+				}
+				else
+				{
+					LogMessage(TEXT("Recipe JSON (debug): <failed to serialize>"));
+				}
+			}
+
+			LogMessage(FString::Printf(TEXT("Recipe generated from image:\nEmitters: %d\nLoop: %s\nDuration: %.2f\nVersion: %d"),
+				Recipe.Emitters.Num(),
+				Recipe.bLoop ? TEXT("true") : TEXT("false"),
+				Recipe.Duration,
+				Recipe.Version));
+
+			if (Recipe.Emitters.Num() == 0)
+			{
+				bRequestInFlight = false;
+				LogMessage(TEXT("WARNING: LLM returned no emitters."));
+				return;
+			}
+
+			try
+			{
+				UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
+				if (!Generator)
+				{
+					LogMessage(TEXT("ERROR: Failed to create NiagaraSystemGenerator"));
+					return;
+				}
+
+				UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator: %p"), Generator);
+				LogMessage(TEXT("Generating Niagara System, please wait..."));
+
+				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+				const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
+				const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
+				FVFXRecipe FinalRecipe = Recipe;
+				if (!bUseTemplates)
+				{
+					for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
+					{
+						Emitter.TemplateName.Empty();
+					}
+				}
+				class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(SafeAssetName, SafeOutputPath, FinalRecipe, TemplatePath);
+				if (System)
+				{
+					LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
+					LogMessage(TEXT("VFX generation completed!"));
+				}
+				else
+				{
+					LogMessage(TEXT("ERROR: Failed to generate Niagara System - check log for details"));
+				}
+			}
+			catch (const std::exception& e)
+			{
+				LogMessage(FString::Printf(TEXT("ERROR: Exception during VFX generation: %s"), *FString(e.what())));
+			}
+			catch (...)
+			{
+				LogMessage(TEXT("ERROR: Unknown exception during VFX generation"));
+			}
+
+			bRequestInFlight = false;
+		});
+		return FReply::Handled();
+	}
+
+	LogMessage(TEXT("ERROR: Image-based generation requires the HTTP LLM provider."));
+	bRequestInFlight = false;
 	return FReply::Handled();
 }
 
@@ -595,8 +850,17 @@ FReply SVFXAgentPanel::OnApplyRefinementClicked()
 				LogMessage("Generating refined Niagara System, please wait...");
 
 				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-				const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
-				class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, RefinedRecipe, TemplatePath);
+				const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
+				const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
+				FVFXRecipe FinalRecipe = RefinedRecipe;
+				if (!bUseTemplates)
+				{
+					for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
+					{
+						Emitter.TemplateName.Empty();
+					}
+				}
+				class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, FinalRecipe, TemplatePath);
 				if (System)
 				{
 					LogMessage(FString::Printf(TEXT("Successfully generated refined Niagara System: %s"), *NewAssetName));
@@ -687,8 +951,17 @@ FReply SVFXAgentPanel::OnApplyRefinementClicked()
 		LogMessage("Generating refined Niagara System, please wait...");
 
 		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-		const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
-		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, RefinedRecipe, TemplatePath);
+		const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
+		const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
+		FVFXRecipe FinalRecipe = RefinedRecipe;
+		if (!bUseTemplates)
+		{
+			for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
+			{
+				Emitter.TemplateName.Empty();
+			}
+		}
+		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, FinalRecipe, TemplatePath);
 		if (System)
 		{
 			LogMessage(FString::Printf(TEXT("Successfully generated refined Niagara System: %s"), *NewAssetName));
@@ -832,6 +1105,42 @@ FReply SVFXAgentPanel::OnChooseOutputPathClicked()
 		}
 
 		LogMessage(FString::Printf(TEXT("Selected Output Path: %s"), *NewPath));
+	}
+
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnChooseImagePathClicked()
+{
+	IDesktopPlatform* DesktopPlatform = FDesktopPlatformModule::Get();
+	if (!DesktopPlatform)
+	{
+		LogMessage(TEXT("ERROR: DesktopPlatform not available"));
+		return FReply::Handled();
+	}
+
+	const void* ParentWindowHandle = FSlateApplication::Get().FindBestParentWindowHandleForDialogs(nullptr);
+
+	FString DefaultPath = ImagePathTextBox.IsValid() ? ImagePathTextBox->GetText().ToString() : TEXT("");
+	TArray<FString> OutFiles;
+	const FString FileTypes = TEXT("Image Files (*.png;*.jpg;*.jpeg;*.webp)|*.png;*.jpg;*.jpeg;*.webp|All Files (*.*)|*.*");
+	const bool bFilePicked = DesktopPlatform->OpenFileDialog(
+		const_cast<void*>(ParentWindowHandle),
+		TEXT("Choose Reference Image"),
+		DefaultPath,
+		TEXT(""),
+		FileTypes,
+		EFileDialogFlags::None,
+		OutFiles);
+
+	if (bFilePicked && OutFiles.Num() > 0)
+	{
+		const FString SelectedFile = OutFiles[0];
+		if (ImagePathTextBox.IsValid())
+		{
+			ImagePathTextBox->SetText(FText::FromString(SelectedFile));
+		}
+		LogMessage(FString::Printf(TEXT("Selected Image: %s"), *SelectedFile));
 	}
 
 	return FReply::Handled();

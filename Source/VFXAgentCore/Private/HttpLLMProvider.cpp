@@ -7,6 +7,9 @@
 #include "Misc/ScopeLock.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
+#include "Misc/Base64.h"
+#include "Misc/FileHelper.h"
+#include "Misc/Paths.h"
 
 #include "HttpModule.h"
 #include "HttpManager.h"
@@ -52,7 +55,7 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 		"  \"warmupTime\": 0.0,\n"
 		"  \"bounds\": {\"x\":100,\"y\":100,\"z\":100},\n"
 		"  \"emitters\": [\n"
-		"    {\"name\":\"Core\",\"spawnRate\":10,\"burstCount\":0,\"rendererType\":\"Sprite\",\"templateName\":\"Fountain\",\"color\":{\"r\":1,\"g\":1,\"b\":1,\"a\":1},\"lifetime\":5}\n"
+		"    {\"name\":\"Core\",\"spawnRate\":10,\"burstCount\":0,\"rendererType\":\"Sprite\",\"templateName\":\"Fountain\",\"color\":{\"r\":1,\"g\":1,\"b\":1,\"a\":1},\"lifetime\":5,\"size\":10,\"velocity\":{\"x\":0,\"y\":0,\"z\":100}}\n"
 		"  ],\n"
 		"  \"parameters\": {\"Color\":\"Blue\", \"Intensity\":\"1.0\"},\n"
 		"  \"materials\": [{\"description\":\"Basic additive material\",\"bIsAdditive\":true,\"baseMaterialPath\":\"/Engine/EngineMaterials/ParticleSpriteMaterial\"}],\n"
@@ -68,6 +71,12 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 		"  explosion: core burst (Sprite, OmnidirectionalBurst), sparks (Sprite, DirectionalBurst), smoke (Sprite, Fountain), shockwave (Ribbon, Omni).\n"
 		"  magic/electric: arcs (Ribbon, Beam), glow particles (Sprite, HangingParticulates), secondary smoke/dust (Sprite, Fountain).\n"
 		"  fire: flames (Sprite), embers (Sprite), smoke (Sprite).\n"
+		"- size: particle size in world units (1-100 typical). Adjust based on effect scale.\n"
+		"- velocity: {x,y,z} direction and speed of particles. Positive z is up. Use values like 50-500 for typical effects.\n"
+		"- spawnRate: particles per second (10-200 typical for continuous, 0 if using burstCount).\n"
+		"- burstCount: number of particles to spawn instantly (0 for continuous, 10-500 for bursts).\n"
+		"- lifetime: how long each particle lives in seconds (0.5-10 typical).\n"
+		"- color: RGBA values (0-1 range). Use appropriate colors for the effect (e.g. orange/red for fire, blue for electricity).\n"
 		"- Use numeric values in sensible ranges and ensure emitters array length reflects the layers."
 	);
 }
@@ -470,4 +479,232 @@ FVFXRecipe UHttpLLMProvider::RefineRecipe(const FVFXRecipe& OldRecipe, const FSt
 
 	Parsed.Version = OldRecipe.Version + 1;
 	return Parsed;
+}
+
+FString UHttpLLMProvider::BuildVisionUserPrompt(const FString& OptionalPrompt) const
+{
+	FString Prompt = TEXT(
+		"Analyze the provided VFX reference image and infer a layered Niagara effect. "
+		"Identify the main visual layers (core, sparks, smoke, trails, glow, shockwave, etc.) and map each layer to a separate emitter. "
+		"Return ONLY the JSON object that matches the schema from the system prompt. Do not include any markdown or extra text."
+	);
+
+	if (!OptionalPrompt.IsEmpty())
+	{
+		Prompt += TEXT("\n\nUser guidance: ");
+		Prompt += OptionalPrompt;
+	}
+
+	return Prompt;
+}
+
+static FString GetImageMimeTypeFromExtension(const FString& ImageFilePath)
+{
+	FString Ext = FPaths::GetExtension(ImageFilePath).ToLower();
+	if (Ext == TEXT("jpg") || Ext == TEXT("jpeg"))
+	{
+		return TEXT("image/jpeg");
+	}
+	if (Ext == TEXT("webp"))
+	{
+		return TEXT("image/webp");
+	}
+	// default
+	return TEXT("image/png");
+}
+
+void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const
+{
+	LastRawRecipeJson.Reset();
+	if (!OnComplete)
+	{
+		return;
+	}
+
+	if (Backend != EVFXAgentLLMBackend::OpenAIChatCompletions)
+	{
+		OnComplete(false, FString(), TEXT("Image analysis is only supported on OpenAI-compatible chat completions backend."));
+		return;
+	}
+
+	FString EffectiveEndpoint = Endpoint;
+	if (EffectiveEndpoint.IsEmpty())
+	{
+		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
+		return;
+	}
+
+	TArray<uint8> ImageBytes;
+	if (!FFileHelper::LoadFileToArray(ImageBytes, *ImageFilePath))
+	{
+		OnComplete(false, FString(), TEXT("Failed to read image file"));
+		return;
+	}
+
+	const FString MimeType = GetImageMimeTypeFromExtension(ImageFilePath);
+	const FString Base64 = FBase64::Encode(ImageBytes);
+	const FString DataUrl = FString::Printf(TEXT("data:%s;base64,%s"), *MimeType, *Base64);
+
+	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
+	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
+	BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
+	BodyRef->SetNumberField(TEXT("temperature"), 0.2);
+	BodyRef->SetNumberField(TEXT("max_tokens"), 900);
+
+	TArray<TSharedPtr<FJsonValue>> Messages;
+	{
+		TSharedPtr<FJsonObject> Sys = MakeShared<FJsonObject>();
+		Sys->SetStringField(TEXT("role"), TEXT("system"));
+		Sys->SetStringField(TEXT("content"), BuildSystemPrompt());
+		Messages.Add(MakeShared<FJsonValueObject>(Sys));
+	}
+	{
+		TSharedPtr<FJsonObject> User = MakeShared<FJsonObject>();
+		User->SetStringField(TEXT("role"), TEXT("user"));
+
+		TArray<TSharedPtr<FJsonValue>> Content;
+		{
+			TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
+			TextObj->SetStringField(TEXT("type"), TEXT("text"));
+			TextObj->SetStringField(TEXT("text"), BuildVisionUserPrompt(OptionalPrompt));
+			Content.Add(MakeShared<FJsonValueObject>(TextObj));
+		}
+		{
+			TSharedPtr<FJsonObject> ImageUrlObj = MakeShared<FJsonObject>();
+			ImageUrlObj->SetStringField(TEXT("type"), TEXT("image_url"));
+			TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
+			ImageUrl->SetStringField(TEXT("url"), DataUrl);
+			ImageUrlObj->SetObjectField(TEXT("image_url"), ImageUrl);
+			Content.Add(MakeShared<FJsonValueObject>(ImageUrlObj));
+		}
+
+		User->SetArrayField(TEXT("content"), Content);
+		Messages.Add(MakeShared<FJsonValueObject>(User));
+	}
+	BodyRef->SetArrayField(TEXT("messages"), Messages);
+
+	// Best-effort strict JSON response (supported by many OpenAI-compatible endpoints).
+	TSharedPtr<FJsonObject> ResponseFormat = MakeShared<FJsonObject>();
+	ResponseFormat->SetStringField(TEXT("type"), TEXT("json_object"));
+	BodyRef->SetObjectField(TEXT("response_format"), ResponseFormat);
+
+	FString BodyText;
+	{
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyText);
+		FJsonSerializer::Serialize(BodyRef, Writer);
+	}
+
+	FHttpModule& Http = FHttpModule::Get();
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = Http.CreateRequest();
+	Req->SetURL(EffectiveEndpoint);
+	Req->SetVerb(TEXT("POST"));
+	Req->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Req->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	Req->SetHeader(TEXT("User-Agent"), TEXT("VFXAgent/1.0 (UnrealEngine)"));
+	if (!ApiKey.IsEmpty())
+	{
+		Req->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
+	}
+	Req->SetContentAsString(BodyText);
+	Req->SetTimeout(TimeoutSeconds);
+
+	Req->OnProcessRequestComplete().BindLambda([
+		this,
+		OnComplete
+	](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
+	{
+		if (!bSucceeded || !Response.IsValid())
+		{
+			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
+			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
+			return;
+		}
+
+		const int32 Code = Response->GetResponseCode();
+		const FString ResponseText = Response->GetContentAsString();
+		if (Code < 200 || Code >= 300)
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("LLM returned HTTP %d: %s"), Code, *ResponseText.Left(800)));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Root;
+		FString JsonError;
+		if (!ParseJsonObject(ResponseText, Root, JsonError))
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("LLM response is not JSON: %s"), *ResponseText.Left(200)));
+			return;
+		}
+
+		// OpenAI chat completions: choices[0].message.content
+		const TArray<TSharedPtr<FJsonValue>>* Choices = nullptr;
+		if (!Root->TryGetArrayField(TEXT("choices"), Choices) || !Choices || Choices->Num() == 0)
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing 'choices' array"));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Choice0 = (*Choices)[0]->AsObject();
+		if (!Choice0.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response choice[0] is not an object"));
+			return;
+		}
+
+		const TSharedPtr<FJsonObject> Msg = Choice0->GetObjectField(TEXT("message"));
+		if (!Msg.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing message object"));
+			return;
+		}
+
+		FString Content;
+		if (!Msg->TryGetStringField(TEXT("content"), Content))
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing message.content"));
+			return;
+		}
+
+		LastRawRecipeJson = Content;
+
+		OnComplete(true, Content, FString());
+	});
+
+	if (!Req->ProcessRequest())
+	{
+		OnComplete(false, FString(), TEXT("Failed to start HTTP request"));
+		return;
+	}
+}
+
+void UHttpLLMProvider::GenerateRecipeFromImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeComplete OnComplete)
+{
+	ClearLastError();
+	LastRawRecipeJson.Reset();
+	RequestRecipeJsonWithImageAsync(ImageFilePath, OptionalPrompt, [this, OnComplete](bool bSuccess, const FString& RecipeJson, const FString& Error)
+	{
+		if (!OnComplete)
+		{
+			return;
+		}
+
+		if (!bSuccess)
+		{
+			SetLastError(Error);
+			OnComplete(FVFXRecipe(), Error);
+			return;
+		}
+
+		FVFXRecipe Parsed;
+		FString ParseError;
+		if (!TryParseRecipeJson(RecipeJson, Parsed, ParseError))
+		{
+			SetLastError(ParseError);
+			OnComplete(FVFXRecipe(), ParseError);
+			return;
+		}
+
+		Parsed.Version = FMath::Max(1, Parsed.Version);
+		OnComplete(Parsed, FString());
+	});
 }

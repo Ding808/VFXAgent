@@ -30,7 +30,11 @@ public:
 	FString DefaultOutputPath = "/Game/VFXAgent/Generated";
 
 	UPROPERTY(EditAnywhere, config, Category = "Generation")
-	FString DefaultTemplatePath = "/Game/VFXAgent/Templates/SimpleSpriteSystem";
+	FString DefaultTemplatePath = "/Game/VFXAgent/Templates/SimpleSpriteSystem.SimpleSpriteSystem";
+
+	// If false, generator will create emitters without using templates.
+	UPROPERTY(EditAnywhere, config, Category = "Generation")
+	bool bUseTemplates = true;
 
 	UPROPERTY(EditAnywhere, config, Category = "Generation")
 	FString AssetNamePrefix = "VFX_";

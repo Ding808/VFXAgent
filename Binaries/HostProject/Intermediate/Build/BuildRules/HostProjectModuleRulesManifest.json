@@ -1,0 +1,8 @@
+{
+	"SourceFiles": [
+		"E:\\VFXAgent\\VFXAgent\\Binaries\\HostProject\\Plugins\\VFXAgent\\Source\\VFXAgentCore\\VFXAgentCore.Build.cs",
+		"E:\\VFXAgent\\VFXAgent\\Binaries\\HostProject\\Plugins\\VFXAgent\\Source\\VFXAgentEditor\\VFXAgentEditor.Build.cs",
+		"E:\\VFXAgent\\VFXAgent\\Binaries\\HostProject\\Plugins\\VFXAgent\\Source\\VFXAgentNiagara\\VFXAgentNiagara.Build.cs"
+	],
+	"EngineVersion": "5.5.4"
+}

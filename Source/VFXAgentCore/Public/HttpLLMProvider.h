@@ -29,9 +29,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VFXAgent|LLM")
 	FString GetLastError() const { return LastError; }
 
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|LLM")
+	FString GetLastRawRecipeJson() const { return LastRawRecipeJson; }
+
 	// Async variants (recommended for editor UI to avoid blocking the game thread).
 	using FOnRecipeComplete = TFunction<void(const FVFXRecipe& /*Recipe*/, const FString& /*Error*/)>;
 	void GenerateRecipeAsync(const FString& Prompt, FOnRecipeComplete OnComplete);
+	void GenerateRecipeFromImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeComplete OnComplete);
 	void RefineRecipeAsync(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt, FOnRecipeComplete OnComplete);
 
 	virtual FVFXRecipe GenerateRecipe(const FString& Prompt) override;
@@ -54,9 +58,11 @@ private:
 	float TimeoutSeconds = 30.0f;
 
 	FString BuildSystemPrompt() const;
+	FString BuildVisionUserPrompt(const FString& OptionalPrompt) const;
 	bool TryRequestRecipeJson(const FString& UserPrompt, FString& OutRecipeJson, FString& OutError) const;
 	using FOnRecipeJsonComplete = TFunction<void(bool /*bSuccess*/, const FString& /*RecipeJson*/, const FString& /*Error*/)>;
 	void RequestRecipeJsonAsync(const FString& UserPrompt, FOnRecipeJsonComplete OnComplete) const;
+	void RequestRecipeJsonWithImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const;
 	static bool TryParseRecipeJson(const FString& RecipeJson, FVFXRecipe& OutRecipe, FString& OutError);
 
 	void SetLastError(const FString& InError) { LastError = InError; }
@@ -64,4 +70,7 @@ private:
 
 	UPROPERTY(VisibleAnywhere, Category = "VFXAgent|LLM")
 	FString LastError;
+
+	UPROPERTY(VisibleAnywhere, Category = "VFXAgent|LLM")
+	mutable FString LastRawRecipeJson;
 };

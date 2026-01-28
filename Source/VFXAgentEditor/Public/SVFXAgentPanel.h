@@ -18,8 +18,10 @@ public:
 private:
 	// UI callbacks
 	FReply OnGenerateClicked();
+	FReply OnGenerateFromImageClicked();
 	FReply OnApplyRefinementClicked();
 	FReply OnChooseOutputPathClicked();
+	FReply OnChooseImagePathClicked();
 	FReply OnTestLLMClicked();
 
 	// Helper functions
@@ -32,6 +34,7 @@ private:
 	TSharedPtr<class SMultiLineEditableTextBox> RefinementTextBox;
 	TSharedPtr<class SEditableTextBox> OutputPathTextBox;
 	TSharedPtr<class SEditableTextBox> AssetNameTextBox;
+	TSharedPtr<class SEditableTextBox> ImagePathTextBox;
 	TSharedPtr<class SMultiLineEditableTextBox> LogTextBox;
 
 	// Data

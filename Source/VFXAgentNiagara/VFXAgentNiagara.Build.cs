@@ -28,6 +28,9 @@ public class VFXAgentNiagara : ModuleRules
 				"Engine",
 				"NiagaraCore",
 				"Niagara",
+				"NiagaraEditor", // Added for Niagara Stack access
+				"UnrealEd",      // For AssetTools
+				"AssetTools",
 				"VFXAgentCore"
 			}
 			);
