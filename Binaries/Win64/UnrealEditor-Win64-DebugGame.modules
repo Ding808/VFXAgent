@@ -1,9 +1,0 @@
-{
-	"BuildId": "37670630",
-	"Modules": 
-	{
-		"VFXAgentCore": "UnrealEditor-VFXAgentCore-Win64-DebugGame.dll",
-		"VFXAgentEditor": "UnrealEditor-VFXAgentEditor-Win64-DebugGame.dll",
-		"VFXAgentNiagara": "UnrealEditor-VFXAgentNiagara-Win64-DebugGame.dll"
-	}
-}
