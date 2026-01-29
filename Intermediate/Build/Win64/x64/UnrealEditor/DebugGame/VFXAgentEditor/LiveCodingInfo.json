@@ -1,0 +1,15 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.VFXAgentEditor.cpp.obj": [
+			"MockLLMProvider.gen.cpp.obj",
+			"VFXAgentEditor.init.gen.cpp.obj",
+			"VFXAgentSettings.gen.cpp.obj",
+			"PerModuleInline.gen.cpp.obj",
+			"MockLLMProvider.cpp.obj",
+			"NiagaraSystemGenerator.cpp.obj",
+			"SVFXAgentPanel.cpp.obj",
+			"VFXAgentEditorModule.cpp.obj"
+		]
+	}
+}

@@ -56,7 +56,8 @@ public class VFXAgentEditor : ModuleRules
 				"Json",
 				"JsonUtilities",
 				"Niagara",
-				"NiagaraEditor"
+				"NiagaraEditor",
+				"Sequencer"
 			}
 			);
 		

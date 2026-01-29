@@ -1,0 +1,15 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "e:\\revit_test\\vfxtesting\\plugins\\vfxagent\\source\\vfxagentcore\\private\\vfxagentcoremodule.cpp",
+        "ProvidedModule": "",
+        "PCH": "e:\\revit_test\\vfxtesting\\intermediate\\build\\win64\\x64\\vfxtestingeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "Includes": [
+            "e:\\revit_test\\vfxtesting\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentcore\\definitions.vfxagentcore.h",
+            "e:\\revit_test\\vfxtesting\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxagentcoremodule.h",
+            "e:\\revit_test\\vfxtesting\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxagentlog.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

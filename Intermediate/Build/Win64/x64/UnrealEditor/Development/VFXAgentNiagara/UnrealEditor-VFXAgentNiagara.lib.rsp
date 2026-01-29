@@ -1,0 +1,17 @@
+/NOLOGO
+/errorReport:prompt
+/MACHINE:x64
+/SUBSYSTEM:WINDOWS
+/DEF
+/NAME:"UnrealEditor-VFXAgentNiagara.dll"
+/IGNORE:4221
+/NODEFAULTLIB
+"E:\Revit_Test\VFXTesting\Intermediate\Build\Win64\x64\VFXTestingEditor\Development\UnrealEd\SharedPCH.UnrealEd.Project.ValApi.Cpp20.h.obj"
+"E:\Revit_Test\VFXTesting\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\Module.VFXAgentNiagara.cpp.obj"
+"E:\Revit_Test\VFXTesting\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\BasicAssetGenService.cpp.obj"
+"E:\Revit_Test\VFXTesting\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\NiagaraSpecExecutor.cpp.obj"
+"E:\Revit_Test\VFXTesting\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\NiagaraSystemGenerator.cpp.obj"
+"E:\Revit_Test\VFXTesting\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\NiagaraSystemGenerator_Old.cpp.obj"
+"E:\Revit_Test\VFXTesting\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\VFXAgentNiagaraModule.cpp.obj"
+"E:\Revit_Test\VFXTesting\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\Default.rc2.res"
+/OUT:"E:\Revit_Test\VFXTesting\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\UnrealEditor-VFXAgentNiagara.lib"

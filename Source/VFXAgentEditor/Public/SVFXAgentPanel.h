@@ -15,6 +15,8 @@ public:
 
 	void Construct(const FArguments& InArgs);
 
+	virtual bool SupportsKeyboardFocus() const override { return true; }
+
 private:
 	// UI callbacks
 	FReply OnGenerateClicked();

@@ -28,9 +28,6 @@ public class VFXAgentNiagara : ModuleRules
 				"Engine",
 				"NiagaraCore",
 				"Niagara",
-				"NiagaraEditor", // Added for Niagara Stack access
-				"UnrealEd",      // For AssetTools
-				"AssetTools",
 				"VFXAgentCore"
 			}
 			);
@@ -48,6 +45,8 @@ public class VFXAgentNiagara : ModuleRules
 				"UnrealEd",
 				"AssetTools",
 				"AssetRegistry",
+				"EditorSubsystem",   // For UAssetEditorSubsystem
+				"Sequencer",
 				"VFXAgentCore"
 			}
 			);

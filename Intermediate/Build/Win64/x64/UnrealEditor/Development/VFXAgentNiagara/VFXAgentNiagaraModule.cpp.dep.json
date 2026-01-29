@@ -1,0 +1,15 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "e:\\revit_test\\vfxtesting\\plugins\\vfxagent\\source\\vfxagentniagara\\private\\vfxagentniagaramodule.cpp",
+        "ProvidedModule": "",
+        "PCH": "e:\\revit_test\\vfxtesting\\intermediate\\build\\win64\\x64\\vfxtestingeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "Includes": [
+            "e:\\revit_test\\vfxtesting\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentniagara\\definitions.vfxagentniagara.h",
+            "e:\\revit_test\\vfxtesting\\plugins\\vfxagent\\source\\vfxagentniagara\\public\\vfxagentniagaramodule.h",
+            "e:\\revit_test\\vfxtesting\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxagentlog.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

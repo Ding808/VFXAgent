@@ -71,7 +71,8 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 				]
 
 				+ SVerticalBox::Slot()
-				.AutoHeight()
+				.FillHeight(1.0f)
+				.MaxHeight(100.0f)
 				.Padding(5.0f)
 				[
 					SAssignNew(PromptTextBox, SMultiLineEditableTextBox)
@@ -79,6 +80,8 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 					.HintText(FText::FromString("Describe your VFX..."))
 					.AutoWrapText(true)
 					.IsReadOnly(false)
+					.SelectAllTextWhenFocused(false)
+					.ClearKeyboardFocusOnCommit(false)
 				]
 
 				+ SVerticalBox::Slot()
@@ -223,7 +226,8 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 				]
 
 				+ SVerticalBox::Slot()
-				.AutoHeight()
+				.FillHeight(1.0f)
+				.MaxHeight(80.0f)
 				.Padding(5.0f)
 				[
 					SAssignNew(RefinementTextBox, SMultiLineEditableTextBox)
@@ -231,6 +235,8 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 					.HintText(FText::FromString("Refine the VFX..."))
 					.AutoWrapText(true)
 					.IsReadOnly(false)
+					.SelectAllTextWhenFocused(false)
+					.ClearKeyboardFocusOnCommit(false)
 				]
 
 				+ SVerticalBox::Slot()

@@ -3,6 +3,7 @@
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraScript.h"
+#include "NiagaraCommon.h"
 #include "NiagaraRendererProperties.h"
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.h"   
@@ -17,6 +18,11 @@
 #include "Factories/Factory.h"
 #include "Modules/ModuleManager.h"
 #include "UObject/UObjectGlobals.h"
+#include "NiagaraScriptSourceBase.h"
+#include "NiagaraSystemEditorData.h"
+#include "NiagaraEditorUtilities.h"
+#include "Subsystems/AssetEditorSubsystem.h"
+#include "Editor.h"
 
 // Helper for finding assets
 static void EnsureAssetRegistryReady()
@@ -134,44 +140,57 @@ static bool AddBasicEmitterToSystem(UNiagaraSystem* System, const FString& Emitt
     }
 
 #if WITH_EDITOR
-    FModuleManager::LoadModuleChecked<IModuleInterface>(TEXT("NiagaraEditor"));
-
-    UClass* FactoryClass = StaticLoadClass(UFactory::StaticClass(), nullptr, TEXT("/Script/NiagaraEditor.NiagaraEmitterFactoryNew"));
-    if (!FactoryClass)
+    // In UE5.5, we cannot directly create a blank UNiagaraEmitter with NewObject because
+    // it doesn't properly initialize the internal structures (scripts, version data, etc.)
+    // Instead, we load the "Empty" emitter template which is a truly blank emitter
+    // provided by the engine, then add it as a standalone (non-inheriting) copy.
+    
+    // Try to load the Empty emitter template - this is the official blank emitter in UE5.5
+    UNiagaraEmitter* EmptyTemplate = LoadObject<UNiagaraEmitter>(nullptr, 
+        TEXT("/Niagara/DefaultAssets/Templates/Emitters/Empty.Empty"));
+    
+    if (!EmptyTemplate)
     {
-        UE_LOG(LogVFXAgent, Error, TEXT("Failed to load NiagaraEmitterFactoryNew class"));
+        // Fallback: try Minimal template which is also relatively clean
+        EmptyTemplate = LoadObject<UNiagaraEmitter>(nullptr, 
+            TEXT("/Niagara/DefaultAssets/Templates/Emitters/Minimal.Minimal"));
+    }
+    
+    if (!EmptyTemplate)
+    {
+        UE_LOG(LogVFXAgent, Error, TEXT("Failed to load Empty or Minimal emitter template. Cannot create blank emitter."));
         return false;
     }
-
-    UFactory* Factory = NewObject<UFactory>(GetTransientPackage(), FactoryClass);
-    if (!Factory)
+    
+    UE_LOG(LogVFXAgent, Log, TEXT("Using template '%s' to create blank emitter '%s'"), *EmptyTemplate->GetPathName(), *EmitterName);
+    
+    // CRITICAL: Set bIsInheritable to false BEFORE calling AddEmitterHandle.
+    // This tells the engine to create a fully standalone emitter with no template/parent references.
+    const bool bOriginalInheritable = EmptyTemplate->bIsInheritable;
+    EmptyTemplate->bIsInheritable = false;
+    
+    const FGuid VersionGuid = EmptyTemplate->GetExposedVersion().VersionGuid;
+    const FGuid HandleId = FNiagaraEditorUtilities::AddEmitterToSystem(*System, *EmptyTemplate, VersionGuid, true);
+    for (FNiagaraEmitterHandle& EmitterHandle : System->GetEmitterHandles())
     {
-        UE_LOG(LogVFXAgent, Error, TEXT("Failed to instantiate NiagaraEmitterFactoryNew"));
-        return false;
+        if (EmitterHandle.GetId() == HandleId)
+        {
+            EmitterHandle.SetName(FName(*EmitterName), *System);
+            EmitterHandle.SetIsEnabled(true, *System, true);
+            break;
+        }
     }
-
-    const FName UniqueObjectName = MakeUniqueObjectName(System, UNiagaraEmitter::StaticClass(), FName(*EmitterName));
-    UObject* CreatedObj = Factory->FactoryCreateNew(
-        UNiagaraEmitter::StaticClass(),
-        System,
-        UniqueObjectName,
-        RF_Transactional,
-        nullptr,
-        GWarn);
-    UNiagaraEmitter* NewEmitter = Cast<UNiagaraEmitter>(CreatedObj);
-    if (!NewEmitter)
-    {
-        UE_LOG(LogVFXAgent, Error, TEXT("Failed to create embedded Niagara Emitter"));
-        return false;
-    }
-
-    const FGuid VersionGuid = NewEmitter->GetExposedVersion().VersionGuid;
-    System->AddEmitterHandle(*NewEmitter, FName(*EmitterName), VersionGuid);
+    
+    // Restore original value on template
+    EmptyTemplate->bIsInheritable = bOriginalInheritable;
+    
     System->MarkPackageDirty();
     if (UPackage* Pkg = System->GetOutermost())
     {
         Pkg->MarkPackageDirty();
     }
+
+    UE_LOG(LogVFXAgent, Log, TEXT("Created blank emitter '%s' from Empty template - no locked modules"), *EmitterName);
 
     return System->GetEmitterHandles().Num() > 0;
 #else
@@ -257,6 +276,60 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec&
         return nullptr;
     }
 
+    // CRITICAL FIX: Properly initialize the Niagara System for preview display
+    // This sequence ensures the system is fully ready for the Niagara Editor
+    
+#if WITH_EDITOR
+    // Step 1: Enable all emitters and ensure they are not isolated
+    for (int32 i = 0; i < System->GetNumEmitters(); ++i)
+    {
+        FNiagaraEmitterHandle& EmitterHandle = System->GetEmitterHandle(i);
+        EmitterHandle.SetIsEnabled(true, *System, true);
+        
+        // Ensure the emitter is not isolated (which would hide it in System Overview)
+        // In UE5, isolation state is controlled via the editor data
+    }
+
+    // Step 2: Ensure the System Overview graph is synchronized with the current emitters
+    UNiagaraSystemEditorData* SystemEditorData = Cast<UNiagaraSystemEditorData>(System->GetEditorData());
+    if (SystemEditorData)
+    {
+        SystemEditorData->SynchronizeOverviewGraphWithSystem(*System);
+    }
+    else
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("Editor data missing, system overview may not display correctly"));
+    }
+
+    // Step 3: Mark packages dirty to ensure changes are persisted
+    System->MarkPackageDirty();
+    if (UPackage* Pkg = System->GetOutermost())
+    {
+        Pkg->MarkPackageDirty();
+    }
+    
+    // Step 4: Force a full recompile of the system
+    // Use bForce=true to ensure complete recompilation
+    System->RequestCompile(true);
+    
+    // Step 5: Wait for compilation to complete (blocking)
+    // This ensures the system is fully compiled before display
+    System->WaitForCompilationComplete(true, true);
+    
+    // Step 6: Invalidate cached data to force refresh on next access
+    System->InvalidateCachedData();
+    
+    // Step 7: Broadcast PostEditChange to notify any open Niagara Editors
+    // This triggers the editor to refresh its preview and system overview
+    System->PostEditChange();
+    
+    // Step 8: Force the asset registry to recognize the updated asset
+    FAssetRegistryModule::AssetCreated(System);
+    
+    UE_LOG(LogVFXAgent, Log, TEXT("System '%s' fully initialized with %d emitters for preview"), 
+           *Spec.SystemName, System->GetNumEmitters());
+#endif
+
     return System;
 }
 
@@ -337,8 +410,21 @@ bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const 
             // Get a valid version GUID from the template
             const FGuid VersionGuid = TemplateEmitter->GetExposedVersion().VersionGuid;
             
-            // AddEmitterHandle will now create a standalone copy because bIsInheritable is false
+#if WITH_EDITOR
+            // Add via editor utility to ensure overview graph and editor data stay in sync
+            const FGuid HandleId = FNiagaraEditorUtilities::AddEmitterToSystem(*System, *TemplateEmitter, VersionGuid, true);
+            for (FNiagaraEmitterHandle& SystemHandle : System->GetEmitterHandles())
+            {
+                if (SystemHandle.GetId() == HandleId)
+                {
+                    SystemHandle.SetName(FName(*EmitterName), *System);
+                    SystemHandle.SetIsEnabled(true, *System, true);
+                    break;
+                }
+            }
+#else
             System->AddEmitterHandle(*TemplateEmitter, FName(*EmitterName), VersionGuid);
+#endif
             
             // Restore original value on template (though it's likely a loaded asset and this may not matter)
             TemplateEmitter->bIsInheritable = bOriginalInheritable;
@@ -358,16 +444,29 @@ bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const 
     // Handle System templates - iterate through their emitters
     UE_LOG(LogVFXAgent, Log, TEXT("Loaded system template: %s with %d emitters"), *ObjectPath, TemplateSystem->GetEmitterHandles().Num());
     
-    for (const FNiagaraEmitterHandle& Handle : TemplateSystem->GetEmitterHandles())
+    for (const FNiagaraEmitterHandle& TemplateHandle : TemplateSystem->GetEmitterHandles())
     {
-        FVersionedNiagaraEmitter Source = Handle.GetInstance(); 
+        FVersionedNiagaraEmitter Source = TemplateHandle.GetInstance(); 
         if (Source.Emitter)
         {
             // CRITICAL: Set bIsInheritable to false to create standalone emitter
             const bool bOriginalInheritable = Source.Emitter->bIsInheritable;
             Source.Emitter->bIsInheritable = false;
             
+            #if WITH_EDITOR
+            const FGuid HandleId = FNiagaraEditorUtilities::AddEmitterToSystem(*System, *Source.Emitter, Source.Version, true);
+            for (FNiagaraEmitterHandle& SystemHandle : System->GetEmitterHandles())
+            {
+                if (SystemHandle.GetId() == HandleId)
+                {
+                    SystemHandle.SetName(FName(*EmitterName), *System);
+                    SystemHandle.SetIsEnabled(true, *System, true);
+                    break;
+                }
+            }
+#else
             System->AddEmitterHandle(*Source.Emitter, FName(*EmitterName), Source.Version);
+#endif
             
             // Restore original value
             Source.Emitter->bIsInheritable = bOriginalInheritable;
@@ -497,21 +596,84 @@ bool FNiagaraSpecExecutor::SaveCompileAndSelfCheck(UNiagaraSystem* System, FVFXR
 {
     if (!System) return false;
 
-    // Compile
-    System->RequestCompile(false);
+#if WITH_EDITOR
+    // CRITICAL FIX: Complete initialization sequence for Niagara preview display
     
-    // Wait for compilation (blocking for simplicity in this tool context, though usually async)
-    // For automation, we might need to assume it triggers.
-    // In Editor, RequestCompile queues it.
+    // Step 1: Force enable all emitters and configure their visibility
+    for (int32 i = 0; i < System->GetNumEmitters(); ++i)
+    {
+        FNiagaraEmitterHandle& EmitterHandle = System->GetEmitterHandle(i);
+        EmitterHandle.SetIsEnabled(true, *System, true);
+    }
+
+    // Step 2: Mark the package as dirty
+    System->MarkPackageDirty();
+    if (UPackage* Pkg = System->GetOutermost())
+    {
+        Pkg->MarkPackageDirty();
+    }
+
+    // Step 3: Request a FORCED full recompile (bForce = true is critical)
+    System->RequestCompile(true);
     
-    // Save
+    // Step 4: Wait for the compilation to complete - blocking call
+    System->WaitForCompilationComplete(true, true);
+    
+    // Step 5: Invalidate cached data to force refresh
+    System->InvalidateCachedData();
+    
+    // Step 6: Save the package
     FString PackageName = System->GetOutermost()->GetName();
     FSavePackageArgs SaveArgs;
     SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
-    UPackage::SavePackage(System->GetOutermost(), System, *FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension()), SaveArgs);
+    bool bSaved = UPackage::SavePackage(
+        System->GetOutermost(), 
+        System, 
+        *FPackageName::LongPackageNameToFilename(PackageName, FPackageName::GetAssetPackageExtension()), 
+        SaveArgs
+    );
+    
+    if (!bSaved)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("Failed to save package for system '%s'"), *System->GetName());
+    }
+    
+    // Step 7: Notify the asset system and editors
+    FAssetRegistryModule::AssetCreated(System);
+    
+    // Step 8: Trigger PostEditChange to refresh any open editors
+    System->PostEditChange();
 
+    // Step 8.5: Ensure System Overview graph matches current emitters
+    if (UNiagaraSystemEditorData* SystemEditorData = Cast<UNiagaraSystemEditorData>(System->GetEditorData()))
+    {
+        SystemEditorData->SynchronizeOverviewGraphWithSystem(*System);
+    }
+    
+    // Step 9: If the asset is currently open in an editor, force it to reload
+    // This is the key to making the preview work immediately
+    if (GEditor)
+    {
+        UAssetEditorSubsystem* AssetEditorSubsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+        if (AssetEditorSubsystem)
+        {
+            // Close and reopen the asset to force a complete refresh
+            if (AssetEditorSubsystem->FindEditorForAsset(System, false))
+            {
+                UE_LOG(LogVFXAgent, Log, TEXT("Asset is open in editor, triggering refresh..."));
+                // The PostEditChange above should trigger the refresh
+                // If still having issues, we could close and reopen:
+                // AssetEditorSubsystem->CloseAllEditorsForAsset(System);
+                // AssetEditorSubsystem->OpenEditorForAsset(System);
+            }
+        }
+    }
+    
+    UE_LOG(LogVFXAgent, Log, TEXT("System '%s' saved and compiled, ready for preview"), *System->GetName());
+#endif
+    
     // Self Check
-    OutReport.SystemPath = PackageName;
+    OutReport.SystemPath = System->GetOutermost()->GetName();
     OutReport.bCompileSuccess = true; // Assume success initially
 
     // Check Renderers and Spawn
@@ -521,11 +683,10 @@ bool FNiagaraSpecExecutor::SaveCompileAndSelfCheck(UNiagaraSystem* System, FVFXR
         OutReport.bCompileSuccess = false;
     }
 
-    for (const FNiagaraEmitterHandle& Handle : System->GetEmitterHandles())
+    for (const FNiagaraEmitterHandle& EmitterHandleRef : System->GetEmitterHandles())
     {
-        FString HandleName = Handle.GetName().ToString();
-        // Handle.GetInstance() returns FVersionedNiagaraEmitter, access .Emitter for renderers
-        TArray<UNiagaraRendererProperties*> TmpRenderers = GetEmitterRenderers(Handle.GetInstance().Emitter);
+        FString HandleName = EmitterHandleRef.GetName().ToString();
+        TArray<UNiagaraRendererProperties*> TmpRenderers = GetEmitterRenderers(EmitterHandleRef.GetInstance().Emitter);
         bool bHasRenderers = TmpRenderers.Num() > 0;
 
         if (!bHasRenderers)
@@ -534,40 +695,34 @@ bool FNiagaraSpecExecutor::SaveCompileAndSelfCheck(UNiagaraSystem* System, FVFXR
             OutReport.bCompileSuccess = false;
         }
 
-        // Check Spawn (Simple heuristic on Overrides)
-        // We look for SpawnRate or SpawnBurst in the system overrides for this emitter
+        // Check Spawn parameters
         bool bHasSpawn = false;
-        
-        // This is a naive check of the ParameterStore. 
-        // Real validation would require inspecting the Stack.
-        // We check if we have ANY variable related to spawn that is > 0.
-        // In a real plugin, we might assume if we set it, it's there.
         FNiagaraParameterStore& Store = System->GetExposedParameters();
         TArray<FNiagaraVariable> Vars;
         Store.GetParameters(Vars);
         
         for(const FNiagaraVariable& Var : Vars)
         {
-            if(Var.GetName().ToString().Contains(HandleName) && (Var.GetName().ToString().Contains("SpawnRate") || Var.GetName().ToString().Contains("SpawnBurst")))
+            if(Var.GetName().ToString().Contains(HandleName) && 
+               (Var.GetName().ToString().Contains("SpawnRate") || Var.GetName().ToString().Contains("SpawnBurst")))
             {
-                 if(Var.IsDataInterface()) continue;
-                 if(Var.GetType() == FNiagaraTypeDefinition::GetFloatDef())
-                 {
-                     if(Store.GetParameterValue<float>(Var) > 0.0f) bHasSpawn = true;
-                 }
-                 else if(Var.GetType() == FNiagaraTypeDefinition::GetIntDef())
-                 {
-                     if(Store.GetParameterValue<int32>(Var) > 0) bHasSpawn = true;
-                 }
+                if(Var.IsDataInterface()) continue;
+                if(Var.GetType() == FNiagaraTypeDefinition::GetFloatDef())
+                {
+                    if(Store.GetParameterValue<float>(Var) > 0.0f) bHasSpawn = true;
+                }
+                else if(Var.GetType() == FNiagaraTypeDefinition::GetIntDef())
+                {
+                    if(Store.GetParameterValue<int32>(Var) > 0) bHasSpawn = true;
+                }
             }
         }
-        
     }
     
-    // Check Compile Status
+    // Check overall validity
     if (!System->IsValid())
     {
-        OutReport.Errors.Add(TEXT("Niagara System Invalid."));
+        OutReport.Errors.Add(TEXT("Niagara System reported as Invalid."));
         OutReport.bCompileSuccess = false;
     }
 

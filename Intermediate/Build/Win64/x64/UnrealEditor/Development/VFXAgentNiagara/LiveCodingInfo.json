@@ -1,0 +1,16 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.VFXAgentNiagara.cpp.obj": [
+			"BasicAssetGenService.gen.cpp.obj",
+			"NiagaraSystemGenerator.gen.cpp.obj",
+			"VFXAgentNiagara.init.gen.cpp.obj",
+			"PerModuleInline.gen.cpp.obj",
+			"BasicAssetGenService.cpp.obj",
+			"NiagaraSpecExecutor.cpp.obj",
+			"NiagaraSystemGenerator.cpp.obj",
+			"NiagaraSystemGenerator_Old.cpp.obj",
+			"VFXAgentNiagaraModule.cpp.obj"
+		]
+	}
+}

@@ -34,11 +34,42 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LLMEndpoint_MetaData[] = {
 		{ "Category", "LLM" },
+		{ "DisplayName", "LLM Endpoint" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LLMModel_MetaData[] = {
 		{ "Category", "LLM" },
+		{ "DisplayName", "LLM Model" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
+	};
+	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LLMApiKey_MetaData[] = {
+		{ "Category", "LLM" },
+#if !UE_BUILD_SHIPPING
+		{ "Comment", "// For OpenAI-compatible endpoints (e.g. https://api.openai.com/v1/chat/completions)\n" },
+#endif
+		{ "DisplayName", "LLM API Key" },
+		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
+		{ "PasswordField", "true" },
+#if !UE_BUILD_SHIPPING
+		{ "ToolTip", "For OpenAI-compatible endpoints (e.g. https:api.openai.com/v1/chat/completions)" },
+#endif
+	};
+	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LLMBackend_MetaData[] = {
+		{ "Category", "LLM" },
+		{ "DisplayName", "LLM Backend" },
+		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
+	};
+	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LLMTimeoutSeconds_MetaData[] = {
+		{ "Category", "LLM" },
+		{ "ClampMin", "1.0" },
+#if !UE_BUILD_SHIPPING
+		{ "Comment", "// Mock | OpenAI | Ollama | ChatGPT\n" },
+#endif
+		{ "DisplayName", "LLM Timeout Seconds" },
+		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
+#if !UE_BUILD_SHIPPING
+		{ "ToolTip", "Mock | OpenAI | Ollama | ChatGPT" },
+#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DefaultOutputPath_MetaData[] = {
 		{ "Category", "Generation" },
@@ -48,6 +79,16 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 		{ "Category", "Generation" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
 	};
+	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bUseTemplates_MetaData[] = {
+		{ "Category", "Generation" },
+#if !UE_BUILD_SHIPPING
+		{ "Comment", "// If false, generator will create emitters without using templates.\n" },
+#endif
+		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
+#if !UE_BUILD_SHIPPING
+		{ "ToolTip", "If false, generator will create emitters without using templates." },
+#endif
+	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_AssetNamePrefix_MetaData[] = {
 		{ "Category", "Generation" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
@@ -55,8 +96,13 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 #endif // WITH_METADATA
 	static const UECodeGen_Private::FStrPropertyParams NewProp_LLMEndpoint;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_LLMModel;
+	static const UECodeGen_Private::FStrPropertyParams NewProp_LLMApiKey;
+	static const UECodeGen_Private::FStrPropertyParams NewProp_LLMBackend;
+	static const UECodeGen_Private::FFloatPropertyParams NewProp_LLMTimeoutSeconds;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_DefaultOutputPath;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_DefaultTemplatePath;
+	static void NewProp_bUseTemplates_SetBit(void* Obj);
+	static const UECodeGen_Private::FBoolPropertyParams NewProp_bUseTemplates;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_AssetNamePrefix;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
 	static UObject* (*const DependentSingletons[])();
@@ -67,14 +113,26 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMEndpoint = { "LLMEndpoint", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, LLMEndpoint), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LLMEndpoint_MetaData), NewProp_LLMEndpoint_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMModel = { "LLMModel", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, LLMModel), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LLMModel_MetaData), NewProp_LLMModel_MetaData) };
+const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMApiKey = { "LLMApiKey", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, LLMApiKey), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LLMApiKey_MetaData), NewProp_LLMApiKey_MetaData) };
+const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMBackend = { "LLMBackend", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, LLMBackend), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LLMBackend_MetaData), NewProp_LLMBackend_MetaData) };
+const UECodeGen_Private::FFloatPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMTimeoutSeconds = { "LLMTimeoutSeconds", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, LLMTimeoutSeconds), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LLMTimeoutSeconds_MetaData), NewProp_LLMTimeoutSeconds_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_DefaultOutputPath = { "DefaultOutputPath", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, DefaultOutputPath), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_DefaultOutputPath_MetaData), NewProp_DefaultOutputPath_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_DefaultTemplatePath = { "DefaultTemplatePath", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, DefaultTemplatePath), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_DefaultTemplatePath_MetaData), NewProp_DefaultTemplatePath_MetaData) };
+void Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_bUseTemplates_SetBit(void* Obj)
+{
+	((UVFXAgentSettings*)Obj)->bUseTemplates = 1;
+}
+const UECodeGen_Private::FBoolPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_bUseTemplates = { "bUseTemplates", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Bool | UECodeGen_Private::EPropertyGenFlags::NativeBool, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, sizeof(bool), sizeof(UVFXAgentSettings), &Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_bUseTemplates_SetBit, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_bUseTemplates_MetaData), NewProp_bUseTemplates_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_AssetNamePrefix = { "AssetNamePrefix", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, AssetNamePrefix), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_AssetNamePrefix_MetaData), NewProp_AssetNamePrefix_MetaData) };
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UClass_UVFXAgentSettings_Statics::PropPointers[] = {
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMEndpoint,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMModel,
+	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMApiKey,
+	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMBackend,
+	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMTimeoutSeconds,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_DefaultOutputPath,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_DefaultTemplatePath,
+	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_bUseTemplates,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_AssetNamePrefix,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UClass_UVFXAgentSettings_Statics::PropPointers) < 2048);
@@ -116,14 +174,14 @@ UVFXAgentSettings::~UVFXAgentSettings() {}
 // End Class UVFXAgentSettings
 
 // Begin Registration
-struct Z_CompiledInDeferFile_FID_E__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics
+struct Z_CompiledInDeferFile_FID_VFXTesting_Plugins_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics
 {
 	static constexpr FClassRegisterCompiledInInfo ClassInfo[] = {
-		{ Z_Construct_UClass_UVFXAgentSettings, UVFXAgentSettings::StaticClass, TEXT("UVFXAgentSettings"), &Z_Registration_Info_UClass_UVFXAgentSettings, CONSTRUCT_RELOAD_VERSION_INFO(FClassReloadVersionInfo, sizeof(UVFXAgentSettings), 3015712139U) },
+		{ Z_Construct_UClass_UVFXAgentSettings, UVFXAgentSettings::StaticClass, TEXT("UVFXAgentSettings"), &Z_Registration_Info_UClass_UVFXAgentSettings, CONSTRUCT_RELOAD_VERSION_INFO(FClassReloadVersionInfo, sizeof(UVFXAgentSettings), 3327125161U) },
 	};
 };
-static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_E__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_2591311050(TEXT("/Script/VFXAgentEditor"),
-	Z_CompiledInDeferFile_FID_E__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics::ClassInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_E__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics::ClassInfo),
+static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_VFXTesting_Plugins_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_3627780805(TEXT("/Script/VFXAgentEditor"),
+	Z_CompiledInDeferFile_FID_VFXTesting_Plugins_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics::ClassInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_VFXTesting_Plugins_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics::ClassInfo),
 	nullptr, 0,
 	nullptr, 0);
 // End Registration
