@@ -4,34 +4,8 @@
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
 
-// Mock LLM repair function for the loop
-// In a real scenario, this would call an external service with the RepairReport
-FVFXEffectSpec MockLLMRepair(const FVFXEffectSpec& OriginalSpec, const FVFXRepairReport& Report)
-{
-    FVFXEffectSpec NewSpec = OriginalSpec;
-    NewSpec.SystemName += "_Fixed";
-    
-    // Simple logic to fix common errors reported by SelfCheck
-    for (FVFXEmitterSpec& Emitter : NewSpec.Emitters)
-    {
-        // Fix missing renderer
-        bool bRendererError = false;
-        for(const FString& Err : Report.Errors) 
-        { 
-            if(Err.Contains("no renderer")) bRendererError = true; 
-        }
-        
-        // Fix zero spawn
-        // If the report says "compile failed" or verify logic found issues
-        if(Emitter.Spawn.Rate <= 0.0f && Emitter.Spawn.Burst <= 0)
-        {
-            Emitter.Spawn.Rate = 20.0f; // Fix: Add spawn rate
-        }
-        
-        // Logic could be more complex here
-    }
-    return NewSpec;
-}
+// NOTE: Removed automatic repair/retry logic that appended "_Fixed" to the system name.
+// Generation now performs a single Create + Save/Compile + SelfCheck pass.
 
 UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     const FString& SystemName,
@@ -94,42 +68,29 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
         return nullptr;
     }
 
-    // 3. Execution Loop with Repair
-    const int32 MaxRetries = 2;
-    UNiagaraSystem* ResultSystem = nullptr;
-
-    for (int32 Attempt = 0; Attempt <= MaxRetries; ++Attempt)
+    // 3. Single-pass execution: create, save/compile and self-check once.
+    UE_LOG(LogVFXAgent, Log, TEXT("Generating System (single attempt)"));
+    UNiagaraSystem* ResultSystem = FNiagaraSpecExecutor::CreateSystemFromSpec(Spec);
+    if (!ResultSystem)
     {
-        if (Attempt > 0)
-        {
-             // Update name for versioning
-             // Note: CreateNiagaraSystemAsset uses the name in spec
-        }
-
-        UE_LOG(LogVFXAgent, Log, TEXT("Generating System Attempt %d"), Attempt);
-        
-        ResultSystem = FNiagaraSpecExecutor::CreateSystemFromSpec(Spec);
-        
-        if (ResultSystem)
-        {
-            FVFXRepairReport Report;
-            if (FNiagaraSpecExecutor::SaveCompileAndSelfCheck(ResultSystem, Report))
-            {
-                UE_LOG(LogVFXAgent, Log, TEXT("Generation Generation Success! Asset: %s"), *Report.SystemPath);
-                return ResultSystem;
-            }
-            else
-            {
-                UE_LOG(LogVFXAgent, Warning, TEXT("SelfCheck Failed. Attempting repair..."));
-                for(const FString& E : Report.Errors) UE_LOG(LogVFXAgent, Warning, TEXT("Error: %s"), *E);
-                
-                // Feedback to "LLM"
-                Spec = MockLLMRepair(Spec, Report);
-            }
-        }
+        UE_LOG(LogVFXAgent, Error, TEXT("Failed to create system from spec: %s"), *Spec.SystemName);
+        return nullptr;
     }
 
-    UE_LOG(LogVFXAgent, Error, TEXT("Failed to generate valid system after retries."));
+    FVFXRepairReport Report;
+    if (FNiagaraSpecExecutor::SaveCompileAndSelfCheck(ResultSystem, Report))
+    {
+        UE_LOG(LogVFXAgent, Log, TEXT("Generation Success! Asset: %s"), *Report.SystemPath);
+        return ResultSystem;
+    }
+
+    UE_LOG(LogVFXAgent, Warning, TEXT("SelfCheck Failed for system '%s' but automatic repair/retry is disabled."), *Spec.SystemName);
+    for (const FString& E : Report.Errors)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("Error: %s"), *E);
+    }
+
+    // Return the generated system even if self-check failed; caller can decide further action.
     return ResultSystem;
 }
 

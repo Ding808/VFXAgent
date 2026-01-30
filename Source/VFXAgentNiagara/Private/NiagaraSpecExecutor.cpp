@@ -321,10 +321,8 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec&
     
     // Step 7: Broadcast PostEditChange to notify any open Niagara Editors
     // This triggers the editor to refresh its preview and system overview
-    System->PostEditChange();
-    
-    // Step 8: Force the asset registry to recognize the updated asset
-    FAssetRegistryModule::AssetCreated(System);
+    // (Deferred to the final save/compile step to avoid duplicate validation runs)
+    // System->PostEditChange();
     
     UE_LOG(LogVFXAgent, Log, TEXT("System '%s' fully initialized with %d emitters for preview"), 
            *Spec.SystemName, System->GetNumEmitters());
