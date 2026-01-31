@@ -5,21 +5,24 @@
 #include "MockLLMProvider.h"
 #include "HttpLLMProvider.h"
 #include "NiagaraSystemGenerator.h"
+#include "NiagaraSystem.h"
+#include "VFXIterativeOptimizer.h"
 #include "JsonObjectConverter.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SBoxPanel.h"
 #include "Widgets/Input/SButton.h"
 #include "Widgets/Input/SEditableTextBox.h"
-#include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Text/STextBlock.h"
+#include "Types/SlateEnums.h"
 #include "Styling/AppStyle.h"
 #include "Styling/CoreStyle.h"
 #include "DesktopPlatformModule.h"
 #include "IDesktopPlatform.h"
 #include "Framework/Application/SlateApplication.h"
-#include "Misc/Paths.h"
 #include "Misc/Paths.h"
 
 #include "Async/Async.h"
@@ -163,6 +166,76 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 						SNew(SButton)
 						.Text(FText::FromString("..."))
 						.OnClicked(this, &SVFXAgentPanel::OnChooseImagePathClicked)
+					]
+				]
+
+				// Iterative Optimization Section
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f, 10.0f, 5.0f, 5.0f)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Iterative Optimization:"))
+					.Font(FCoreStyle::Get().GetFontStyle("SmallFont"))
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SAssignNew(EnableIterativeOptimizationCheckBox, SCheckBox)
+					.IsChecked(ECheckBoxState::Checked)
+					.Content()
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Enable AI self-refinement (multiple LLM calls)"))
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Max Iterations: "))
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f, 0.0f)
+					[
+						SAssignNew(MaxIterationsSpinBox, SSpinBox<int32>)
+						.MinValue(1)
+						.MaxValue(10)
+						.Value(5)
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Target Quality Score (0-1): "))
+					]
+
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(5.0f, 0.0f)
+					[
+						SAssignNew(TargetQualitySpinBox, SSpinBox<float>)
+						.MinValue(0.0f)
+						.MaxValue(1.0f)
+						.Delta(0.05f)
+						.Value(0.85f)
 					]
 				]
 
@@ -351,7 +424,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		}
 	}
 
-	LogMessage(FString::Printf(TEXT("Generating VFX...\nPrompt: %s\nOutput Path: %s\nAsset Name: %s"), *Prompt, *OutputPath, *AssetName));
+	LogMessage(FString::Printf(TEXT("Generating VFX...\nPrompt: %s\nOutput Path: %s\nAsset Name: %s"), *Prompt, *SafeOutputPath, *SafeAssetName));
 	LogMessage(FString::Printf(TEXT("LLM Settings: Backend=%s, Endpoint=%s, Model=%s, Timeout=%.1fs, ApiKey=%s"),
 		*CachedLLMBackend,
 		*CachedLLMEndpoint,
@@ -366,6 +439,21 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 	}
 
 	bRequestInFlight = true;
+	
+	// Check if iterative optimization is enabled
+	bool bUseIterativeOptimization = EnableIterativeOptimizationCheckBox.IsValid() && 
+		(EnableIterativeOptimizationCheckBox->GetCheckedState() == ECheckBoxState::Checked);
+	
+	FString ImagePath = ImagePathTextBox.IsValid() ? ImagePathTextBox->GetText().ToString() : FString();
+	
+	if (bUseIterativeOptimization)
+	{
+		LogMessage(TEXT("Using iterative optimization mode"));
+		PerformIterativeGeneration(Prompt, ImagePath, true);
+		return FReply::Handled();
+	}
+	
+	// Standard generation without optimization
 	LogMessage(TEXT("Requesting recipe from LLM (async)..."));
 	
 	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
@@ -1150,4 +1238,152 @@ FReply SVFXAgentPanel::OnChooseImagePathClicked()
 	}
 
 	return FReply::Handled();
+}
+
+void SVFXAgentPanel::PerformIterativeGeneration(
+	const FString& Prompt,
+	const FString& ImagePath,
+	bool bUseOptimization)
+{
+	if (!LLMProvider)
+	{
+		LogMessage(TEXT("ERROR: LLM Provider not initialized"));
+		return;
+	}
+
+	FString OutputPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : "/Game/VFXAgent/Generated";
+	FString AssetName = AssetNameTextBox.IsValid() ? AssetNameTextBox->GetText().ToString() : "VFX_GeneratedEffect";
+
+	if (!bUseOptimization)
+	{
+		// Simple generation without iteration
+		LogMessage(TEXT("Generating without iterative optimization..."));
+		
+		if (!ImagePath.IsEmpty())
+		{
+			// Use image-based generation
+			FVFXGenerationRequest Request;
+			Request.TextPrompt = Prompt;
+			Request.ReferenceImagePath = ImagePath;
+			Request.bGenerateMaterials = true;
+			Request.bGenerateTextures = true;
+
+			LogMessage(FString::Printf(TEXT("Analyzing image: %s"), *ImagePath));
+			FVFXRecipe Recipe = LLMProvider->GenerateRecipeFromRequest(Request);
+			
+			if (Recipe.Emitters.Num() > 0)
+			{
+				LastRecipe = Recipe;
+				LastPrompt = Prompt;
+				LogMessage(FString::Printf(TEXT("Recipe generated with %d emitters"), Recipe.Emitters.Num()));
+			}
+		}
+		else
+		{
+			// Text-only generation
+			FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
+			if (Recipe.Emitters.Num() > 0)
+			{
+				LastRecipe = Recipe;
+				LastPrompt = Prompt;
+			}
+		}
+		return;
+	}
+
+	// Iterative optimization
+	LogMessage(TEXT("=== Starting Iterative Optimization ==="));
+	
+	int32 MaxIterations = MaxIterationsSpinBox.IsValid() ? MaxIterationsSpinBox->GetValue() : 5;
+	float TargetQuality = TargetQualitySpinBox.IsValid() ? TargetQualitySpinBox->GetValue() : 0.85f;
+
+	LogMessage(FString::Printf(TEXT("Max iterations: %d, Target quality: %.2f"), MaxIterations, TargetQuality));
+
+	// Configure optimization
+	FVFXOptimizationConfig Config;
+	Config.MaxIterations = MaxIterations;
+	Config.TargetQualityScore = TargetQuality;
+	Config.bEnableVisualComparison = !ImagePath.IsEmpty();
+	Config.ReferenceImagePath = ImagePath;
+	Config.OriginalPrompt = Prompt;
+
+	// Generate initial recipe
+	LogMessage(TEXT("Iteration 0: Generating initial recipe..."));
+	FVFXRecipe InitialRecipe;
+	
+	if (!ImagePath.IsEmpty())
+	{
+		FVFXGenerationRequest Request;
+		Request.TextPrompt = Prompt;
+		Request.ReferenceImagePath = ImagePath;
+		Request.bGenerateMaterials = true;
+		Request.bGenerateTextures = true;
+		
+		InitialRecipe = LLMProvider->GenerateRecipeFromRequest(Request);
+	}
+	else
+	{
+		InitialRecipe = LLMProvider->GenerateRecipe(Prompt);
+	}
+
+	if (InitialRecipe.Emitters.Num() == 0)
+	{
+		LogMessage(TEXT("ERROR: Initial recipe generation failed"));
+		bRequestInFlight = false;
+		return;
+	}
+
+	LogMessage(FString::Printf(TEXT("Initial recipe: %d emitters, %d materials"), 
+		InitialRecipe.Emitters.Num(), InitialRecipe.Materials.Num()));
+
+	// Create optimizer
+	UVFXIterativeOptimizer* Optimizer = UVFXIterativeOptimizer::CreateInstance();
+	if (!Optimizer)
+	{
+		LogMessage(TEXT("ERROR: Failed to create optimizer"));
+		bRequestInFlight = false;
+		return;
+	}
+
+	// Perform optimization
+	LogMessage(TEXT("Starting iterative optimization..."));
+	FVFXRecipe OptimizedRecipe = Optimizer->OptimizeEffect(InitialRecipe, Config, LLMProvider);
+
+	LastRecipe = OptimizedRecipe;
+	LastPrompt = Prompt;
+
+	LogMessage(TEXT("=== Optimization Complete ==="));
+	LogMessage(FString::Printf(TEXT("Final recipe: %d emitters, %d materials"),
+		OptimizedRecipe.Emitters.Num(), OptimizedRecipe.Materials.Num()));
+
+	// Generate the Niagara system with optimized recipe
+	LogMessage(TEXT("Generating Niagara system from optimized recipe..."));
+	
+	UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
+	if (!Generator)
+	{
+		LogMessage(TEXT("ERROR: Failed to create NiagaraSystemGenerator"));
+		bRequestInFlight = false;
+		return;
+	}
+
+	const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+	const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
+
+	UNiagaraSystem* GeneratedSystem = Generator->GenerateNiagaraSystem(
+		AssetName,
+		OutputPath,
+		OptimizedRecipe,
+		TemplatePath);
+
+	if (GeneratedSystem)
+	{
+		LogMessage(FString::Printf(TEXT("SUCCESS! Niagara system generated: %s"), *GeneratedSystem->GetPathName()));
+	}
+	else
+	{
+		LogMessage(TEXT("ERROR: Failed to generate Niagara system"));
+	}
+
+	bRequestInFlight = false;
 }

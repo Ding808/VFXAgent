@@ -2,6 +2,9 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/Input/SSpinBox.h"
+#include "Widgets/Input/SCheckBox.h"
+#include "Types/SlateEnums.h"
 #include "VFXRecipe.h"
 
 class ILLMProvider;
@@ -25,11 +28,13 @@ private:
 	FReply OnChooseOutputPathClicked();
 	FReply OnChooseImagePathClicked();
 	FReply OnTestLLMClicked();
+	FReply OnGenerateWithIterativeOptimizationClicked();
 
 	// Helper functions
 	void LogMessage(const FString& Message);
 	void UpdateLastRecipe(const FVFXRecipe& Recipe);
 	void RefreshLLMSettingsFromConfig();
+	void PerformIterativeGeneration(const FString& Prompt, const FString& ImagePath, bool bUseOptimization);
 
 	// UI elements
 	TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;
@@ -38,6 +43,9 @@ private:
 	TSharedPtr<class SEditableTextBox> AssetNameTextBox;
 	TSharedPtr<class SEditableTextBox> ImagePathTextBox;
 	TSharedPtr<class SMultiLineEditableTextBox> LogTextBox;
+	TSharedPtr<class SCheckBox> EnableIterativeOptimizationCheckBox;
+	TSharedPtr<SSpinBox<int32>> MaxIterationsSpinBox;
+	TSharedPtr<SSpinBox<float>> TargetQualitySpinBox;
 
 	// Data
 	FVFXRecipe LastRecipe;

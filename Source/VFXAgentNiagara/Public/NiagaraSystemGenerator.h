@@ -44,4 +44,19 @@ private:
 	class UMaterialInstanceConstant* GetOrCreateBasicMaterial(
 		const FString& Path,
 		const FVFXMaterialRecipe& MaterialRecipe);
+
+	/**
+	 * Generate and assign materials for all emitters in the recipe
+	 */
+	void GenerateMaterialsForRecipe(
+		const FVFXRecipe& Recipe,
+		const FString& OutputPath,
+		UNiagaraSystem* System);
+
+	/**
+	 * Generate textures specified in materials
+	 */
+	void GenerateTexturesForMaterial(
+		const FVFXMaterialRecipe& MaterialRecipe,
+		const FString& OutputPath);
 };

@@ -47,7 +47,10 @@ public class VFXAgentNiagara : ModuleRules
 				"AssetRegistry",
 				"EditorSubsystem",   // For UAssetEditorSubsystem
 				"Sequencer",
-				"VFXAgentCore"
+				"VFXAgentCore",
+				"MaterialEditor",    // For material generation
+				"RenderCore",        // For texture generation
+				"RHI"                // For texture operations
 			}
 			);
 		

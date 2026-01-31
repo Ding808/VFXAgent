@@ -1,5 +1,6 @@
 #include "NiagaraSystemGenerator.h"
 #include "NiagaraSpecExecutor.h"
+#include "MaterialGenerator.h"
 #include "VFXAgentLog.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
@@ -81,6 +82,14 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     if (FNiagaraSpecExecutor::SaveCompileAndSelfCheck(ResultSystem, Report))
     {
         UE_LOG(LogVFXAgent, Log, TEXT("Generation Success! Asset: %s"), *Report.SystemPath);
+        
+        // Generate materials and textures if specified in the recipe
+        if (Recipe.Materials.Num() > 0)
+        {
+            UE_LOG(LogVFXAgent, Log, TEXT("Generating materials for system..."));
+            GenerateMaterialsForRecipe(Recipe, OutputPath, ResultSystem);
+        }
+        
         return ResultSystem;
     }
 
@@ -122,12 +131,99 @@ UNiagaraEmitter* UNiagaraSystemGenerator::CreateBasicEmitter(const FVFXEmitterRe
     return nullptr;
 }
 
-bool UNiagaraSystemGenerator::BindMaterialToEmitter(class UNiagaraEmitter* Emitter, const FVFXMaterialRecipe& MaterialRecipe)
+bool UNiagaraSystemGenerator::BindMaterialToEmitter(
+    UNiagaraEmitter* Emitter,
+    const FVFXMaterialRecipe& MaterialRecipe)
 {
+    // Stub: material binding is not implemented yet
     return false;
 }
 
-class UMaterialInstanceConstant* UNiagaraSystemGenerator::GetOrCreateBasicMaterial(const FString& Path, const FVFXMaterialRecipe& MaterialRecipe)
+class UMaterialInstanceConstant* UNiagaraSystemGenerator::GetOrCreateBasicMaterial(
+    const FString& Path,
+    const FVFXMaterialRecipe& MaterialRecipe)
 {
+    // Stub: material creation is not implemented yet
     return nullptr;
 }
+
+void UNiagaraSystemGenerator::GenerateMaterialsForRecipe(
+	const FVFXRecipe& Recipe,
+	const FString& OutputPath,
+	UNiagaraSystem* System)
+{
+	if (!System)
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Cannot generate materials for null system"));
+		return;
+	}
+
+	// Create material generator
+	UMaterialGenerator* MaterialGen = UMaterialGenerator::CreateInstance();
+	if (!MaterialGen)
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create material generator"));
+		return;
+	}
+
+	// Materials output path
+	FString MaterialsPath = OutputPath / TEXT("Materials");
+
+	// Generate each material
+	for (int32 i = 0; i < Recipe.Materials.Num(); i++)
+	{
+		const FVFXMaterialRecipe& MatRecipe = Recipe.Materials[i];
+		
+		UE_LOG(LogVFXAgent, Log, TEXT("Generating material %d: %s"), i, *MatRecipe.Name);
+
+		// Generate textures first if needed
+		GenerateTexturesForMaterial(MatRecipe, MaterialsPath);
+
+		// Generate the material
+		UMaterialInstanceConstant* Material = MaterialGen->GenerateMaterial(MatRecipe, MaterialsPath);
+		if (Material)
+		{
+			UE_LOG(LogVFXAgent, Log, TEXT("Material created successfully: %s"), *Material->GetPathName());
+			
+			// TODO: Bind material to appropriate emitter
+			// This would require matching materials to emitters by index or name
+		}
+		else
+		{
+			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to generate material: %s"), *MatRecipe.Name);
+		}
+	}
+}
+
+void UNiagaraSystemGenerator::GenerateTexturesForMaterial(
+	const FVFXMaterialRecipe& MaterialRecipe,
+	const FString& OutputPath)
+{
+	if (MaterialRecipe.GeneratedTextures.Num() == 0)
+	{
+		return;
+	}
+
+	UMaterialGenerator* MaterialGen = UMaterialGenerator::CreateInstance();
+	if (!MaterialGen)
+	{
+		return;
+	}
+
+	FString TexturesPath = OutputPath / TEXT("Textures");
+
+	for (const FVFXTextureRecipe& TexRecipe : MaterialRecipe.GeneratedTextures)
+	{
+		UE_LOG(LogVFXAgent, Log, TEXT("Generating texture: %s"), *TexRecipe.Name);
+		
+		UTexture2D* Texture = MaterialGen->GenerateProceduralTexture(TexRecipe, TexturesPath);
+		if (Texture)
+		{
+			UE_LOG(LogVFXAgent, Log, TEXT("Texture created: %s"), *Texture->GetPathName());
+		}
+		else
+		{
+			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to generate texture: %s"), *TexRecipe.Name);
+		}
+	}
+    }

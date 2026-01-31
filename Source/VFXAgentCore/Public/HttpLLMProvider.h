@@ -40,6 +40,14 @@ public:
 
 	virtual FVFXRecipe GenerateRecipe(const FString& Prompt) override;
 	virtual FVFXRecipe RefineRecipe(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt) override;
+	
+	// New methods for enhanced functionality
+	virtual FVFXRecipe GenerateRecipeFromRequest(const FVFXGenerationRequest& Request) override;
+	virtual FString AnalyzeReferenceImage(const FString& ImagePath) override;
+	virtual FString CompareWithReference(
+		const FVFXRecipe& GeneratedRecipe,
+		const FString& ReferenceImagePath,
+		const FString& OriginalPrompt) override;
 
 private:
 	UPROPERTY(EditAnywhere, Category = "VFXAgent|LLM")
@@ -58,11 +66,15 @@ private:
 	float TimeoutSeconds = 30.0f;
 
 	FString BuildSystemPrompt() const;
+	FString BuildVisionSystemPrompt() const;
 	FString BuildVisionUserPrompt(const FString& OptionalPrompt) const;
+	FString BuildImageAnalysisPrompt() const;
+	FString EncodeImageToBase64(const FString& ImagePath) const;
 	bool TryRequestRecipeJson(const FString& UserPrompt, FString& OutRecipeJson, FString& OutError) const;
 	using FOnRecipeJsonComplete = TFunction<void(bool /*bSuccess*/, const FString& /*RecipeJson*/, const FString& /*Error*/)>;
 	void RequestRecipeJsonAsync(const FString& UserPrompt, FOnRecipeJsonComplete OnComplete) const;
 	void RequestRecipeJsonWithImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const;
+	void RequestImageAnalysisAsync(const FString& ImagePath, TFunction<void(bool, const FString&, const FString&)> OnComplete) const;
 	static bool TryParseRecipeJson(const FString& RecipeJson, FVFXRecipe& OutRecipe, FString& OutError);
 
 	void SetLastError(const FString& InError) { LastError = InError; }

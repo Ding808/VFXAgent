@@ -8,9 +8,6 @@
 #include "Widgets/SWindow.h"
 #include "Styling/AppStyle.h"
 
-// Define log category for this module
-DEFINE_LOG_CATEGORY(LogVFXAgent);
-
 #define LOCTEXT_NAMESPACE "FVFXAgentEditorModule"
 
 const FName VFXAgentTabName(TEXT("VFXAgent"));

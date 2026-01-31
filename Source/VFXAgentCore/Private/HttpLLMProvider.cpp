@@ -708,3 +708,364 @@ void UHttpLLMProvider::GenerateRecipeFromImageAsync(const FString& ImageFilePath
 		OnComplete(Parsed, FString());
 	});
 }
+
+FVFXRecipe UHttpLLMProvider::GenerateRecipeFromRequest(const FVFXGenerationRequest& Request)
+{
+	ClearLastError();
+
+	// If we have a reference image, use vision-enabled generation
+	if (!Request.ReferenceImagePath.IsEmpty())
+	{
+		bool bDone = false;
+		FVFXRecipe Result;
+		FString Error;
+
+		GenerateRecipeFromImageAsync(Request.ReferenceImagePath, Request.TextPrompt,
+			[&bDone, &Result, &Error](const FVFXRecipe& Recipe, const FString& InError)
+			{
+				Result = Recipe;
+				Error = InError;
+				bDone = true;
+			});
+
+		// Wait for completion
+		const double Start = FPlatformTime::Seconds();
+		while (!bDone)
+		{
+			if ((FPlatformTime::Seconds() - Start) > TimeoutSeconds)
+			{
+				SetLastError(TEXT("Request timed out"));
+				return FVFXRecipe();
+			}
+			if (IsInGameThread())
+			{
+				FHttpModule::Get().GetHttpManager().Tick(0.01f);
+			}
+			FPlatformProcess::Sleep(0.01f);
+		}
+
+		if (!Error.IsEmpty())
+		{
+			SetLastError(Error);
+			return FVFXRecipe();
+		}
+
+		return Result;
+	}
+
+	// Otherwise use text-only generation
+	FString EnhancedPrompt = Request.TextPrompt;
+	if (!Request.AdditionalContext.IsEmpty())
+	{
+		EnhancedPrompt += TEXT("\n\nAdditional context: ") + Request.AdditionalContext;
+	}
+
+	if (Request.bGenerateMaterials)
+	{
+		EnhancedPrompt += TEXT("\n\nPlease include custom materials with appropriate colors and properties.");
+	}
+
+	if (!Request.TargetStyle.IsEmpty() && Request.TargetStyle != TEXT("realistic"))
+	{
+		EnhancedPrompt += FString::Printf(TEXT("\n\nTarget style: %s"), *Request.TargetStyle);
+	}
+
+	return GenerateRecipe(EnhancedPrompt);
+}
+
+FString UHttpLLMProvider::AnalyzeReferenceImage(const FString& ImagePath)
+{
+	ClearLastError();
+
+	bool bDone = false;
+	FString Result;
+	FString Error;
+
+	RequestImageAnalysisAsync(ImagePath,
+		[&bDone, &Result, &Error](bool bSuccess, const FString& Description, const FString& InError)
+		{
+			if (bSuccess)
+			{
+				Result = Description;
+			}
+			else
+			{
+				Error = InError;
+			}
+			bDone = true;
+		});
+
+	// Wait for completion
+	const double Start = FPlatformTime::Seconds();
+	while (!bDone)
+	{
+		if ((FPlatformTime::Seconds() - Start) > TimeoutSeconds)
+		{
+			SetLastError(TEXT("Image analysis timed out"));
+			return TEXT("Analysis timed out");
+		}
+		if (IsInGameThread())
+		{
+			FHttpModule::Get().GetHttpManager().Tick(0.01f);
+		}
+		FPlatformProcess::Sleep(0.01f);
+	}
+
+	if (!Error.IsEmpty())
+	{
+		SetLastError(Error);
+		return FString::Printf(TEXT("Error analyzing image: %s"), *Error);
+	}
+
+	return Result;
+}
+
+FString UHttpLLMProvider::CompareWithReference(
+	const FVFXRecipe& GeneratedRecipe,
+	const FString& ReferenceImagePath,
+	const FString& OriginalPrompt)
+{
+	// Analyze the reference image
+	FString ImageDescription = AnalyzeReferenceImage(ReferenceImagePath);
+	
+	if (ImageDescription.StartsWith(TEXT("Error")))
+	{
+		return ImageDescription;
+	}
+
+	// Generate feedback by comparing the recipe with image description
+	FString RecipeJson;
+	FJsonObjectConverter::UStructToJsonObjectString(GeneratedRecipe, RecipeJson);
+
+	FString ComparisonPrompt = FString::Printf(
+		TEXT("Compare this VFX recipe with the reference image description and provide improvement suggestions.\n\n")
+		TEXT("Original request: %s\n\n")
+		TEXT("Reference image shows: %s\n\n")
+		TEXT("Current recipe: %s\n\n")
+		TEXT("Provide specific suggestions to make the recipe match the reference image better."),
+		*OriginalPrompt,
+		*ImageDescription,
+		*RecipeJson);
+
+	// Use a simple text request for comparison feedback
+	bool bDone = false;
+	FString Feedback;
+
+	RequestRecipeJsonAsync(ComparisonPrompt,
+		[&bDone, &Feedback](bool bSuccess, const FString& Response, const FString& Error)
+		{
+			if (bSuccess)
+			{
+				Feedback = Response;
+			}
+			else
+			{
+				Feedback = FString::Printf(TEXT("Comparison failed: %s"), *Error);
+			}
+			bDone = true;
+		});
+
+	// Wait for completion
+	const double Start = FPlatformTime::Seconds();
+	while (!bDone)
+	{
+		if ((FPlatformTime::Seconds() - Start) > TimeoutSeconds)
+		{
+			return TEXT("Comparison timed out");
+		}
+		if (IsInGameThread())
+		{
+			FHttpModule::Get().GetHttpManager().Tick(0.01f);
+		}
+		FPlatformProcess::Sleep(0.01f);
+	}
+
+	return Feedback;
+}
+
+FString UHttpLLMProvider::BuildVisionSystemPrompt() const
+{
+	return TEXT(
+		"You are a VFX expert analyzing images to create Niagara particle effects. "
+		"When given an image showing a visual effect, describe it in detail including:\n"
+		"- Overall effect type (explosion, magic, fire, electricity, etc.)\n"
+		"- Number and types of visual layers\n"
+		"- Colors and color transitions\n"
+		"- Particle behavior (burst, continuous, trails, etc.)\n"
+		"- Scale and intensity\n"
+		"- Any special characteristics\n\n"
+		"Then generate a complete VFX recipe JSON matching the FVFXRecipe schema.");
+}
+
+FString UHttpLLMProvider::BuildImageAnalysisPrompt() const
+{
+	return TEXT(
+		"Analyze this image and describe the visual effect shown. Focus on:\n"
+		"- Type of effect (explosion, fire, magic, smoke, etc.)\n"
+		"- Visual layers and components\n"
+		"- Color palette\n"
+		"- Movement and behavior\n"
+		"- Overall aesthetic and style\n"
+		"Provide a detailed description suitable for recreating this effect.");
+}
+
+FString UHttpLLMProvider::EncodeImageToBase64(const FString& ImagePath) const
+{
+	TArray<uint8> FileData;
+	if (!FFileHelper::LoadFileToArray(FileData, *ImagePath))
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to load image file: %s"), *ImagePath);
+		return FString();
+	}
+
+	return FBase64::Encode(FileData);
+}
+
+void UHttpLLMProvider::RequestImageAnalysisAsync(
+	const FString& ImagePath,
+	TFunction<void(bool, const FString&, const FString&)> OnComplete) const
+{
+	if (!OnComplete)
+	{
+		return;
+	}
+
+	FString ImageBase64 = EncodeImageToBase64(ImagePath);
+	if (ImageBase64.IsEmpty())
+	{
+		OnComplete(false, FString(), TEXT("Failed to encode image"));
+		return;
+	}
+
+	// Determine image type
+	FString Extension = FPaths::GetExtension(ImagePath).ToLower();
+	FString MimeType = TEXT("image/jpeg");
+	if (Extension == TEXT("png"))
+	{
+		MimeType = TEXT("image/png");
+	}
+	else if (Extension == TEXT("webp"))
+	{
+		MimeType = TEXT("image/webp");
+	}
+
+	FString EffectiveEndpoint = Endpoint;
+	if (EffectiveEndpoint.IsEmpty())
+	{
+		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
+		return;
+	}
+
+	// Build vision request (OpenAI GPT-4 Vision format)
+	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
+	BodyObj->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o") : Model);
+	BodyObj->SetNumberField(TEXT("max_tokens"), 500);
+
+	TArray<TSharedPtr<FJsonValue>> Messages;
+	
+	// User message with image
+	TSharedPtr<FJsonObject> UserMsg = MakeShared<FJsonObject>();
+	UserMsg->SetStringField(TEXT("role"), TEXT("user"));
+
+	TArray<TSharedPtr<FJsonValue>> ContentArray;
+	
+	// Text part
+	TSharedPtr<FJsonObject> TextPart = MakeShared<FJsonObject>();
+	TextPart->SetStringField(TEXT("type"), TEXT("text"));
+	TextPart->SetStringField(TEXT("text"), BuildImageAnalysisPrompt());
+	ContentArray.Add(MakeShared<FJsonValueObject>(TextPart));
+
+	// Image part
+	TSharedPtr<FJsonObject> ImagePart = MakeShared<FJsonObject>();
+	ImagePart->SetStringField(TEXT("type"), TEXT("image_url"));
+	TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
+	ImageUrl->SetStringField(TEXT("url"), FString::Printf(TEXT("data:%s;base64,%s"), *MimeType, *ImageBase64));
+	ImagePart->SetObjectField(TEXT("image_url"), ImageUrl);
+	ContentArray.Add(MakeShared<FJsonValueObject>(ImagePart));
+
+	UserMsg->SetArrayField(TEXT("content"), ContentArray);
+	Messages.Add(MakeShared<FJsonValueObject>(UserMsg));
+
+	BodyObj->SetArrayField(TEXT("messages"), Messages);
+
+	FString BodyText;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyText);
+	FJsonSerializer::Serialize(BodyObj.ToSharedRef(), Writer);
+
+	FHttpModule& Http = FHttpModule::Get();
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = Http.CreateRequest();
+	Req->SetURL(EffectiveEndpoint);
+	Req->SetVerb(TEXT("POST"));
+	Req->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Req->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	if (!ApiKey.IsEmpty())
+	{
+		Req->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
+	}
+	Req->SetContentAsString(BodyText);
+	Req->SetTimeout(TimeoutSeconds);
+
+	Req->OnProcessRequestComplete().BindLambda([OnComplete](
+		FHttpRequestPtr Request,
+		FHttpResponsePtr Response,
+		bool bSucceeded)
+	{
+		if (!bSucceeded || !Response.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("HTTP request failed"));
+			return;
+		}
+
+		const int32 Code = Response->GetResponseCode();
+		if (Code < 200 || Code >= 300)
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("HTTP %d: %s"),
+				Code, *Response->GetContentAsString().Left(200)));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Root;
+		FString JsonError;
+		if (!ParseJsonObject(Response->GetContentAsString(), Root, JsonError))
+		{
+			OnComplete(false, FString(), TEXT("Failed to parse response"));
+			return;
+		}
+
+		// Extract content from choices[0].message.content
+		const TArray<TSharedPtr<FJsonValue>>* Choices = nullptr;
+		if (!Root->TryGetArrayField(TEXT("choices"), Choices) || !Choices || Choices->Num() == 0)
+		{
+			OnComplete(false, FString(), TEXT("No choices in response"));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Choice = (*Choices)[0]->AsObject();
+		if (!Choice.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("Invalid choice object"));
+			return;
+		}
+
+		const TSharedPtr<FJsonObject> Message = Choice->GetObjectField(TEXT("message"));
+		if (!Message.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("No message in choice"));
+			return;
+		}
+
+		FString Content;
+		if (!Message->TryGetStringField(TEXT("content"), Content))
+		{
+			OnComplete(false, FString(), TEXT("No content in message"));
+			return;
+		}
+
+		OnComplete(true, Content, FString());
+	});
+
+	if (!Req->ProcessRequest())
+	{
+		OnComplete(false, FString(), TEXT("Failed to start request"));
+	}
+}

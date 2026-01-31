@@ -42,9 +42,42 @@ struct FVFXEmitterRecipe
 };
 
 USTRUCT(BlueprintType)
+struct FVFXTextureRecipe
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Texture")
+	FString Name = "GeneratedTexture";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Texture")
+	FString Type = "Gradient"; // Gradient, Noise, Perlin, Voronoi, Custom
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Texture")
+	FLinearColor PrimaryColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Texture")
+	FLinearColor SecondaryColor = FLinearColor::Black;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Texture")
+	int32 Resolution = 256; // Texture resolution (256, 512, 1024, etc.)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Texture")
+	float NoiseScale = 1.0f; // For noise-based textures
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Texture")
+	int32 Octaves = 4; // For fractal noise
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Texture")
+	FString Description;
+};
+
+USTRUCT(BlueprintType)
 struct FVFXMaterialRecipe
 {
 	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	FString Name = "GeneratedMaterial";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
 	FString Description = "Basic additive material";
@@ -53,7 +86,45 @@ struct FVFXMaterialRecipe
 	bool bIsAdditive = true;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	bool bIsUnlit = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
 	FString BaseMaterialPath = "/Engine/EngineMaterials/ParticleSpriteMaterial";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	FLinearColor BaseColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	FLinearColor EmissiveColor = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	float EmissiveStrength = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	float Opacity = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	float Roughness = 0.5f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	float Metallic = 0.0f;
+
+	// Textures to use (can reference generated textures)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	FString BaseColorTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	FString EmissiveTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	FString OpacityTexture;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	FString NormalTexture;
+
+	// Auto-generate textures based on these recipes
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	TArray<FVFXTextureRecipe> GeneratedTextures;
 };
 
 // --- New Schema for Niagara Spec ---
