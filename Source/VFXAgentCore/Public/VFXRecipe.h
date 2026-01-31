@@ -13,13 +13,18 @@ struct FVFXEmitterRecipe
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	FString Name;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	// === Spawn Parameters ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
 	float SpawnRate = 10.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
 	int32 BurstCount = 0;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+	float BurstTime = 0.0f; // When to trigger burst (0 = at start)
+
+	// === Renderer ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Renderer")
 	FString RendererType = "Sprite"; // Sprite, Mesh, Ribbon
 
 	// New: Specify a preferred Niagara template to base this emitter on.
@@ -27,18 +32,82 @@ struct FVFXEmitterRecipe
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	FString TemplateName = "Fountain";
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	// === Color & Appearance ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Color")
 	FLinearColor Color = FLinearColor::White;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Color")
+	FLinearColor ColorEnd = FLinearColor::White; // Color at end of lifetime (for gradient)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Color")
+	bool bUseColorGradient = false;
+
+	// === Lifetime & Size ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lifetime")
 	float Lifetime = 5.0f;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lifetime")
+	float LifetimeVariation = 0.0f; // Random variation (0-1, multiplier)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Size")
 	float Size = 10.0f;
 
-	// Initial velocity direction and magnitude for particles
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
-	FVector Velocity = FVector(0, 0, 100);
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Size")
+	float SizeEnd = 10.0f; // Size at end of lifetime
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Size")
+	bool bUseSizeOverLife = false; // Scale from Size to SizeEnd
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Size")
+	float SizeVariation = 0.0f; // Random size variation (0-1, multiplier)
+
+	// === Velocity & Movement ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Velocity")
+	FVector Velocity = FVector(0, 0, 100); // Initial velocity
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Velocity")
+	float VelocityVariation = 0.0f; // Random velocity variation (0-1, multiplier)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Velocity")
+	FVector Acceleration = FVector(0, 0, -980); // Gravity or constant acceleration
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Velocity")
+	float Drag = 0.0f; // Air resistance (0-10, 0=no drag)
+
+	// === Rotation ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotation")
+	float InitialRotation = 0.0f; // Initial rotation in degrees
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotation")
+	float RotationRate = 0.0f; // Rotation speed in degrees/second
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rotation")
+	float RotationRateVariation = 0.0f; // Random rotation variation
+
+	// === Physics & Forces ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics")
+	bool bUseGravity = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Physics")
+	float Mass = 1.0f;
+
+	// === Emitter Shape ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shape")
+	FString EmitShape = "Point"; // Point, Sphere, Box, Cone, Cylinder
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shape")
+	FVector ShapeSize = FVector(100, 100, 100); // Size/radius of emit shape
+
+	// === Material Assignment ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	int32 MaterialIndex = -1; // Index into Materials array, -1 for default
+
+	// === Sorting & Rendering ===
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendering")
+	int32 SortOrder = 0; // Higher values render later (on top)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendering")
+	bool bLocalSpace = false; // Particles move with emitter
 };
 
 USTRUCT(BlueprintType)
@@ -182,6 +251,26 @@ struct FVFXEmitterSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	FVector Velocity = FVector::ZeroVector;
+
+	// Physics
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Physics")
+	float Drag = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Physics")
+	FVector Acceleration = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Physics")
+	bool bUseGravity = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Physics")
+	float Mass = 1.0f;
+
+	// Rotation
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rotation")
+	float RotationRate = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rotation")
+	float InitialRotation = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	FString Notes;

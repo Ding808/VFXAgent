@@ -4,6 +4,11 @@
 #include "VFXAgentLog.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
+#include "NiagaraRendererProperties.h"
+#include "NiagaraSpriteRendererProperties.h"
+#include "NiagaraRibbonRendererProperties.h"
+#include "Materials/MaterialInterface.h"
+#include "UObject/UnrealType.h"
 
 // NOTE: Removed automatic repair/retry logic that appended "_Fixed" to the system name.
 // Generation now performs a single Create + Save/Compile + SelfCheck pass.
@@ -41,12 +46,21 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
             else if (SrcEmitter.RendererType == "Light") EmitterSpec.RendererType = EVFXRendererType::Light;
             else EmitterSpec.RendererType = EVFXRendererType::Sprite;
 
+            // Basic parameters
             EmitterSpec.Spawn.Rate = SrcEmitter.SpawnRate;
             EmitterSpec.Spawn.Burst = SrcEmitter.BurstCount;
             EmitterSpec.Color = SrcEmitter.Color;
             EmitterSpec.Lifetime = SrcEmitter.Lifetime;
             EmitterSpec.Size = SrcEmitter.Size;
             EmitterSpec.Velocity = SrcEmitter.Velocity;
+            
+            // Extended parameters (Physics & Rotation)
+            EmitterSpec.Drag = SrcEmitter.Drag;
+            EmitterSpec.Acceleration = SrcEmitter.Acceleration;
+            EmitterSpec.bUseGravity = SrcEmitter.bUseGravity;
+            EmitterSpec.Mass = SrcEmitter.Mass;
+            EmitterSpec.RotationRate = SrcEmitter.RotationRate;
+            EmitterSpec.InitialRotation = SrcEmitter.InitialRotation;
 
             Spec.Emitters.Add(EmitterSpec);
         }
@@ -78,18 +92,17 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
         return nullptr;
     }
 
+    // Generate materials and textures if specified in the recipe (do this before save/compile)
+    if (Recipe.Materials.Num() > 0)
+    {
+        UE_LOG(LogVFXAgent, Log, TEXT("Generating materials for system..."));
+        GenerateMaterialsForRecipe(Recipe, OutputPath, ResultSystem);
+    }
+
     FVFXRepairReport Report;
     if (FNiagaraSpecExecutor::SaveCompileAndSelfCheck(ResultSystem, Report))
     {
         UE_LOG(LogVFXAgent, Log, TEXT("Generation Success! Asset: %s"), *Report.SystemPath);
-        
-        // Generate materials and textures if specified in the recipe
-        if (Recipe.Materials.Num() > 0)
-        {
-            UE_LOG(LogVFXAgent, Log, TEXT("Generating materials for system..."));
-            GenerateMaterialsForRecipe(Recipe, OutputPath, ResultSystem);
-        }
-        
         return ResultSystem;
     }
 
@@ -158,6 +171,53 @@ void UNiagaraSystemGenerator::GenerateMaterialsForRecipe(
 		return;
 	}
 
+    // Helper to retrieve renderer properties from a UNiagaraEmitter using reflection.
+    auto GetEmitterRenderers = [](UNiagaraEmitter* Emitter)
+    {
+        TArray<UNiagaraRendererProperties*> Result;
+        if (!Emitter) return Result;
+        const FName PossibleNames[] = { TEXT("RendererProperties"), TEXT("Renderers") };
+        for (const FName& Name : PossibleNames)
+        {
+            FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), Name);
+            if (!ArrayProp) continue;
+            FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+            FObjectPropertyBase* InnerObjProp = CastField<FObjectPropertyBase>(ArrayProp->Inner);
+            if (!InnerObjProp) break;
+            for (int32 i = 0; i < Helper.Num(); ++i)
+            {
+                void* ElemPtr = Helper.GetRawPtr(i);
+                UObject* Obj = InnerObjProp->GetObjectPropertyValue(ElemPtr);
+                if (UNiagaraRendererProperties* RP = Cast<UNiagaraRendererProperties>(Obj))
+                {
+                    Result.Add(RP);
+                }
+            }
+            break;
+        }
+        return Result;
+    };
+
+    auto ApplyMaterialToEmitter = [&](UNiagaraEmitter* Emitter, UMaterialInterface* Material)
+    {
+        if (!Emitter || !Material) return;
+        TArray<UNiagaraRendererProperties*> Renderers = GetEmitterRenderers(Emitter);
+        for (UNiagaraRendererProperties* Prop : Renderers)
+        {
+            if (!Prop) continue;
+            if (UNiagaraSpriteRendererProperties* Sprite = Cast<UNiagaraSpriteRendererProperties>(Prop))
+            {
+                Sprite->Material = Material;
+            }
+            else if (UNiagaraRibbonRendererProperties* Ribbon = Cast<UNiagaraRibbonRendererProperties>(Prop))
+            {
+                Ribbon->Material = Material;
+            }
+        }
+        Emitter->Modify();
+        Emitter->PostEditChange();
+    };
+
 	// Create material generator
 	UMaterialGenerator* MaterialGen = UMaterialGenerator::CreateInstance();
 	if (!MaterialGen)
@@ -169,7 +229,9 @@ void UNiagaraSystemGenerator::GenerateMaterialsForRecipe(
 	// Materials output path
 	FString MaterialsPath = OutputPath / TEXT("Materials");
 
-	// Generate each material
+    // Generate each material
+    TArray<UMaterialInterface*> CreatedMaterials;
+    CreatedMaterials.SetNum(Recipe.Materials.Num());
 	for (int32 i = 0; i < Recipe.Materials.Num(); i++)
 	{
 		const FVFXMaterialRecipe& MatRecipe = Recipe.Materials[i];
@@ -180,19 +242,56 @@ void UNiagaraSystemGenerator::GenerateMaterialsForRecipe(
 		GenerateTexturesForMaterial(MatRecipe, MaterialsPath);
 
 		// Generate the material
-		UMaterialInstanceConstant* Material = MaterialGen->GenerateMaterial(MatRecipe, MaterialsPath);
-		if (Material)
+        UMaterialInstanceConstant* Material = MaterialGen->GenerateMaterial(MatRecipe, MaterialsPath);
+        if (Material)
 		{
 			UE_LOG(LogVFXAgent, Log, TEXT("Material created successfully: %s"), *Material->GetPathName());
-			
-			// TODO: Bind material to appropriate emitter
-			// This would require matching materials to emitters by index or name
+            CreatedMaterials[i] = Material;
 		}
 		else
 		{
 			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to generate material: %s"), *MatRecipe.Name);
 		}
 	}
+
+    // Bind materials to emitters by MaterialIndex (fallback to first material)
+    const TArray<FNiagaraEmitterHandle>& Handles = System->GetEmitterHandles();
+    for (int32 EmitterIdx = 0; EmitterIdx < Recipe.Emitters.Num(); ++EmitterIdx)
+    {
+        const FVFXEmitterRecipe& EmitterRecipe = Recipe.Emitters[EmitterIdx];
+        int32 MatIndex = EmitterRecipe.MaterialIndex;
+        if (MatIndex < 0 && CreatedMaterials.Num() == 1)
+        {
+            MatIndex = 0;
+        }
+        if (!CreatedMaterials.IsValidIndex(MatIndex) || !CreatedMaterials[MatIndex])
+        {
+            continue;
+        }
+
+        UNiagaraEmitter* Emitter = nullptr;
+        if (Handles.IsValidIndex(EmitterIdx))
+        {
+            Emitter = Handles[EmitterIdx].GetInstance().Emitter;
+        }
+        if (!Emitter)
+        {
+            // Fallback: match by name
+            for (const FNiagaraEmitterHandle& Handle : Handles)
+            {
+                if (Handle.GetName().ToString().Equals(EmitterRecipe.Name, ESearchCase::IgnoreCase))
+                {
+                    Emitter = Handle.GetInstance().Emitter;
+                    break;
+                }
+            }
+        }
+
+        if (Emitter)
+        {
+            ApplyMaterialToEmitter(Emitter, CreatedMaterials[MatIndex]);
+        }
+    }
 }
 
 void UNiagaraSystemGenerator::GenerateTexturesForMaterial(

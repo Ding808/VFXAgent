@@ -35,6 +35,7 @@ private:
 	void UpdateLastRecipe(const FVFXRecipe& Recipe);
 	void RefreshLLMSettingsFromConfig();
 	void PerformIterativeGeneration(const FString& Prompt, const FString& ImagePath, bool bUseOptimization);
+	FVFXRecipe EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, const FString& Prompt);
 
 	// UI elements
 	TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;

@@ -7,6 +7,7 @@
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SWindow.h"
 #include "Styling/AppStyle.h"
+#include "Modules/ModuleManager.h"
 
 #define LOCTEXT_NAMESPACE "FVFXAgentEditorModule"
 
@@ -17,7 +18,16 @@ void FVFXAgentEditorModule::StartupModule()
 	UE_LOG(LogVFXAgent, Log, TEXT("VFXAgentEditor Module Started"));
 
 	// Register menus
-	RegisterMenus();
+	if (FModuleManager::Get().IsModuleLoaded("ToolMenus"))
+	{
+		RegisterMenus();
+	}
+	else
+	{
+		ToolMenusStartupHandle = UToolMenus::RegisterStartupCallback(
+			FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FVFXAgentEditorModule::RegisterMenus)
+		);
+	}
 }
 
 void FVFXAgentEditorModule::ShutdownModule()
@@ -25,7 +35,16 @@ void FVFXAgentEditorModule::ShutdownModule()
 	UE_LOG(LogVFXAgent, Log, TEXT("VFXAgentEditor Module Shutdown"));
 
 	// Unregister menus
-	UnregisterMenus();
+	if (FModuleManager::Get().IsModuleLoaded("ToolMenus"))
+	{
+		if (ToolMenusStartupHandle.IsValid())
+		{
+			UToolMenus::UnRegisterStartupCallback(ToolMenusStartupHandle);
+			ToolMenusStartupHandle.Reset();
+		}
+
+		UnregisterMenus();
+	}
 }
 
 void FVFXAgentEditorModule::RegisterMenus()
@@ -50,7 +69,10 @@ void FVFXAgentEditorModule::RegisterMenus()
 
 void FVFXAgentEditorModule::UnregisterMenus()
 {
-	UToolMenus::Get()->RemoveSection("MainFrame.MainMenu.Window", "VFXAgent");
+	if (FModuleManager::Get().IsModuleLoaded("ToolMenus"))
+	{
+		UToolMenus::Get()->RemoveSection("MainFrame.MainMenu.Window", "VFXAgent");
+	}
 }
 
 void FVFXAgentEditorModule::OpenVFXAgentPanel()

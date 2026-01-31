@@ -44,40 +44,161 @@ void UHttpLLMProvider::Configure(
 
 FString UHttpLLMProvider::BuildSystemPrompt() const
 {
-	// Keep this strict: model must output JSON only.
 	return TEXT(
-		"You are a Niagara VFX recipe generator. Output MUST be a single JSON object and nothing else. "
-		"The JSON must match this schema:\n"
+		"You are an expert Niagara VFX recipe generator. Output MUST be a single valid JSON object matching the exact schema below.\n\n"
+		"=== JSON SCHEMA ===\n"
 		"{\n"
 		"  \"version\": 1,\n"
 		"  \"bLoop\": true,\n"
 		"  \"duration\": 0.0,\n"
 		"  \"warmupTime\": 0.0,\n"
-		"  \"bounds\": {\"x\":100,\"y\":100,\"z\":100},\n"
+		"  \"bounds\": {\"x\":100, \"y\":100, \"z\":100},\n"
 		"  \"emitters\": [\n"
-		"    {\"name\":\"Core\",\"spawnRate\":10,\"burstCount\":0,\"rendererType\":\"Sprite\",\"templateName\":\"Fountain\",\"color\":{\"r\":1,\"g\":1,\"b\":1,\"a\":1},\"lifetime\":5,\"size\":10,\"velocity\":{\"x\":0,\"y\":0,\"z\":100}}\n"
+		"    {\n"
+		"      \"name\": \"CoreBurst\",\n"
+		"      \"spawnRate\": 50.0,\n"
+		"      \"burstCount\": 100,\n"
+		"      \"burstTime\": 0.0,\n"
+		"      \"rendererType\": \"Sprite\",\n"
+		"      \"templateName\": \"OmnidirectionalBurst\",\n"
+		"      \"color\": {\"r\":1.0, \"g\":0.5, \"b\":0.0, \"a\":1.0},\n"
+		"      \"colorEnd\": {\"r\":0.3, \"g\":0.0, \"b\":0.0, \"a\":0.0},\n"
+		"      \"bUseColorGradient\": true,\n"
+		"      \"lifetime\": 2.0,\n"
+		"      \"lifetimeVariation\": 0.2,\n"
+		"      \"size\": 20.0,\n"
+		"      \"sizeEnd\": 5.0,\n"
+		"      \"bUseSizeOverLife\": true,\n"
+		"      \"sizeVariation\": 0.3,\n"
+		"      \"velocity\": {\"x\":0, \"y\":0, \"z\":300},\n"
+		"      \"velocityVariation\": 0.5,\n"
+		"      \"acceleration\": {\"x\":0, \"y\":0, \"z\":-980},\n"
+		"      \"drag\": 0.5,\n"
+		"      \"initialRotation\": 0.0,\n"
+		"      \"rotationRate\": 180.0,\n"
+		"      \"rotationRateVariation\": 0.5,\n"
+		"      \"bUseGravity\": true,\n"
+		"      \"mass\": 1.0,\n"
+		"      \"emitShape\": \"Sphere\",\n"
+		"      \"shapeSize\": {\"x\":50, \"y\":50, \"z\":50},\n"
+		"      \"materialIndex\": 0,\n"
+		"      \"sortOrder\": 0,\n"
+		"      \"bLocalSpace\": false\n"
+		"    }\n"
 		"  ],\n"
-		"  \"parameters\": {\"Color\":\"Blue\", \"Intensity\":\"1.0\"},\n"
-		"  \"materials\": [{\"description\":\"Basic additive material\",\"bIsAdditive\":true,\"baseMaterialPath\":\"/Engine/EngineMaterials/ParticleSpriteMaterial\"}],\n"
+		"  \"materials\": [\n"
+		"    {\n"
+		"      \"name\": \"ExplosionCoreMaterial\",\n"
+		"      \"description\": \"Bright orange-yellow additive material for explosion core\",\n"
+		"      \"bIsAdditive\": true,\n"
+		"      \"bIsUnlit\": true,\n"
+		"      \"baseMaterialPath\": \"/Engine/EngineMaterials/ParticleSpriteMaterial\",\n"
+		"      \"baseColor\": {\"r\":1.0, \"g\":0.8, \"b\":0.5, \"a\":1.0},\n"
+		"      \"emissiveColor\": {\"r\":1.0, \"g\":0.5, \"b\":0.0, \"a\":1.0},\n"
+		"      \"emissiveStrength\": 3.0,\n"
+		"      \"opacity\": 0.8,\n"
+		"      \"roughness\": 1.0,\n"
+		"      \"metallic\": 0.0,\n"
+		"      \"generatedTextures\": [\n"
+		"        {\n"
+		"          \"name\": \"ExplosionGradient\",\n"
+		"          \"type\": \"Gradient\",\n"
+		"          \"primaryColor\": {\"r\":1.0, \"g\":1.0, \"b\":1.0, \"a\":1.0},\n"
+		"          \"secondaryColor\": {\"r\":0.0, \"g\":0.0, \"b\":0.0, \"a\":0.0},\n"
+		"          \"resolution\": 256,\n"
+		"          \"description\": \"Radial gradient for soft particles\"\n"
+		"        }\n"
+		"      ]\n"
+		"    }\n"
+		"  ],\n"
+		"  \"parameters\": {},\n"
 		"  \"dependencies\": []\n"
-		"}\n"
-		"Rules:\n"
-		"- rendererType must be one of Sprite|Ribbon|Mesh.\n"
-		"- templateName should be one of: 'Fountain', 'DirectionalBurst', 'OmnidirectionalBurst', 'HangingParticulates', 'UpwardMeshBurst', 'Beam'. Default to 'Fountain' if unsure.\n"
-		"- IMPORTANT: Generate a layered Niagara system by using MULTIPLE emitters unless the user explicitly asks for a single emitter.\n"
-		"- Choose the number of emitters based on the prompt's layers (usually 2-6, sometimes up to 8 for complex effects). Do NOT always output exactly 3.\n"
-		"- Each emitter should represent ONE layer/purpose and should set a meaningful 'name' (e.g. CoreBurst, Sparks, Smoke, Shockwave, Trails, Glows) and select the appropriate templateName.\n"
-		"- Split layers into separate emitters, e.g.:\n"
-		"  explosion: core burst (Sprite, OmnidirectionalBurst), sparks (Sprite, DirectionalBurst), smoke (Sprite, Fountain), shockwave (Ribbon, Omni).\n"
-		"  magic/electric: arcs (Ribbon, Beam), glow particles (Sprite, HangingParticulates), secondary smoke/dust (Sprite, Fountain).\n"
-		"  fire: flames (Sprite), embers (Sprite), smoke (Sprite).\n"
-		"- size: particle size in world units (1-100 typical). Adjust based on effect scale.\n"
-		"- velocity: {x,y,z} direction and speed of particles. Positive z is up. Use values like 50-500 for typical effects.\n"
-		"- spawnRate: particles per second (10-200 typical for continuous, 0 if using burstCount).\n"
-		"- burstCount: number of particles to spawn instantly (0 for continuous, 10-500 for bursts).\n"
-		"- lifetime: how long each particle lives in seconds (0.5-10 typical).\n"
-		"- color: RGBA values (0-1 range). Use appropriate colors for the effect (e.g. orange/red for fire, blue for electricity).\n"
-		"- Use numeric values in sensible ranges and ensure emitters array length reflects the layers."
+		"}\n\n"
+		"=== EMITTER PARAMETERS GUIDE ===\n"
+		"All parameters are optional. Only include what's needed for the effect.\n\n"
+		"SPAWN:\n"
+		"- spawnRate: particles/sec (10-500). Use 0 if using burstCount.\n"
+		"- burstCount: instant spawn count (10-500 for bursts, 0 for continuous).\n"
+		"- burstTime: when to trigger burst in seconds (0=start, use for delayed effects).\n\n"
+		"RENDERER:\n"
+		"- rendererType: \"Sprite\" (default), \"Ribbon\" (trails/beams), \"Mesh\" (3D objects).\n"
+		"- templateName: \"Fountain\", \"DirectionalBurst\", \"OmnidirectionalBurst\", \"HangingParticulates\", \"UpwardMeshBurst\", \"Beam\".\n\n"
+		"COLOR:\n"
+		"- color: Start color RGBA (0-1). Use vibrant colors for visible effects.\n"
+		"- colorEnd: End color for gradient (set bUseColorGradient=true).\n"
+		"- bUseColorGradient: Animate from color to colorEnd over lifetime.\n\n"
+		"LIFETIME & SIZE:\n"
+		"- lifetime: Particle lifespan in seconds (0.5-10 typical).\n"
+		"- lifetimeVariation: Random variation 0-1 (0.2 = ±20%).\n"
+		"- size: Initial size in world units (5-100 typical).\n"
+		"- sizeEnd: Final size (set bUseSizeOverLife=true for scaling).\n"
+		"- bUseSizeOverLife: Animate size from start to end.\n"
+		"- sizeVariation: Random size variation 0-1.\n\n"
+		"MOVEMENT:\n"
+		"- velocity: Initial velocity vector {x,y,z}. Z+ is up. Magnitude 50-500 typical.\n"
+		"- velocityVariation: Random velocity variation 0-1.\n"
+		"- acceleration: Constant force {x,y,z}. Use {0,0,-980} for gravity.\n"
+		"- drag: Air resistance 0-10 (0=none, 1=realistic, 5=heavy drag).\n\n"
+		"ROTATION:\n"
+		"- initialRotation: Starting rotation in degrees.\n"
+		"- rotationRate: Spin speed degrees/sec (90-360 for visible spinning).\n"
+		"- rotationRateVariation: Random rotation variation 0-1.\n\n"
+		"PHYSICS:\n"
+		"- bUseGravity: Apply gravity (uses acceleration if true).\n"
+		"- mass: Particle mass (affects physics).\n\n"
+		"SHAPE:\n"
+		"- emitShape: \"Point\", \"Sphere\", \"Box\", \"Cone\", \"Cylinder\".\n"
+		"- shapeSize: Size/radius of emit shape {x,y,z}.\n\n"
+		"MATERIAL:\n"
+		"- materialIndex: Index into materials array (0-based), -1 for default.\n\n"
+		"RENDERING:\n"
+		"- sortOrder: Render order (higher=later=on top). Use 0-5.\n"
+		"- bLocalSpace: Particles move with emitter if true.\n\n"
+		"=== MATERIAL GENERATION GUIDE ===\n"
+		"ALWAYS create custom materials for visual quality! Each material should be tailored to its layer.\n\n"
+		"MATERIAL PARAMETERS:\n"
+		"- name: Descriptive name (e.g., \"FireCoreMaterial\", \"SmokeMaterial\").\n"
+		"- description: What this material is for.\n"
+		"- bIsAdditive: true for glowing/transparent effects (fire, magic), false for solid.\n"
+		"- bIsUnlit: true for self-lit effects (most VFX), false for lit.\n"
+		"- baseColor: Base tint color RGBA.\n"
+		"- emissiveColor: Glow color RGB.\n"
+		"- emissiveStrength: Glow intensity (1-10, use 2-5 for visible glow).\n"
+		"- opacity: Transparency 0-1 (0.5-0.8 typical for smoke/fire).\n"
+		"- roughness: Surface roughness 0-1 (usually 1 for VFX).\n"
+		"- metallic: Metallic look 0-1 (usually 0 for VFX).\n\n"
+		"TEXTURE GENERATION:\n"
+		"Add generatedTextures array for custom textures:\n"
+		"- type: \"Gradient\" (soft particles, fading), \"Noise\" (organic patterns), \"Perlin\" (smoke, clouds).\n"
+		"- primaryColor/secondaryColor: Colors to blend.\n"
+		"- resolution: 256, 512, or 1024.\n"
+		"- noiseScale: For noise types (0.5-2.0).\n"
+		"- octaves: Detail layers for noise (2-6).\n\n"
+		"=== GENERATION RULES ===\n"
+		"1. LAYERED EFFECTS: Use 2-8 emitters for complexity. Each emitter = one visual layer.\n"
+		"2. MATERIAL ASSIGNMENT: Create 1 material per visual style, assign via materialIndex.\n"
+		"3. REALISTIC PARAMETERS: Use physically plausible values:\n"
+		"   - Explosions: High velocity (300-800), short lifetime (0.5-2s), gravity.\n"
+		"   - Fire: Medium velocity (50-200), drag, upward acceleration, color gradient orange→red→black.\n"
+		"   - Smoke: Low velocity (20-100), high drag, large size growth, low opacity.\n"
+		"   - Sparks: High velocity (400-1000), gravity, small size, bright color.\n"
+		"   - Magic: Medium velocity, no gravity, color gradients, additive blending.\n"
+		"4. COLOR BRIGHTNESS: Use emissiveStrength 2-5 for visibility. Don't make effects too dark!\n"
+		"5. VARIATION: Add variation (0.2-0.5) to lifetime, size, velocity for organic look.\n"
+		"6. OPTIMIZATION: Use burstCount for one-shot effects, spawnRate for continuous.\n\n"
+		"=== EXAMPLES ===\n"
+		"Explosion: Core burst (omnidirectional, 200 particles, bright orange, emissive 4), "
+		"Sparks (directional burst, 100 particles, yellow, high velocity), "
+		"Smoke (continuous spawn, gray, large size growth, drag 2), "
+		"Shockwave (ribbon, expanding ring).\n\n"
+		"Fire: Flames (upward, orange→red gradient, drag 0.5, additive), "
+		"Embers (bursts, small, bright yellow, gravity), "
+		"Smoke (slow, gray, size growth, high drag, low opacity).\n\n"
+		"Magic Portal: Core ring (ribbon beam, blue glow, rotating), "
+		"Energy particles (swirling, blue→purple gradient, no gravity), "
+		"Sparkles (small bursts, white, additive), "
+		"Runes (floating, slow rotation, emissive 5).\n\n"
+		"OUTPUT ONLY THE JSON OBJECT. NO MARKDOWN, NO EXPLANATIONS, NO CODE BLOCKS."
 	);
 }
 
@@ -94,16 +215,43 @@ static bool ParseJsonObject(const FString& JsonText, TSharedPtr<FJsonObject>& Ou
 
 bool UHttpLLMProvider::TryParseRecipeJson(const FString& RecipeJson, FVFXRecipe& OutRecipe, FString& OutError)
 {
-	// Try direct struct conversion first.
-	if (FJsonObjectConverter::JsonObjectStringToUStruct(RecipeJson, &OutRecipe, 0, 0))
+	// Extract JSON from markdown code blocks if present (common LLM behavior)
+	FString CleanedJson = RecipeJson;
+	CleanedJson.TrimStartAndEndInline();
+	
+	// Remove markdown code blocks: ```json ... ``` or ``` ... ```
+	if (CleanedJson.StartsWith(TEXT("```")))
 	{
+		int32 FirstNewline = CleanedJson.Find(TEXT("\n"), ESearchCase::IgnoreCase, ESearchDir::FromStart, 3);
+		if (FirstNewline != INDEX_NONE)
+		{
+			CleanedJson = CleanedJson.Mid(FirstNewline + 1);
+		}
+		else
+		{
+			CleanedJson = CleanedJson.Mid(3); // Just remove ```
+		}
+		
+		int32 LastBackticks = CleanedJson.Find(TEXT("```"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		if (LastBackticks != INDEX_NONE)
+		{
+			CleanedJson = CleanedJson.Left(LastBackticks);
+		}
+		CleanedJson.TrimStartAndEndInline();
+	}
+	
+	// Try direct struct conversion first
+	if (FJsonObjectConverter::JsonObjectStringToUStruct(CleanedJson, &OutRecipe, 0, 0))
+	{
+		UE_LOG(LogVFXAgent, Log, TEXT("Successfully parsed recipe JSON (direct conversion)"));
 		return true;
 	}
 
-	// Fallback: sometimes models wrap the payload under a key.
+	// Fallback: sometimes models wrap the payload under a key
 	TSharedPtr<FJsonObject> Root;
-	if (!ParseJsonObject(RecipeJson, Root, OutError))
+	if (!ParseJsonObject(CleanedJson, Root, OutError))
 	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to parse JSON: %s. Content: %s"), *OutError, *CleanedJson.Left(500));
 		return false;
 	}
 
@@ -115,11 +263,14 @@ bool UHttpLLMProvider::TryParseRecipeJson(const FString& RecipeJson, FVFXRecipe&
 		FJsonSerializer::Serialize((*RecipeObjPtr).ToSharedRef(), Writer);
 		if (FJsonObjectConverter::JsonObjectStringToUStruct(Inner, &OutRecipe, 0, 0))
 		{
+			UE_LOG(LogVFXAgent, Log, TEXT("Successfully parsed recipe JSON (nested under 'recipe' key)"));
 			return true;
 		}
 	}
 
-	OutError = TEXT("JSON did not match FVFXRecipe schema");
+	// Log detailed error with the problematic JSON
+	OutError = FString::Printf(TEXT("JSON did not match FVFXRecipe schema. JSON: %s"), *CleanedJson.Left(1000));
+	UE_LOG(LogVFXAgent, Error, TEXT("Failed to parse recipe: %s"), *OutError);
 	return false;
 }
 
@@ -177,7 +328,7 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 		// OpenAI-compatible chat completions.
 		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
 		BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-		BodyRef->SetNumberField(TEXT("max_tokens"), 800);
+		BodyRef->SetNumberField(TEXT("max_tokens"), 4000);  // Increased for complex multi-emitter recipes with materials
 
 		TArray<TSharedPtr<FJsonValue>> Messages;
 		{
@@ -436,15 +587,19 @@ FVFXRecipe UHttpLLMProvider::GenerateRecipe(const FString& Prompt)
 		return FVFXRecipe();
 	}
 
+	UE_LOG(LogVFXAgent, Log, TEXT("Received recipe JSON (%d chars): %s"), RecipeJson.Len(), *RecipeJson.Left(500));
+
 	FVFXRecipe Parsed;
 	if (!TryParseRecipeJson(RecipeJson, Parsed, Error))
 	{
-		UE_LOG(LogVFXAgent, Error, TEXT("HttpLLMProvider: Failed to parse recipe JSON: %s. Raw: %s"), *Error, *RecipeJson.Left(400));
+		UE_LOG(LogVFXAgent, Error, TEXT("HttpLLMProvider: Failed to parse recipe JSON: %s. Raw JSON (first 1000 chars): %s"), *Error, *RecipeJson.Left(1000));
 		SetLastError(Error);
 		return FVFXRecipe();
 	}
 
 	Parsed.Version = FMath::Max(1, Parsed.Version);
+	UE_LOG(LogVFXAgent, Log, TEXT("Successfully generated recipe with %d emitters and %d materials"), 
+		Parsed.Emitters.Num(), Parsed.Materials.Num());
 	return Parsed;
 }
 

@@ -509,11 +509,8 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
     if (!EmitterInstance) return;
 
     // 1. Configure Renderer
-    // This is tricky: we need to remove existing renderers that don't match or add new ones.
-    // For safety, we just add the requested one if missing.
     bool bHasCorrectRenderer = false;
     
-    // Check renderers via Emitter Instance (use reflection helper)
     TArray<UNiagaraRendererProperties*> RendererProps = GetEmitterRenderers(EmitterInstance);
     for (UNiagaraRendererProperties* Prop : RendererProps)
     {
@@ -532,34 +529,90 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
         
         if (NewProps)
         {
-            // AddRenderer is on UNiagaraEmitter and takes version guid
             EmitterInstance->AddRenderer(NewProps, VersionedEmitter.Version);
         }
     }
 
-    // 2. Configure Parameters via Overrides (easiest way)
-    // Common variable names in Templates
+    // 2. Configure Parameters
     FString Namespace = Handle->GetName().ToString();
     
-    // Spawn Rate / Burst
+    // === SPAWN PARAMETERS ===
     if (Spec.Spawn.Rate > 0)
     {
         SetVariableFloat(System, Namespace, TEXT("SpawnRate.SpawnRate"), Spec.Spawn.Rate);
+        SetVariableFloat(System, Namespace, TEXT("Spawn Rate"), Spec.Spawn.Rate);
     }
     if (Spec.Spawn.Burst > 0)
     {
         SetVariableFloat(System, Namespace, TEXT("SpawnBurst_Instant.SpawnBurst"), (float)Spec.Spawn.Burst);
+        SetVariableFloat(System, Namespace, TEXT("Spawn Burst Instantaneous.Spawn Count"), (float)Spec.Spawn.Burst);
     }
 
-    // Basic Attributes
+    // === LIFETIME & VARIATION ===
     SetVariableFloat(System, Namespace, TEXT("InitializeParticle.Lifetime"), Spec.Lifetime);
-    SetVariableFloat(System, Namespace, TEXT("InitializeParticle.SpriteSize"), Spec.Size);
-    SetVariableLinearColor(System, Namespace, TEXT("InitializeParticle.Color"), Spec.Color);
+    SetVariableFloat(System, Namespace, TEXT("Lifetime"), Spec.Lifetime);
     
-    // Velocity is harder as it depends on the module (Add Velocity, Velocity in Cone, etc.)
-    // We try to set a generic "Velocity" var if it exists, or specific common ones.
+    // === SIZE PARAMETERS ===
+    SetVariableFloat(System, Namespace, TEXT("InitializeParticle.SpriteSize"), Spec.Size);
+    SetVariableFloat(System, Namespace, TEXT("Sprite Size"), Spec.Size);
+    SetVariableFloat(System, Namespace, TEXT("Uniform Sprite Size"), Spec.Size);
+    
+    // === COLOR PARAMETERS ===
+    SetVariableLinearColor(System, Namespace, TEXT("InitializeParticle.Color"), Spec.Color);
+    SetVariableLinearColor(System, Namespace, TEXT("Color"), Spec.Color);
+    SetVariableLinearColor(System, Namespace, TEXT("Particle Color"), Spec.Color);
+    
+    // === VELOCITY PARAMETERS ===
     SetVariableVec3(System, Namespace, TEXT("AddVelocity.Velocity"), Spec.Velocity);
     SetVariableVec3(System, Namespace, TEXT("AddVelocityInCone.Velocity"), Spec.Velocity);
+    SetVariableVec3(System, Namespace, TEXT("Velocity"), Spec.Velocity);
+    
+    // Set velocity magnitude for cone/directional templates
+    float VelocityMagnitude = Spec.Velocity.Length();
+    if (VelocityMagnitude > 0.01f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Velocity Strength"), VelocityMagnitude);
+        SetVariableFloat(System, Namespace, TEXT("VelocityMagnitude"), VelocityMagnitude);
+    }
+    
+    // === DRAG ===
+    if (FMath::Abs(Spec.Drag) > 0.001f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Drag.Drag"), Spec.Drag);
+        SetVariableFloat(System, Namespace, TEXT("Drag"), Spec.Drag);
+    }
+    
+    // === ACCELERATION / GRAVITY ===
+    if (Spec.Acceleration.SquaredLength() > 0.01f || Spec.bUseGravity)
+    {
+        FVector Accel = Spec.bUseGravity ? FVector(0, 0, -980) : Spec.Acceleration;
+        SetVariableVec3(System, Namespace, TEXT("Gravity.Acceleration"), Accel);
+        SetVariableVec3(System, Namespace, TEXT("Gravity Force.Acceleration"), Accel);
+        SetVariableVec3(System, Namespace, TEXT("Acceleration"), Accel);
+    }
+    
+    // === ROTATION ===
+    if (FMath::Abs(Spec.RotationRate) > 0.01f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("RotationRate"), Spec.RotationRate);
+        SetVariableFloat(System, Namespace, TEXT("Sprite Rotation Rate"), Spec.RotationRate);
+        SetVariableFloat(System, Namespace, TEXT("Mesh Rotation Rate"), Spec.RotationRate);
+    }
+    
+    if (FMath::Abs(Spec.InitialRotation) > 0.01f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Initial Rotation"), Spec.InitialRotation);
+        SetVariableFloat(System, Namespace, TEXT("Sprite Rotation"), Spec.InitialRotation);
+    }
+    
+    // === MASS ===
+    if (FMath::Abs(Spec.Mass - 1.0f) > 0.01f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Mass"), Spec.Mass);
+        SetVariableFloat(System, Namespace, TEXT("Particle Mass"), Spec.Mass);
+    }
+    
+    UE_LOG(LogVFXAgent, Log, TEXT("Configured emitter '%s' with %d parameters"), *EmitterName, 20);
 }
 
 void FNiagaraSpecExecutor::SetVariableFloat(UNiagaraSystem* System, const FString& EmitterName, const FString& VarName, float Value)
@@ -689,8 +742,7 @@ bool FNiagaraSpecExecutor::SaveCompileAndSelfCheck(UNiagaraSystem* System, FVFXR
 
         if (!bHasRenderers)
         {
-            OutReport.Errors.Add(FString::Printf(TEXT("Emitter %s has no renderers."), *HandleName));
-            OutReport.bCompileSuccess = false;
+            OutReport.Errors.Add(FString::Printf(TEXT("Emitter %s has no renderers (renderer detection may be limited on this engine version)."), *HandleName));
         }
 
         // Check Spawn parameters

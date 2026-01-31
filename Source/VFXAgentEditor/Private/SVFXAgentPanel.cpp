@@ -468,8 +468,13 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 				return;
 			}
 
-			LastRecipe = Recipe;
 			LastPrompt = Prompt;
+			FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
+			LastRecipe = EnhancedRecipe;
+			if (EnhancedRecipe.Emitters.Num() != Recipe.Emitters.Num())
+			{
+				LogMessage(FString::Printf(TEXT("Enhanced recipe: %d -> %d emitters"), Recipe.Emitters.Num(), EnhancedRecipe.Emitters.Num()));
+			}
 
 			{
 				FString RecipeJson;
@@ -489,7 +494,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 				Recipe.Duration,
 				Recipe.Version));
 
-			if (Recipe.Emitters.Num() == 0)
+			if (EnhancedRecipe.Emitters.Num() == 0)
 			{
 				bRequestInFlight = false;
 				LogMessage(TEXT("WARNING: LLM returned no emitters."));
@@ -512,7 +517,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
 				const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
 				const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-				FVFXRecipe FinalRecipe = Recipe;
+				FVFXRecipe FinalRecipe = EnhancedRecipe;
 				if (!bUseTemplates)
 				{
 					for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
@@ -548,12 +553,27 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		// Fallback (e.g. mock provider): synchronous call.
 		FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
 		bRequestInFlight = false;
-		LastRecipe = Recipe;
+		FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
+		LastRecipe = EnhancedRecipe;
 		LastPrompt = Prompt;
 		LogMessage(FString::Printf(TEXT("Recipe generated. Emitters: %d"), Recipe.Emitters.Num()));
 
-		if (Recipe.Emitters.Num() == 0)
+		if (EnhancedRecipe.Emitters.Num() == 0)
 		{
+			if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+			{
+				UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+				const FString LastError = HttpProvider->GetLastError();
+				if (!LastError.IsEmpty())
+				{
+					LogMessage(FString::Printf(TEXT("LLM error: %s"), *LastError));
+				}
+				const FString RawJson = HttpProvider->GetLastRawRecipeJson();
+				if (!RawJson.IsEmpty())
+				{
+					LogMessage(FString::Printf(TEXT("Raw LLM JSON (first 1000 chars): %s"), *RawJson.Left(1000)));
+				}
+			}
 			LogMessage(TEXT("WARNING: LLM returned no emitters."));
 			return FReply::Handled();
 		}
@@ -568,7 +588,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
 		const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
 		const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-		FVFXRecipe FinalRecipe = Recipe;
+		FVFXRecipe FinalRecipe = EnhancedRecipe;
 		if (!bUseTemplates)
 		{
 			for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
@@ -706,8 +726,13 @@ FReply SVFXAgentPanel::OnGenerateFromImageClicked()
 				}
 			}
 
-			LastRecipe = Recipe;
 			LastPrompt = Prompt;
+			FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
+			LastRecipe = EnhancedRecipe;
+			if (EnhancedRecipe.Emitters.Num() != Recipe.Emitters.Num())
+			{
+				LogMessage(FString::Printf(TEXT("Enhanced recipe: %d -> %d emitters"), Recipe.Emitters.Num(), EnhancedRecipe.Emitters.Num()));
+			}
 
 			{
 				FString RecipeJson;
@@ -727,7 +752,7 @@ FReply SVFXAgentPanel::OnGenerateFromImageClicked()
 				Recipe.Duration,
 				Recipe.Version));
 
-			if (Recipe.Emitters.Num() == 0)
+			if (EnhancedRecipe.Emitters.Num() == 0)
 			{
 				bRequestInFlight = false;
 				LogMessage(TEXT("WARNING: LLM returned no emitters."));
@@ -749,7 +774,7 @@ FReply SVFXAgentPanel::OnGenerateFromImageClicked()
 				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
 				const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
 				const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-				FVFXRecipe FinalRecipe = Recipe;
+				FVFXRecipe FinalRecipe = EnhancedRecipe;
 				if (!bUseTemplates)
 				{
 					for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
@@ -1273,9 +1298,10 @@ void SVFXAgentPanel::PerformIterativeGeneration(
 			
 			if (Recipe.Emitters.Num() > 0)
 			{
-				LastRecipe = Recipe;
+				FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
+				LastRecipe = EnhancedRecipe;
 				LastPrompt = Prompt;
-				LogMessage(FString::Printf(TEXT("Recipe generated with %d emitters"), Recipe.Emitters.Num()));
+				LogMessage(FString::Printf(TEXT("Recipe generated with %d emitters"), EnhancedRecipe.Emitters.Num()));
 			}
 		}
 		else
@@ -1284,7 +1310,8 @@ void SVFXAgentPanel::PerformIterativeGeneration(
 			FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
 			if (Recipe.Emitters.Num() > 0)
 			{
-				LastRecipe = Recipe;
+				FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
+				LastRecipe = EnhancedRecipe;
 				LastPrompt = Prompt;
 			}
 		}
@@ -1328,6 +1355,20 @@ void SVFXAgentPanel::PerformIterativeGeneration(
 
 	if (InitialRecipe.Emitters.Num() == 0)
 	{
+		if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+		{
+			UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+			const FString LastError = HttpProvider->GetLastError();
+			if (!LastError.IsEmpty())
+			{
+				LogMessage(FString::Printf(TEXT("LLM error: %s"), *LastError));
+			}
+			const FString RawJson = HttpProvider->GetLastRawRecipeJson();
+			if (!RawJson.IsEmpty())
+			{
+				LogMessage(FString::Printf(TEXT("Raw LLM JSON (first 1000 chars): %s"), *RawJson.Left(1000)));
+			}
+		}
 		LogMessage(TEXT("ERROR: Initial recipe generation failed"));
 		bRequestInFlight = false;
 		return;
@@ -1348,6 +1389,7 @@ void SVFXAgentPanel::PerformIterativeGeneration(
 	// Perform optimization
 	LogMessage(TEXT("Starting iterative optimization..."));
 	FVFXRecipe OptimizedRecipe = Optimizer->OptimizeEffect(InitialRecipe, Config, LLMProvider);
+	OptimizedRecipe = EnhanceRecipeForPrompt(OptimizedRecipe, Prompt);
 
 	LastRecipe = OptimizedRecipe;
 	LastPrompt = Prompt;
@@ -1386,4 +1428,213 @@ void SVFXAgentPanel::PerformIterativeGeneration(
 	}
 
 	bRequestInFlight = false;
+}
+
+static bool PromptHasAny(const FString& Prompt, const TArray<FString>& Tokens)
+{
+	for (const FString& Token : Tokens)
+	{
+		if (Prompt.Contains(Token, ESearchCase::IgnoreCase))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool HasEmitterNamed(const FVFXRecipe& Recipe, const FString& Name)
+{
+	for (const FVFXEmitterRecipe& E : Recipe.Emitters)
+	{
+		if (E.Name.Equals(Name, ESearchCase::IgnoreCase))
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+FVFXRecipe SVFXAgentPanel::EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, const FString& Prompt)
+{
+	FVFXRecipe Out = Recipe;
+
+	const bool bExplosion = PromptHasAny(Prompt, { TEXT("explosion"), TEXT("blast"), TEXT("爆炸"), TEXT("炸") });
+	const bool bElectric = PromptHasAny(Prompt, { TEXT("electric"), TEXT("lightning"), TEXT("电") });
+	const bool bSmoke = PromptHasAny(Prompt, { TEXT("smoke"), TEXT("烟"), TEXT("雾") });
+	const bool bArc = PromptHasAny(Prompt, { TEXT("arc"), TEXT("电弧"), TEXT("弧") });
+
+	if (!(bExplosion && bElectric))
+	{
+		return Out;
+	}
+
+	// Ensure non-looping explosion defaults
+	Out.bLoop = false;
+	if (Out.Duration <= 0.01f)
+	{
+		Out.Duration = 2.5f;
+	}
+	Out.Bounds = FVector(250.0f, 250.0f, 250.0f);
+
+	// Ensure materials exist
+	if (Out.Materials.Num() == 0)
+	{
+		FVFXMaterialRecipe ElectricMat;
+		ElectricMat.Name = TEXT("M_ElectricArc");
+		ElectricMat.Description = TEXT("Electric arc additive glow");
+		ElectricMat.bIsAdditive = true;
+		ElectricMat.BaseMaterialPath = TEXT("/Engine/EngineMaterials/ParticleSpriteMaterial");
+		ElectricMat.BaseColor = FLinearColor(0.2f, 0.6f, 1.0f, 1.0f);
+		ElectricMat.EmissiveColor = ElectricMat.BaseColor;
+		ElectricMat.EmissiveStrength = 6.0f;
+		ElectricMat.Opacity = 0.8f;
+		ElectricMat.Roughness = 0.7f;
+		Out.Materials.Add(ElectricMat);
+	}
+	if (bSmoke && Out.Materials.Num() < 2)
+	{
+		FVFXMaterialRecipe SmokeMat;
+		SmokeMat.Name = TEXT("M_Smoke");
+		SmokeMat.Description = TEXT("Soft smoke translucent");
+		SmokeMat.bIsAdditive = false;
+		SmokeMat.BaseMaterialPath = TEXT("/Engine/EngineMaterials/ParticleSpriteMaterial");
+		SmokeMat.BaseColor = FLinearColor(0.18f, 0.18f, 0.2f, 0.7f);
+		SmokeMat.EmissiveColor = FLinearColor::Black;
+		SmokeMat.EmissiveStrength = 0.0f;
+		SmokeMat.Opacity = 0.55f;
+		SmokeMat.Roughness = 1.0f;
+		Out.Materials.Add(SmokeMat);
+	}
+
+	const int32 ElectricMatIndex = 0;
+	const int32 SmokeMatIndex = (Out.Materials.Num() > 1) ? 1 : 0;
+
+	// Add extra layers if too simple
+	if (Out.Emitters.Num() < 4)
+	{
+		if (!HasEmitterNamed(Out, TEXT("CoreBurst")))
+		{
+			FVFXEmitterRecipe Core;
+			Core.Name = TEXT("CoreBurst");
+			Core.TemplateName = TEXT("OmnidirectionalBurst");
+			Core.RendererType = TEXT("Sprite");
+			Core.BurstCount = 220;
+			Core.Color = FLinearColor(0.9f, 0.95f, 1.0f, 1.0f);
+			Core.ColorEnd = FLinearColor(0.0f, 0.5f, 1.0f, 0.0f);
+			Core.bUseColorGradient = true;
+			Core.Lifetime = 0.4f;
+			Core.Size = 22.0f;
+			Core.SizeEnd = 85.0f;
+			Core.bUseSizeOverLife = true;
+			Core.Velocity = FVector(0, 0, 180);
+			Core.Drag = 2.0f;
+			Core.Acceleration = FVector(0, 0, -200);
+			Core.bUseGravity = false;
+			Core.MaterialIndex = ElectricMatIndex;
+			Core.SortOrder = 3;
+			Out.Emitters.Add(Core);
+		}
+
+		if (!HasEmitterNamed(Out, TEXT("ArcRibbons")))
+		{
+			FVFXEmitterRecipe Arc;
+			Arc.Name = TEXT("ArcRibbons");
+			Arc.TemplateName = TEXT("DynamicBeam");
+			Arc.RendererType = TEXT("Ribbon");
+			Arc.SpawnRate = bArc ? 45.0f : 30.0f;
+			Arc.Color = FLinearColor(0.2f, 0.6f, 1.0f, 1.0f);
+			Arc.ColorEnd = FLinearColor(0.9f, 0.95f, 1.0f, 1.0f);
+			Arc.bUseColorGradient = true;
+			Arc.Lifetime = 0.9f;
+			Arc.Size = 6.0f;
+			Arc.SizeEnd = 10.0f;
+			Arc.bUseSizeOverLife = true;
+			Arc.Velocity = FVector(0, 0, 120);
+			Arc.Drag = 1.5f;
+			Arc.MaterialIndex = ElectricMatIndex;
+			Arc.SortOrder = 4;
+			Out.Emitters.Add(Arc);
+		}
+
+		if (!HasEmitterNamed(Out, TEXT("Sparks")))
+		{
+			FVFXEmitterRecipe Sparks;
+			Sparks.Name = TEXT("Sparks");
+			Sparks.TemplateName = TEXT("DirectionalBurst");
+			Sparks.RendererType = TEXT("Sprite");
+			Sparks.SpawnRate = 140.0f;
+			Sparks.Color = FLinearColor(0.7f, 0.85f, 1.0f, 1.0f);
+			Sparks.ColorEnd = FLinearColor(0.2f, 0.6f, 1.0f, 0.0f);
+			Sparks.bUseColorGradient = true;
+			Sparks.Lifetime = 0.9f;
+			Sparks.Size = 4.0f;
+			Sparks.SizeEnd = 2.0f;
+			Sparks.bUseSizeOverLife = true;
+			Sparks.Velocity = FVector(0, 0, 420);
+			Sparks.Acceleration = FVector(0, 0, -520);
+			Sparks.bUseGravity = true;
+			Sparks.Drag = 0.6f;
+			Sparks.MaterialIndex = ElectricMatIndex;
+			Sparks.SortOrder = 2;
+			Out.Emitters.Add(Sparks);
+		}
+
+		if (bSmoke && !HasEmitterNamed(Out, TEXT("SmokeTrails")))
+		{
+			FVFXEmitterRecipe Smoke;
+			Smoke.Name = TEXT("SmokeTrails");
+			Smoke.TemplateName = TEXT("HangingParticulates");
+			Smoke.RendererType = TEXT("Sprite");
+			Smoke.SpawnRate = 25.0f;
+			Smoke.Color = FLinearColor(0.18f, 0.18f, 0.2f, 0.7f);
+			Smoke.ColorEnd = FLinearColor(0.08f, 0.08f, 0.09f, 0.25f);
+			Smoke.bUseColorGradient = true;
+			Smoke.Lifetime = 3.6f;
+			Smoke.Size = 32.0f;
+			Smoke.SizeEnd = 90.0f;
+			Smoke.bUseSizeOverLife = true;
+			Smoke.Velocity = FVector(0, 0, 35);
+			Smoke.Drag = 5.0f;
+			Smoke.Acceleration = FVector(0, 0, 15);
+			Smoke.bUseGravity = false;
+			Smoke.MaterialIndex = SmokeMatIndex;
+			Smoke.SortOrder = 1;
+			Out.Emitters.Add(Smoke);
+		}
+
+		if (!HasEmitterNamed(Out, TEXT("Glow")))
+		{
+			FVFXEmitterRecipe Glow;
+			Glow.Name = TEXT("Glow");
+			Glow.TemplateName = TEXT("Minimal");
+			Glow.RendererType = TEXT("Sprite");
+			Glow.SpawnRate = 6.0f;
+			Glow.Color = FLinearColor(0.2f, 0.6f, 1.0f, 1.0f);
+			Glow.Lifetime = 1.2f;
+			Glow.Size = 90.0f;
+			Glow.SizeEnd = 120.0f;
+			Glow.bUseSizeOverLife = true;
+			Glow.MaterialIndex = ElectricMatIndex;
+			Glow.SortOrder = 0;
+			Out.Emitters.Add(Glow);
+		}
+	}
+
+	// Ensure material index is set for existing emitters when missing
+	for (FVFXEmitterRecipe& E : Out.Emitters)
+	{
+		if (E.MaterialIndex < 0)
+		{
+			if (E.Name.Contains(TEXT("Smoke"), ESearchCase::IgnoreCase))
+			{
+				E.MaterialIndex = SmokeMatIndex;
+			}
+			else
+			{
+				E.MaterialIndex = ElectricMatIndex;
+			}
+		}
+	}
+
+	return Out;
 }

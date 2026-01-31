@@ -15,4 +15,5 @@ private:
 	void OpenVFXAgentPanel();
 
 	TSharedPtr<class SWindow> VFXAgentWindow;
+	FDelegateHandle ToolMenusStartupHandle;
 };
