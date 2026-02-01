@@ -365,6 +365,58 @@ static TArray<UNiagaraRendererProperties*> GetEmitterRenderers(UNiagaraEmitter* 
     return Result;
 }
 
+static void RemoveMismatchedRenderers(UNiagaraEmitter* Emitter, EVFXRendererType DesiredType)
+{
+    if (!Emitter) return;
+    const FName PossibleNames[] = { TEXT("RendererProperties"), TEXT("Renderers") };
+    for (const FName& Name : PossibleNames)
+    {
+        FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), Name);
+        if (!ArrayProp) continue;
+        FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+        FObjectPropertyBase* InnerObjProp = CastField<FObjectPropertyBase>(ArrayProp->Inner);
+        if (!InnerObjProp) break;
+
+        for (int32 i = Helper.Num() - 1; i >= 0; --i)
+        {
+            void* ElemPtr = Helper.GetRawPtr(i);
+            UObject* Obj = InnerObjProp->GetObjectPropertyValue(ElemPtr);
+            UNiagaraRendererProperties* RP = Cast<UNiagaraRendererProperties>(Obj);
+            if (!RP)
+            {
+                Helper.RemoveValues(i, 1);
+                continue;
+            }
+
+            const bool bMatch =
+                (DesiredType == EVFXRendererType::Sprite && RP->IsA<UNiagaraSpriteRendererProperties>()) ||
+                (DesiredType == EVFXRendererType::Ribbon && RP->IsA<UNiagaraRibbonRendererProperties>()) ||
+                (DesiredType == EVFXRendererType::Light && RP->IsA<UNiagaraLightRendererProperties>());
+            if (!bMatch)
+            {
+                Helper.RemoveValues(i, 1);
+            }
+        }
+
+        break;
+    }
+
+    Emitter->Modify();
+    Emitter->PostEditChange();
+}
+
+static void SetEmitterLocalSpace(UNiagaraEmitter* Emitter, bool bLocalSpace)
+{
+    if (!Emitter) return;
+    FBoolProperty* BoolProp = FindFProperty<FBoolProperty>(Emitter->GetClass(), TEXT("bLocalSpace"));
+    if (BoolProp)
+    {
+        BoolProp->SetPropertyValue_InContainer(Emitter, bLocalSpace);
+        Emitter->Modify();
+        Emitter->PostEditChange();
+    }
+}
+
 UNiagaraSystem* FNiagaraSpecExecutor::CreateNiagaraSystemAsset(const FString& TargetPath, const FString& SystemName)
 {
     IAssetTools& AssetTools = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
@@ -510,6 +562,9 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
 
     // 1. Configure Renderer
     bool bHasCorrectRenderer = false;
+
+    // Remove any renderers that don't match the requested type to avoid duplicates
+    RemoveMismatchedRenderers(EmitterInstance, Spec.RendererType);
     
     TArray<UNiagaraRendererProperties*> RendererProps = GetEmitterRenderers(EmitterInstance);
     for (UNiagaraRendererProperties* Prop : RendererProps)
@@ -533,6 +588,27 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
         }
     }
 
+    // Apply renderer sort order where supported
+    if (Spec.SortOrder != 0)
+    {
+        RendererProps = GetEmitterRenderers(EmitterInstance);
+        for (UNiagaraRendererProperties* Prop : RendererProps)
+        {
+            if (!Prop) continue;
+            if (UNiagaraSpriteRendererProperties* Sprite = Cast<UNiagaraSpriteRendererProperties>(Prop))
+            {
+                Sprite->SortOrderHint = Spec.SortOrder;
+            }
+            else if (UNiagaraRibbonRendererProperties* Ribbon = Cast<UNiagaraRibbonRendererProperties>(Prop))
+            {
+                Ribbon->SortOrderHint = Spec.SortOrder;
+            }
+        }
+    }
+
+    // Apply local space
+    SetEmitterLocalSpace(EmitterInstance, Spec.bLocalSpace);
+
     // 2. Configure Parameters
     FString Namespace = Handle->GetName().ToString();
     
@@ -547,20 +623,55 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
         SetVariableFloat(System, Namespace, TEXT("SpawnBurst_Instant.SpawnBurst"), (float)Spec.Spawn.Burst);
         SetVariableFloat(System, Namespace, TEXT("Spawn Burst Instantaneous.Spawn Count"), (float)Spec.Spawn.Burst);
     }
+    if (Spec.Spawn.BurstTime > 0.0f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("SpawnBurst_Instant.SpawnTime"), Spec.Spawn.BurstTime);
+        SetVariableFloat(System, Namespace, TEXT("Spawn Burst Instantaneous.Spawn Time"), Spec.Spawn.BurstTime);
+    }
 
     // === LIFETIME & VARIATION ===
     SetVariableFloat(System, Namespace, TEXT("InitializeParticle.Lifetime"), Spec.Lifetime);
     SetVariableFloat(System, Namespace, TEXT("Lifetime"), Spec.Lifetime);
+    if (Spec.LifetimeVariation > 0.001f)
+    {
+        const float MinLife = FMath::Max(0.0f, Spec.Lifetime * (1.0f - Spec.LifetimeVariation));
+        const float MaxLife = Spec.Lifetime * (1.0f + Spec.LifetimeVariation);
+        SetVariableFloat(System, Namespace, TEXT("InitializeParticle.LifetimeMin"), MinLife);
+        SetVariableFloat(System, Namespace, TEXT("InitializeParticle.LifetimeMax"), MaxLife);
+        SetVariableFloat(System, Namespace, TEXT("Lifetime Min"), MinLife);
+        SetVariableFloat(System, Namespace, TEXT("Lifetime Max"), MaxLife);
+    }
     
     // === SIZE PARAMETERS ===
     SetVariableFloat(System, Namespace, TEXT("InitializeParticle.SpriteSize"), Spec.Size);
     SetVariableFloat(System, Namespace, TEXT("Sprite Size"), Spec.Size);
     SetVariableFloat(System, Namespace, TEXT("Uniform Sprite Size"), Spec.Size);
+    if (Spec.SizeVariation > 0.001f)
+    {
+        const float MinSize = FMath::Max(0.0f, Spec.Size * (1.0f - Spec.SizeVariation));
+        const float MaxSize = Spec.Size * (1.0f + Spec.SizeVariation);
+        SetVariableFloat(System, Namespace, TEXT("InitializeParticle.SpriteSizeMin"), MinSize);
+        SetVariableFloat(System, Namespace, TEXT("InitializeParticle.SpriteSizeMax"), MaxSize);
+        SetVariableFloat(System, Namespace, TEXT("Sprite Size Min"), MinSize);
+        SetVariableFloat(System, Namespace, TEXT("Sprite Size Max"), MaxSize);
+    }
+    if (Spec.bUseSizeOverLife)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Sprite Size End"), Spec.SizeEnd);
+        SetVariableFloat(System, Namespace, TEXT("Scale Sprite Size.End Size"), Spec.SizeEnd);
+        SetVariableFloat(System, Namespace, TEXT("Scale Sprite Size.End"), Spec.SizeEnd);
+    }
     
     // === COLOR PARAMETERS ===
     SetVariableLinearColor(System, Namespace, TEXT("InitializeParticle.Color"), Spec.Color);
     SetVariableLinearColor(System, Namespace, TEXT("Color"), Spec.Color);
     SetVariableLinearColor(System, Namespace, TEXT("Particle Color"), Spec.Color);
+    if (Spec.bUseColorGradient)
+    {
+        SetVariableLinearColor(System, Namespace, TEXT("Color End"), Spec.ColorEnd);
+        SetVariableLinearColor(System, Namespace, TEXT("ColorEnd"), Spec.ColorEnd);
+        SetVariableLinearColor(System, Namespace, TEXT("Scale Color.End Color"), Spec.ColorEnd);
+    }
     
     // === VELOCITY PARAMETERS ===
     SetVariableVec3(System, Namespace, TEXT("AddVelocity.Velocity"), Spec.Velocity);
@@ -573,6 +684,13 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
     {
         SetVariableFloat(System, Namespace, TEXT("Velocity Strength"), VelocityMagnitude);
         SetVariableFloat(System, Namespace, TEXT("VelocityMagnitude"), VelocityMagnitude);
+    }
+
+    if (Spec.VelocityVariation > 0.001f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Velocity Variation"), Spec.VelocityVariation);
+        SetVariableFloat(System, Namespace, TEXT("Velocity Random"), Spec.VelocityVariation);
+        SetVariableFloat(System, Namespace, TEXT("AddVelocity.Randomness"), Spec.VelocityVariation);
     }
     
     // === DRAG ===
@@ -597,6 +715,12 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
         SetVariableFloat(System, Namespace, TEXT("RotationRate"), Spec.RotationRate);
         SetVariableFloat(System, Namespace, TEXT("Sprite Rotation Rate"), Spec.RotationRate);
         SetVariableFloat(System, Namespace, TEXT("Mesh Rotation Rate"), Spec.RotationRate);
+    }
+
+    if (FMath::Abs(Spec.RotationRateVariation) > 0.001f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Rotation Rate Variation"), Spec.RotationRateVariation);
+        SetVariableFloat(System, Namespace, TEXT("RotationRate Random"), Spec.RotationRateVariation);
     }
     
     if (FMath::Abs(Spec.InitialRotation) > 0.01f)

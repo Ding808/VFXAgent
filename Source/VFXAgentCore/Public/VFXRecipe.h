@@ -216,6 +216,9 @@ struct FVFXPerSpawnInfo
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
 	int32 Burst = 0; // If > 0, use Burst
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+	float BurstTime = 0.0f; // Time for burst spawn (0 = immediate)
 };
 
 USTRUCT(BlueprintType)
@@ -244,13 +247,34 @@ struct FVFXEmitterSpec
 	FLinearColor Color = FLinearColor::White;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	FLinearColor ColorEnd = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	bool bUseColorGradient = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	float Lifetime = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	float LifetimeVariation = 0.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	float Size = 10.0f;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	float SizeEnd = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	bool bUseSizeOverLife = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	float SizeVariation = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	FVector Velocity = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
+	float VelocityVariation = 0.0f;
 
 	// Physics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Physics")
@@ -271,6 +295,21 @@ struct FVFXEmitterSpec
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rotation")
 	float InitialRotation = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rotation")
+	float RotationRateVariation = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rendering")
+	int32 SortOrder = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rendering")
+	bool bLocalSpace = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Shape")
+	FString EmitShape;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Shape")
+	FVector ShapeSize = FVector::ZeroVector;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	FString Notes;

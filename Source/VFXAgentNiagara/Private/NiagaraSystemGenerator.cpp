@@ -49,10 +49,18 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
             // Basic parameters
             EmitterSpec.Spawn.Rate = SrcEmitter.SpawnRate;
             EmitterSpec.Spawn.Burst = SrcEmitter.BurstCount;
+            EmitterSpec.Spawn.BurstTime = SrcEmitter.BurstTime;
             EmitterSpec.Color = SrcEmitter.Color;
+            EmitterSpec.ColorEnd = SrcEmitter.ColorEnd;
+            EmitterSpec.bUseColorGradient = SrcEmitter.bUseColorGradient;
             EmitterSpec.Lifetime = SrcEmitter.Lifetime;
+            EmitterSpec.LifetimeVariation = SrcEmitter.LifetimeVariation;
             EmitterSpec.Size = SrcEmitter.Size;
+            EmitterSpec.SizeEnd = SrcEmitter.SizeEnd;
+            EmitterSpec.bUseSizeOverLife = SrcEmitter.bUseSizeOverLife;
+            EmitterSpec.SizeVariation = SrcEmitter.SizeVariation;
             EmitterSpec.Velocity = SrcEmitter.Velocity;
+            EmitterSpec.VelocityVariation = SrcEmitter.VelocityVariation;
             
             // Extended parameters (Physics & Rotation)
             EmitterSpec.Drag = SrcEmitter.Drag;
@@ -61,6 +69,13 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
             EmitterSpec.Mass = SrcEmitter.Mass;
             EmitterSpec.RotationRate = SrcEmitter.RotationRate;
             EmitterSpec.InitialRotation = SrcEmitter.InitialRotation;
+            EmitterSpec.RotationRateVariation = SrcEmitter.RotationRateVariation;
+
+            // Rendering and shape
+            EmitterSpec.SortOrder = SrcEmitter.SortOrder;
+            EmitterSpec.bLocalSpace = SrcEmitter.bLocalSpace;
+            EmitterSpec.EmitShape = SrcEmitter.EmitShape;
+            EmitterSpec.ShapeSize = SrcEmitter.ShapeSize;
 
             Spec.Emitters.Add(EmitterSpec);
         }
@@ -238,11 +253,71 @@ void UNiagaraSystemGenerator::GenerateMaterialsForRecipe(
 		
 		UE_LOG(LogVFXAgent, Log, TEXT("Generating material %d: %s"), i, *MatRecipe.Name);
 
-		// Generate textures first if needed
-		GenerateTexturesForMaterial(MatRecipe, MaterialsPath);
+        // Generate textures first if needed
+        TMap<FString, FString> GeneratedTexturePaths = GenerateTexturesForMaterial(MatRecipe, MaterialsPath);
 
-		// Generate the material
-        UMaterialInstanceConstant* Material = MaterialGen->GenerateMaterial(MatRecipe, MaterialsPath);
+        // Resolve generated textures into material recipe fields
+        FVFXMaterialRecipe ResolvedRecipe = MatRecipe;
+        auto ResolveTexturePath = [&GeneratedTexturePaths](FString& PathField)
+        {
+            if (PathField.IsEmpty())
+            {
+                return;
+            }
+            if (GeneratedTexturePaths.Contains(PathField))
+            {
+                PathField = GeneratedTexturePaths[PathField];
+            }
+        };
+        ResolveTexturePath(ResolvedRecipe.BaseColorTexture);
+        ResolveTexturePath(ResolvedRecipe.EmissiveTexture);
+        ResolveTexturePath(ResolvedRecipe.OpacityTexture);
+
+        if (ResolvedRecipe.BaseColorTexture.IsEmpty() && GeneratedTexturePaths.Num() > 0)
+        {
+            for (const TPair<FString, FString>& KV : GeneratedTexturePaths)
+            {
+                const FString Lower = KV.Key.ToLower();
+                if (Lower.Contains(TEXT("color")) || Lower.Contains(TEXT("albedo")) || Lower.Contains(TEXT("gradient")))
+                {
+                    ResolvedRecipe.BaseColorTexture = KV.Value;
+                    break;
+                }
+            }
+            if (ResolvedRecipe.BaseColorTexture.IsEmpty())
+            {
+                ResolvedRecipe.BaseColorTexture = GeneratedTexturePaths.CreateConstIterator().Value();
+            }
+        }
+
+        if (ResolvedRecipe.EmissiveTexture.IsEmpty() && GeneratedTexturePaths.Num() > 0)
+        {
+            for (const TPair<FString, FString>& KV : GeneratedTexturePaths)
+            {
+                const FString Lower = KV.Key.ToLower();
+                if (Lower.Contains(TEXT("emissive")) || Lower.Contains(TEXT("glow")))
+                {
+                    ResolvedRecipe.EmissiveTexture = KV.Value;
+                    break;
+                }
+            }
+        }
+
+        if (ResolvedRecipe.OpacityTexture.IsEmpty() && GeneratedTexturePaths.Num() > 0)
+        {
+            for (const TPair<FString, FString>& KV : GeneratedTexturePaths)
+            {
+                const FString Lower = KV.Key.ToLower();
+                if (Lower.Contains(TEXT("opacity")) || Lower.Contains(TEXT("alpha")) || Lower.Contains(TEXT("mask")))
+                {
+                    ResolvedRecipe.OpacityTexture = KV.Value;
+                    break;
+                }
+            }
+        }
+
+        // Generate the material
+        UMaterialInstanceConstant* Material = MaterialGen->GenerateMaterial(ResolvedRecipe, MaterialsPath);
         if (Material)
 		{
 			UE_LOG(LogVFXAgent, Log, TEXT("Material created successfully: %s"), *Material->GetPathName());
@@ -294,19 +369,20 @@ void UNiagaraSystemGenerator::GenerateMaterialsForRecipe(
     }
 }
 
-void UNiagaraSystemGenerator::GenerateTexturesForMaterial(
-	const FVFXMaterialRecipe& MaterialRecipe,
-	const FString& OutputPath)
+TMap<FString, FString> UNiagaraSystemGenerator::GenerateTexturesForMaterial(
+    const FVFXMaterialRecipe& MaterialRecipe,
+    const FString& OutputPath)
 {
+    TMap<FString, FString> Result;
 	if (MaterialRecipe.GeneratedTextures.Num() == 0)
 	{
-		return;
+        return Result;
 	}
 
 	UMaterialGenerator* MaterialGen = UMaterialGenerator::CreateInstance();
 	if (!MaterialGen)
 	{
-		return;
+        return Result;
 	}
 
 	FString TexturesPath = OutputPath / TEXT("Textures");
@@ -316,13 +392,15 @@ void UNiagaraSystemGenerator::GenerateTexturesForMaterial(
 		UE_LOG(LogVFXAgent, Log, TEXT("Generating texture: %s"), *TexRecipe.Name);
 		
 		UTexture2D* Texture = MaterialGen->GenerateProceduralTexture(TexRecipe, TexturesPath);
-		if (Texture)
+        if (Texture)
 		{
 			UE_LOG(LogVFXAgent, Log, TEXT("Texture created: %s"), *Texture->GetPathName());
+            Result.Add(TexRecipe.Name, Texture->GetPathName());
 		}
 		else
 		{
 			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to generate texture: %s"), *TexRecipe.Name);
 		}
 	}
-    }
+    return Result;
+}

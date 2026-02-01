@@ -56,7 +56,7 @@ private:
 	/**
 	 * Generate textures specified in materials
 	 */
-	void GenerateTexturesForMaterial(
+	TMap<FString, FString> GenerateTexturesForMaterial(
 		const FVFXMaterialRecipe& MaterialRecipe,
 		const FString& OutputPath);
 };

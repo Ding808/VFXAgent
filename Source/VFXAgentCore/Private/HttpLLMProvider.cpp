@@ -328,7 +328,7 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 		// OpenAI-compatible chat completions.
 		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
 		BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-		BodyRef->SetNumberField(TEXT("max_tokens"), 4000);  // Increased for complex multi-emitter recipes with materials
+		BodyRef->SetNumberField(TEXT("max_tokens"), 4096);  // Keep within typical provider limits
 
 		TArray<TSharedPtr<FJsonValue>> Messages;
 		{
@@ -668,6 +668,16 @@ static FString GetImageMimeTypeFromExtension(const FString& ImageFilePath)
 	return TEXT("image/png");
 }
 
+static FString NormalizeImageDataToDataUrl(const FString& ImageDataOrBase64, const FString& DefaultMimeType)
+{
+	if (ImageDataOrBase64.StartsWith(TEXT("data:")))
+	{
+		return ImageDataOrBase64;
+	}
+	const FString MimeType = DefaultMimeType.IsEmpty() ? TEXT("image/png") : DefaultMimeType;
+	return FString::Printf(TEXT("data:%s;base64,%s"), *MimeType, *ImageDataOrBase64);
+}
+
 void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const
 {
 	LastRawRecipeJson.Reset();
@@ -698,13 +708,174 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 
 	const FString MimeType = GetImageMimeTypeFromExtension(ImageFilePath);
 	const FString Base64 = FBase64::Encode(ImageBytes);
-	const FString DataUrl = FString::Printf(TEXT("data:%s;base64,%s"), *MimeType, *Base64);
+	const FString DataUrl = NormalizeImageDataToDataUrl(Base64, MimeType);
 
 	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
 	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
 	BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
 	BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-	BodyRef->SetNumberField(TEXT("max_tokens"), 4000);  // Increased for complex multi-emitter recipes with materials
+	BodyRef->SetNumberField(TEXT("max_tokens"), 16384);  // Keep within typical provider limits
+
+	TArray<TSharedPtr<FJsonValue>> Messages;
+	{
+		TSharedPtr<FJsonObject> Sys = MakeShared<FJsonObject>();
+		Sys->SetStringField(TEXT("role"), TEXT("system"));
+		Sys->SetStringField(TEXT("content"), BuildSystemPrompt());
+		Messages.Add(MakeShared<FJsonValueObject>(Sys));
+	}
+	{
+		TSharedPtr<FJsonObject> User = MakeShared<FJsonObject>();
+		User->SetStringField(TEXT("role"), TEXT("user"));
+
+		TArray<TSharedPtr<FJsonValue>> Content;
+		{
+			TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
+			TextObj->SetStringField(TEXT("type"), TEXT("text"));
+			TextObj->SetStringField(TEXT("text"), BuildVisionUserPrompt(OptionalPrompt));
+			Content.Add(MakeShared<FJsonValueObject>(TextObj));
+		}
+		{
+			TSharedPtr<FJsonObject> ImageUrlObj = MakeShared<FJsonObject>();
+			ImageUrlObj->SetStringField(TEXT("type"), TEXT("image_url"));
+			TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
+			ImageUrl->SetStringField(TEXT("url"), DataUrl);
+			ImageUrlObj->SetObjectField(TEXT("image_url"), ImageUrl);
+			Content.Add(MakeShared<FJsonValueObject>(ImageUrlObj));
+		}
+
+		User->SetArrayField(TEXT("content"), Content);
+		Messages.Add(MakeShared<FJsonValueObject>(User));
+	}
+	BodyRef->SetArrayField(TEXT("messages"), Messages);
+
+	// Best-effort strict JSON response (supported by many OpenAI-compatible endpoints).
+	TSharedPtr<FJsonObject> ResponseFormat = MakeShared<FJsonObject>();
+	ResponseFormat->SetStringField(TEXT("type"), TEXT("json_object"));
+	BodyRef->SetObjectField(TEXT("response_format"), ResponseFormat);
+
+	FString BodyText;
+	{
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyText);
+		FJsonSerializer::Serialize(BodyRef, Writer);
+	}
+
+	FHttpModule& Http = FHttpModule::Get();
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = Http.CreateRequest();
+	Req->SetURL(EffectiveEndpoint);
+	Req->SetVerb(TEXT("POST"));
+	Req->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Req->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	Req->SetHeader(TEXT("User-Agent"), TEXT("VFXAgent/1.0 (UnrealEngine)"));
+	if (!ApiKey.IsEmpty())
+	{
+		Req->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
+	}
+	Req->SetContentAsString(BodyText);
+	Req->SetTimeout(TimeoutSeconds);
+
+	Req->OnProcessRequestComplete().BindLambda([
+		this,
+		OnComplete
+	](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
+	{
+		if (!bSucceeded || !Response.IsValid())
+		{
+			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
+			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
+			return;
+		}
+
+		const int32 Code = Response->GetResponseCode();
+		const FString ResponseText = Response->GetContentAsString();
+		if (Code < 200 || Code >= 300)
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("LLM returned HTTP %d: %s"), Code, *ResponseText.Left(800)));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Root;
+		FString JsonError;
+		if (!ParseJsonObject(ResponseText, Root, JsonError))
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("LLM response is not JSON: %s"), *ResponseText.Left(200)));
+			return;
+		}
+
+		// OpenAI chat completions: choices[0].message.content
+		const TArray<TSharedPtr<FJsonValue>>* Choices = nullptr;
+		if (!Root->TryGetArrayField(TEXT("choices"), Choices) || !Choices || Choices->Num() == 0)
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing 'choices' array"));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Choice0 = (*Choices)[0]->AsObject();
+		if (!Choice0.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response choice[0] is not an object"));
+			return;
+		}
+
+		const TSharedPtr<FJsonObject> Msg = Choice0->GetObjectField(TEXT("message"));
+		if (!Msg.IsValid())
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing message object"));
+			return;
+		}
+
+		FString Content;
+		if (!Msg->TryGetStringField(TEXT("content"), Content))
+		{
+			OnComplete(false, FString(), TEXT("OpenAI response missing message.content"));
+			return;
+		}
+
+		LastRawRecipeJson = Content;
+
+		OnComplete(true, Content, FString());
+	});
+
+	if (!Req->ProcessRequest())
+	{
+		OnComplete(false, FString(), TEXT("Failed to start HTTP request"));
+		return;
+	}
+}
+
+void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageDataOrBase64, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const
+{
+	LastRawRecipeJson.Reset();
+	if (!OnComplete)
+	{
+		return;
+	}
+
+	if (Backend != EVFXAgentLLMBackend::OpenAIChatCompletions)
+	{
+		OnComplete(false, FString(), TEXT("Image analysis is only supported on OpenAI-compatible chat completions backend."));
+		return;
+	}
+
+	FString EffectiveEndpoint = Endpoint;
+	if (EffectiveEndpoint.IsEmpty())
+	{
+		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
+		return;
+	}
+
+	if (ImageDataOrBase64.IsEmpty())
+	{
+		OnComplete(false, FString(), TEXT("Image data is empty"));
+		return;
+	}
+
+	const FString DataUrl = NormalizeImageDataToDataUrl(ImageDataOrBase64, TEXT("image/png"));
+
+	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
+	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
+	BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
+	BodyRef->SetNumberField(TEXT("temperature"), 0.2);
+	BodyRef->SetNumberField(TEXT("max_tokens"), 4096);  // Keep within typical provider limits
 
 	TArray<TSharedPtr<FJsonValue>> Messages;
 	{
@@ -868,20 +1039,49 @@ FVFXRecipe UHttpLLMProvider::GenerateRecipeFromRequest(const FVFXGenerationReque
 {
 	ClearLastError();
 
-	// If we have a reference image, use vision-enabled generation
-	if (!Request.ReferenceImagePath.IsEmpty())
+	// If we have a reference image (path or base64), use vision-enabled generation
+	if (!Request.ReferenceImageData.IsEmpty() || !Request.ReferenceImagePath.IsEmpty())
 	{
 		bool bDone = false;
 		FVFXRecipe Result;
 		FString Error;
 
-		GenerateRecipeFromImageAsync(Request.ReferenceImagePath, Request.TextPrompt,
-			[&bDone, &Result, &Error](const FVFXRecipe& Recipe, const FString& InError)
-			{
-				Result = Recipe;
-				Error = InError;
-				bDone = true;
-			});
+		if (!Request.ReferenceImageData.IsEmpty())
+		{
+			RequestRecipeJsonWithImageDataAsync(Request.ReferenceImageData, Request.TextPrompt,
+				[this, &bDone, &Result, &Error](bool bSuccess, const FString& RecipeJson, const FString& InError)
+				{
+					if (!bSuccess)
+					{
+						Error = InError;
+						bDone = true;
+						return;
+					}
+
+					FVFXRecipe Parsed;
+					FString ParseError;
+					if (!TryParseRecipeJson(RecipeJson, Parsed, ParseError))
+					{
+						Error = ParseError;
+						bDone = true;
+						return;
+					}
+
+					Parsed.Version = FMath::Max(1, Parsed.Version);
+					Result = Parsed;
+					bDone = true;
+				});
+		}
+		else
+		{
+			GenerateRecipeFromImageAsync(Request.ReferenceImagePath, Request.TextPrompt,
+				[&bDone, &Result, &Error](const FVFXRecipe& Recipe, const FString& InError)
+				{
+					Result = Recipe;
+					Error = InError;
+					bDone = true;
+				});
+		}
 
 		// Wait for completion
 		const double Start = FPlatformTime::Seconds();
@@ -1114,7 +1314,7 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 	// Build vision request (OpenAI GPT-4 Vision format)
 	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
 	BodyObj->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o") : Model);
-	BodyObj->SetNumberField(TEXT("max_tokens"), 500);
+	BodyObj->SetNumberField(TEXT("max_tokens"), 4096);
 
 	TArray<TSharedPtr<FJsonValue>> Messages;
 	
