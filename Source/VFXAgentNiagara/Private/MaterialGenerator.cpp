@@ -29,18 +29,35 @@ UMaterialInstanceConstant* UMaterialGenerator::GenerateMaterial(
 
 	// Create package for material instance
 	FString PackageName = OutputPath / MaterialRecipe.Name;
-	UPackage* Package = CreatePackage(*PackageName);
+	UPackage* Package = FindPackage(nullptr, *PackageName);
+	if (!Package)
+	{
+		Package = CreatePackage(*PackageName);
+	}
 	if (!Package)
 	{
 		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create package: %s"), *PackageName);
 		return nullptr;
 	}
+	if (!Package->IsFullyLoaded())
+	{
+		Package->FullyLoad();
+	}
 
 	// Create material instance
-	UMaterialInstanceConstant* MaterialInstance = NewObject<UMaterialInstanceConstant>(
-		Package,
-		*MaterialRecipe.Name,
-		RF_Public | RF_Standalone);
+	UMaterialInstanceConstant* MaterialInstance = FindObject<UMaterialInstanceConstant>(Package, *MaterialRecipe.Name);
+	const bool bCreatedNew = (MaterialInstance == nullptr);
+	if (!MaterialInstance)
+	{
+		MaterialInstance = NewObject<UMaterialInstanceConstant>(
+			Package,
+			*MaterialRecipe.Name,
+			RF_Public | RF_Standalone);
+	}
+	else
+	{
+		MaterialInstance->SetFlags(RF_Public | RF_Standalone);
+	}
 
 	if (!MaterialInstance)
 	{
@@ -58,6 +75,8 @@ UMaterialInstanceConstant* UMaterialGenerator::GenerateMaterial(
 	// Initialize static parameters
 	MaterialInstance->InitStaticPermutation();
 	MaterialInstance->PostEditChange();
+	MaterialInstance->MarkPackageDirty();
+	Package->SetDirtyFlag(true);
 
 	// Save package
 	FSavePackageArgs SaveArgs;
@@ -75,7 +94,10 @@ UMaterialInstanceConstant* UMaterialGenerator::GenerateMaterial(
 		UE_LOG(LogVFXAgent, Log, TEXT("Material saved successfully: %s"), *PackageFilename);
 		
 		// Register asset
-		FAssetRegistryModule::AssetCreated(MaterialInstance);
+		if (bCreatedNew)
+		{
+			FAssetRegistryModule::AssetCreated(MaterialInstance);
+		}
 		
 		return MaterialInstance;
 	}
@@ -228,17 +250,34 @@ UTexture2D* UMaterialGenerator::GenerateGradientTexture(
 	
 	// Create package
 	FString PackageName = OutputPath / Recipe.Name;
-	UPackage* Package = CreatePackage(*PackageName);
+	UPackage* Package = FindPackage(nullptr, *PackageName);
+	if (!Package)
+	{
+		Package = CreatePackage(*PackageName);
+	}
 	if (!Package)
 	{
 		return nullptr;
 	}
+	if (!Package->IsFullyLoaded())
+	{
+		Package->FullyLoad();
+	}
 
 	// Create texture
-	UTexture2D* Texture = NewObject<UTexture2D>(
-		Package,
-		*Recipe.Name,
-		RF_Public | RF_Standalone);
+	UTexture2D* Texture = FindObject<UTexture2D>(Package, *Recipe.Name);
+	const bool bCreatedNew = (Texture == nullptr);
+	if (!Texture)
+	{
+		Texture = NewObject<UTexture2D>(
+			Package,
+			*Recipe.Name,
+			RF_Public | RF_Standalone);
+	}
+	else
+	{
+		Texture->SetFlags(RF_Public | RF_Standalone);
+	}
 
 	if (!Texture)
 	{
@@ -274,6 +313,8 @@ UTexture2D* UMaterialGenerator::GenerateGradientTexture(
 	Texture->Source.UnlockMip(0);
 	Texture->UpdateResource();
 	Texture->PostEditChange();
+	Texture->MarkPackageDirty();
+	Package->SetDirtyFlag(true);
 
 	// Save package
 	FSavePackageArgs SaveArgs;
@@ -284,7 +325,10 @@ UTexture2D* UMaterialGenerator::GenerateGradientTexture(
 
 	if (UPackage::SavePackage(Package, Texture, *PackageFilename, SaveArgs))
 	{
-		FAssetRegistryModule::AssetCreated(Texture);
+		if (bCreatedNew)
+		{
+			FAssetRegistryModule::AssetCreated(Texture);
+		}
 		UE_LOG(LogVFXAgent, Log, TEXT("Gradient texture created: %s"), *PackageFilename);
 		return Texture;
 	}
@@ -299,16 +343,33 @@ UTexture2D* UMaterialGenerator::GenerateNoiseTexture(
 	const int32 Size = Recipe.Resolution;
 	
 	FString PackageName = OutputPath / Recipe.Name;
-	UPackage* Package = CreatePackage(*PackageName);
+	UPackage* Package = FindPackage(nullptr, *PackageName);
+	if (!Package)
+	{
+		Package = CreatePackage(*PackageName);
+	}
 	if (!Package)
 	{
 		return nullptr;
 	}
+	if (!Package->IsFullyLoaded())
+	{
+		Package->FullyLoad();
+	}
 
-	UTexture2D* Texture = NewObject<UTexture2D>(
-		Package,
-		*Recipe.Name,
-		RF_Public | RF_Standalone);
+	UTexture2D* Texture = FindObject<UTexture2D>(Package, *Recipe.Name);
+	const bool bCreatedNew = (Texture == nullptr);
+	if (!Texture)
+	{
+		Texture = NewObject<UTexture2D>(
+			Package,
+			*Recipe.Name,
+			RF_Public | RF_Standalone);
+	}
+	else
+	{
+		Texture->SetFlags(RF_Public | RF_Standalone);
+	}
 
 	if (!Texture)
 	{
@@ -360,6 +421,8 @@ UTexture2D* UMaterialGenerator::GenerateNoiseTexture(
 	Texture->Source.UnlockMip(0);
 	Texture->UpdateResource();
 	Texture->PostEditChange();
+	Texture->MarkPackageDirty();
+	Package->SetDirtyFlag(true);
 
 	FSavePackageArgs SaveArgs;
 	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
@@ -369,7 +432,10 @@ UTexture2D* UMaterialGenerator::GenerateNoiseTexture(
 
 	if (UPackage::SavePackage(Package, Texture, *PackageFilename, SaveArgs))
 	{
-		FAssetRegistryModule::AssetCreated(Texture);
+		if (bCreatedNew)
+		{
+			FAssetRegistryModule::AssetCreated(Texture);
+		}
 		UE_LOG(LogVFXAgent, Log, TEXT("Noise texture created: %s"), *PackageFilename);
 		return Texture;
 	}

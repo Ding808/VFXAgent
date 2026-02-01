@@ -704,7 +704,7 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
 	BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
 	BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-	BodyRef->SetNumberField(TEXT("max_tokens"), 900);
+	BodyRef->SetNumberField(TEXT("max_tokens"), 4000);  // Increased for complex multi-emitter recipes with materials
 
 	TArray<TSharedPtr<FJsonValue>> Messages;
 	{
