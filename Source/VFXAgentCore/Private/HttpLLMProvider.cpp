@@ -37,9 +37,19 @@ void UHttpLLMProvider::Configure(
 {
 	Backend = InBackend;
 	Endpoint = InEndpoint;
+	Endpoint.TrimStartAndEndInline();
 	Model = InModel;
+	Model.TrimStartAndEndInline();
 	ApiKey = InApiKey;
+	ApiKey.TrimStartAndEndInline();
 	TimeoutSeconds = FMath::Max(1.0f, InTimeoutSeconds);
+}
+
+static bool IsPlaceholderApiKey(const FString& InKey)
+{
+	FString Key = InKey;
+	Key.TrimStartAndEndInline();
+	return Key.IsEmpty() || Key.Equals(TEXT("set"), ESearchCase::IgnoreCase) || Key.Equals(TEXT("<set>"), ESearchCase::IgnoreCase);
 }
 
 FString UHttpLLMProvider::BuildSystemPrompt() const
@@ -305,9 +315,17 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 	}
 
 	FString EffectiveEndpoint = Endpoint;
+	EffectiveEndpoint.TrimStartAndEndInline();
 	if (EffectiveEndpoint.IsEmpty())
 	{
 		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
+		return;
+	}
+
+	const bool bOpenAIBackend = (Backend == EVFXAgentLLMBackend::OpenAIChatCompletions);
+	if (bOpenAIBackend && IsPlaceholderApiKey(ApiKey))
+	{
+		OnComplete(false, FString(), TEXT("OpenAI API key is missing or placeholder"));
 		return;
 	}
 
@@ -385,6 +403,8 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 		if (!bSucceeded || !Response.IsValid())
 		{
 			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
+			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
+			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
 			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
 			return;
 		}
@@ -691,8 +711,14 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 		OnComplete(false, FString(), TEXT("Image analysis is only supported on OpenAI-compatible chat completions backend."));
 		return;
 	}
+	if (IsPlaceholderApiKey(ApiKey))
+	{
+		OnComplete(false, FString(), TEXT("OpenAI API key is missing or placeholder"));
+		return;
+	}
 
 	FString EffectiveEndpoint = Endpoint;
+	EffectiveEndpoint.TrimStartAndEndInline();
 	if (EffectiveEndpoint.IsEmpty())
 	{
 		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
@@ -771,7 +797,7 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 		Req->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
 	}
 	Req->SetContentAsString(BodyText);
-	Req->SetTimeout(TimeoutSeconds);
+	Req->SetTimeout(FMath::Max(TimeoutSeconds, 120.0f));
 
 	Req->OnProcessRequestComplete().BindLambda([
 		this,
@@ -781,6 +807,8 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 		if (!bSucceeded || !Response.IsValid())
 		{
 			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
+			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
+			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
 			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
 			return;
 		}
@@ -855,8 +883,14 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageD
 		OnComplete(false, FString(), TEXT("Image analysis is only supported on OpenAI-compatible chat completions backend."));
 		return;
 	}
+	if (IsPlaceholderApiKey(ApiKey))
+	{
+		OnComplete(false, FString(), TEXT("OpenAI API key is missing or placeholder"));
+		return;
+	}
 
 	FString EffectiveEndpoint = Endpoint;
+	EffectiveEndpoint.TrimStartAndEndInline();
 	if (EffectiveEndpoint.IsEmpty())
 	{
 		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
@@ -932,7 +966,7 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageD
 		Req->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
 	}
 	Req->SetContentAsString(BodyText);
-	Req->SetTimeout(TimeoutSeconds);
+	Req->SetTimeout(FMath::Max(TimeoutSeconds, 120.0f));
 
 	Req->OnProcessRequestComplete().BindLambda([
 		this,
@@ -942,6 +976,8 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageD
 		if (!bSucceeded || !Response.IsValid())
 		{
 			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
+			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
+			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
 			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
 			return;
 		}
@@ -1285,6 +1321,12 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 		return;
 	}
 
+	if (IsPlaceholderApiKey(ApiKey))
+	{
+		OnComplete(false, FString(), TEXT("OpenAI API key is missing or placeholder"));
+		return;
+	}
+
 	FString ImageBase64 = EncodeImageToBase64(ImagePath);
 	if (ImageBase64.IsEmpty())
 	{
@@ -1305,6 +1347,7 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 	}
 
 	FString EffectiveEndpoint = Endpoint;
+	EffectiveEndpoint.TrimStartAndEndInline();
 	if (EffectiveEndpoint.IsEmpty())
 	{
 		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
@@ -1358,7 +1401,7 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 		Req->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
 	}
 	Req->SetContentAsString(BodyText);
-	Req->SetTimeout(TimeoutSeconds);
+	Req->SetTimeout(FMath::Max(TimeoutSeconds, 120.0f));
 
 	Req->OnProcessRequestComplete().BindLambda([OnComplete](
 		FHttpRequestPtr Request,
@@ -1367,6 +1410,9 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 	{
 		if (!bSucceeded || !Response.IsValid())
 		{
+			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
+			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
+			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
 			OnComplete(false, FString(), TEXT("HTTP request failed"));
 			return;
 		}

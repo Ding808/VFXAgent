@@ -239,6 +239,17 @@ void UMaterialGenerator::ApplyTextureParameters(
 		}
 	}
 
+	// Apply normal texture
+	if (!Recipe.NormalTexture.IsEmpty())
+	{
+		UTexture2D* Texture = LoadObject<UTexture2D>(nullptr, *Recipe.NormalTexture);
+		if (Texture)
+		{
+			Material->SetTextureParameterValueEditorOnly(FName("NormalTexture"), Texture);
+			Material->SetTextureParameterValueEditorOnly(FName("Normal"), Texture);
+		}
+	}
+
 	UE_LOG(LogVFXAgent, Log, TEXT("Applied texture parameters to material"));
 }
 

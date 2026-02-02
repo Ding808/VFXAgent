@@ -23,6 +23,8 @@
 #include "NiagaraEditorUtilities.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "Editor.h"
+#include "NiagaraParameterStore.h"
+#include "Materials/MaterialInterface.h"
 
 // Helper for finding assets
 static void EnsureAssetRegistryReady()
@@ -405,6 +407,256 @@ static void RemoveMismatchedRenderers(UNiagaraEmitter* Emitter, EVFXRendererType
     Emitter->PostEditChange();
 }
 
+static bool IsRendererOfType(UNiagaraRendererProperties* Renderer, EVFXRendererType DesiredType)
+{
+    if (!Renderer) return false;
+    switch (DesiredType)
+    {
+        case EVFXRendererType::Sprite:
+            return Renderer->IsA<UNiagaraSpriteRendererProperties>();
+        case EVFXRendererType::Ribbon:
+            return Renderer->IsA<UNiagaraRibbonRendererProperties>();
+        case EVFXRendererType::Light:
+            return Renderer->IsA<UNiagaraLightRendererProperties>();
+        default:
+            return false;
+    }
+}
+
+static bool RendererHasMaterial(UNiagaraRendererProperties* Renderer)
+{
+    if (UNiagaraSpriteRendererProperties* Sprite = Cast<UNiagaraSpriteRendererProperties>(Renderer))
+    {
+        return Sprite->Material != nullptr;
+    }
+    if (UNiagaraRibbonRendererProperties* Ribbon = Cast<UNiagaraRibbonRendererProperties>(Renderer))
+    {
+        return Ribbon->Material != nullptr;
+    }
+    return false; // Light renderer doesn't use materials
+}
+
+static UMaterialInterface* GetDefaultParticleMaterial()
+{
+    static TWeakObjectPtr<UMaterialInterface> Cached;
+    if (!Cached.IsValid())
+    {
+        Cached = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/EngineMaterials/ParticleSpriteMaterial.ParticleSpriteMaterial"));
+    }
+    if (!Cached.IsValid())
+    {
+        Cached = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"));
+    }
+    return Cached.Get();
+}
+
+static void EnsureRendererMaterial(UNiagaraRendererProperties* Renderer)
+{
+    if (!Renderer) return;
+    UMaterialInterface* DefaultMat = GetDefaultParticleMaterial();
+    if (!DefaultMat) return;
+
+    if (UNiagaraSpriteRendererProperties* Sprite = Cast<UNiagaraSpriteRendererProperties>(Renderer))
+    {
+        if (!Sprite->Material)
+        {
+            Sprite->Material = DefaultMat;
+        }
+    }
+    else if (UNiagaraRibbonRendererProperties* Ribbon = Cast<UNiagaraRibbonRendererProperties>(Renderer))
+    {
+        if (!Ribbon->Material)
+        {
+            Ribbon->Material = DefaultMat;
+        }
+    }
+}
+
+static void EnsureSingleRendererHasMaterial(UNiagaraEmitter* Emitter, EVFXRendererType DesiredType)
+{
+    if (!Emitter) return;
+
+    TArray<UNiagaraRendererProperties*> Renderers = GetEmitterRenderers(Emitter);
+    UNiagaraRendererProperties* FirstMatch = nullptr;
+    for (UNiagaraRendererProperties* RP : Renderers)
+    {
+        if (IsRendererOfType(RP, DesiredType))
+        {
+            FirstMatch = RP;
+            break;
+        }
+    }
+
+    if (FirstMatch)
+    {
+        EnsureRendererMaterial(FirstMatch);
+        Emitter->Modify();
+        Emitter->PostEditChange();
+    }
+}
+
+static void PruneDuplicateRenderers(UNiagaraEmitter* Emitter, EVFXRendererType DesiredType)
+{
+    if (!Emitter) return;
+
+    const FName PossibleNames[] = { TEXT("RendererProperties"), TEXT("Renderers") };
+    for (const FName& Name : PossibleNames)
+    {
+        FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), Name);
+        if (!ArrayProp) continue;
+
+        FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+        FObjectPropertyBase* InnerObjProp = CastField<FObjectPropertyBase>(ArrayProp->Inner);
+        if (!InnerObjProp) break;
+
+        TArray<int32> MatchingIndices;
+        for (int32 i = 0; i < Helper.Num(); ++i)
+        {
+            void* ElemPtr = Helper.GetRawPtr(i);
+            UObject* Obj = InnerObjProp->GetObjectPropertyValue(ElemPtr);
+            UNiagaraRendererProperties* RP = Cast<UNiagaraRendererProperties>(Obj);
+            if (IsRendererOfType(RP, DesiredType))
+            {
+                MatchingIndices.Add(i);
+            }
+        }
+
+        if (MatchingIndices.Num() <= 1)
+        {
+            break;
+        }
+
+        int32 KeepIndex = MatchingIndices[0];
+        if (DesiredType == EVFXRendererType::Sprite || DesiredType == EVFXRendererType::Ribbon)
+        {
+            for (int32 Idx : MatchingIndices)
+            {
+                void* ElemPtr = Helper.GetRawPtr(Idx);
+                UObject* Obj = InnerObjProp->GetObjectPropertyValue(ElemPtr);
+                UNiagaraRendererProperties* RP = Cast<UNiagaraRendererProperties>(Obj);
+                if (RendererHasMaterial(RP))
+                {
+                    KeepIndex = Idx;
+                    break;
+                }
+            }
+        }
+
+        for (int32 i = MatchingIndices.Num() - 1; i >= 0; --i)
+        {
+            const int32 Index = MatchingIndices[i];
+            if (Index != KeepIndex)
+            {
+                Helper.RemoveValues(Index, 1);
+            }
+        }
+
+        break;
+    }
+
+    Emitter->Modify();
+    Emitter->PostEditChange();
+}
+
+static void GatherEmitterScripts(UNiagaraEmitter* Emitter, TArray<UNiagaraScript*>& OutScripts)
+{
+    OutScripts.Reset();
+    if (!Emitter) return;
+    ForEachObjectWithOuter(Emitter, [&OutScripts](UObject* Obj)
+    {
+        if (UNiagaraScript* Script = Cast<UNiagaraScript>(Obj))
+        {
+            OutScripts.AddUnique(Script);
+        }
+    }, true);
+}
+
+static bool TrySetFloatInStore(FNiagaraParameterStore& Store, const FString& NameContains, float Value)
+{
+    for (const FNiagaraVariableWithOffset& ParamWithOffset : Store.ReadParameterVariables())
+    {
+        if (ParamWithOffset.GetType() != FNiagaraTypeDefinition::GetFloatDef())
+        {
+            continue;
+        }
+        const FString VarName = ParamWithOffset.GetName().ToString();
+        if (!VarName.Contains(NameContains, ESearchCase::IgnoreCase))
+        {
+            continue;
+        }
+
+        FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+        return Store.SetParameterData(reinterpret_cast<const uint8*>(&Value), Param, false);
+    }
+    return false;
+}
+
+static bool TrySetIntInStore(FNiagaraParameterStore& Store, const FString& NameContains, int32 Value)
+{
+    for (const FNiagaraVariableWithOffset& ParamWithOffset : Store.ReadParameterVariables())
+    {
+        if (ParamWithOffset.GetType() != FNiagaraTypeDefinition::GetIntDef())
+        {
+            continue;
+        }
+        const FString VarName = ParamWithOffset.GetName().ToString();
+        if (!VarName.Contains(NameContains, ESearchCase::IgnoreCase))
+        {
+            continue;
+        }
+
+        FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+        return Store.SetParameterData(reinterpret_cast<const uint8*>(&Value), Param, false);
+    }
+    return false;
+}
+
+static bool TrySetVec3InStore(FNiagaraParameterStore& Store, const FString& NameContains, const FVector& Value)
+{
+    for (const FNiagaraVariableWithOffset& ParamWithOffset : Store.ReadParameterVariables())
+    {
+        if (ParamWithOffset.GetType() != FNiagaraTypeDefinition::GetVec3Def())
+        {
+            continue;
+        }
+        const FString VarName = ParamWithOffset.GetName().ToString();
+        if (!VarName.Contains(NameContains, ESearchCase::IgnoreCase))
+        {
+            continue;
+        }
+
+        const FVector3f Value3f((float)Value.X, (float)Value.Y, (float)Value.Z);
+        FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+        return Store.SetParameterData(reinterpret_cast<const uint8*>(&Value3f), Param, false);
+    }
+    return false;
+}
+
+static bool TrySetColorInStore(FNiagaraParameterStore& Store, const FString& NameContains, const FLinearColor& Value)
+{
+    for (const FNiagaraVariableWithOffset& ParamWithOffset : Store.ReadParameterVariables())
+    {
+        const FString VarName = ParamWithOffset.GetName().ToString();
+        if (!VarName.Contains(NameContains, ESearchCase::IgnoreCase))
+        {
+            continue;
+        }
+
+        if (ParamWithOffset.GetType() == FNiagaraTypeDefinition::GetColorDef())
+        {
+            FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+            return Store.SetParameterData(reinterpret_cast<const uint8*>(&Value), Param, false);
+        }
+        if (ParamWithOffset.GetType() == FNiagaraTypeDefinition::GetVec4Def())
+        {
+            const FVector4f V(Value.R, Value.G, Value.B, Value.A);
+            FNiagaraVariable Param(ParamWithOffset.GetType(), ParamWithOffset.GetName());
+            return Store.SetParameterData(reinterpret_cast<const uint8*>(&V), Param, false);
+        }
+    }
+    return false;
+}
+
 static void SetEmitterLocalSpace(UNiagaraEmitter* Emitter, bool bLocalSpace)
 {
     if (!Emitter) return;
@@ -565,6 +817,8 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
 
     // Remove any renderers that don't match the requested type to avoid duplicates
     RemoveMismatchedRenderers(EmitterInstance, Spec.RendererType);
+    // Remove duplicate renderers of the requested type (keep one)
+    PruneDuplicateRenderers(EmitterInstance, Spec.RendererType);
     
     TArray<UNiagaraRendererProperties*> RendererProps = GetEmitterRenderers(EmitterInstance);
     for (UNiagaraRendererProperties* Prop : RendererProps)
@@ -586,6 +840,15 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
         {
             EmitterInstance->AddRenderer(NewProps, VersionedEmitter.Version);
         }
+    }
+
+    // Ensure only a single renderer of the desired type remains after adding
+    PruneDuplicateRenderers(EmitterInstance, Spec.RendererType);
+
+    // Ensure the renderer has a valid material to avoid "None" in the editor
+    if (Spec.RendererType == EVFXRendererType::Sprite || Spec.RendererType == EVFXRendererType::Ribbon)
+    {
+        EnsureSingleRendererHasMaterial(EmitterInstance, Spec.RendererType);
     }
 
     // Apply renderer sort order where supported
@@ -737,6 +1000,77 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
     }
     
     UE_LOG(LogVFXAgent, Log, TEXT("Configured emitter '%s' with %d parameters"), *EmitterName, 20);
+
+    // 3. Also apply to Rapid Iteration parameters for better compatibility with templates
+    TArray<UNiagaraScript*> Scripts;
+    GatherEmitterScripts(EmitterInstance, Scripts);
+    for (UNiagaraScript* Script : Scripts)
+    {
+        if (!Script) continue;
+        FNiagaraParameterStore& Store = Script->RapidIterationParameters;
+
+        // Spawn
+        if (Spec.Spawn.Rate > 0.0f)
+        {
+            TrySetFloatInStore(Store, TEXT("Spawn Rate"), Spec.Spawn.Rate);
+            TrySetFloatInStore(Store, TEXT("SpawnRate"), Spec.Spawn.Rate);
+        }
+        if (Spec.Spawn.Burst > 0)
+        {
+            TrySetIntInStore(Store, TEXT("Burst"), Spec.Spawn.Burst);
+            TrySetFloatInStore(Store, TEXT("Burst"), (float)Spec.Spawn.Burst);
+        }
+
+        // Lifetime
+        TrySetFloatInStore(Store, TEXT("Lifetime"), Spec.Lifetime);
+
+        // Size
+        TrySetFloatInStore(Store, TEXT("Sprite Size"), Spec.Size);
+        TrySetFloatInStore(Store, TEXT("Size"), Spec.Size);
+        if (Spec.bUseSizeOverLife)
+        {
+            TrySetFloatInStore(Store, TEXT("End Size"), Spec.SizeEnd);
+        }
+
+        // Color
+        TrySetColorInStore(Store, TEXT("Color"), Spec.Color);
+        if (Spec.bUseColorGradient)
+        {
+            TrySetColorInStore(Store, TEXT("End Color"), Spec.ColorEnd);
+            TrySetColorInStore(Store, TEXT("Color End"), Spec.ColorEnd);
+        }
+
+        // Velocity
+        TrySetVec3InStore(Store, TEXT("Velocity"), Spec.Velocity);
+
+        // Gravity / Acceleration
+        if (Spec.Acceleration.SquaredLength() > 0.01f || Spec.bUseGravity)
+        {
+            const FVector Accel = Spec.bUseGravity ? FVector(0, 0, -980) : Spec.Acceleration;
+            TrySetVec3InStore(Store, TEXT("Acceleration"), Accel);
+            TrySetVec3InStore(Store, TEXT("Gravity"), Accel);
+        }
+
+        // Drag
+        if (FMath::Abs(Spec.Drag) > 0.001f)
+        {
+            TrySetFloatInStore(Store, TEXT("Drag"), Spec.Drag);
+        }
+
+        // Rotation
+        if (FMath::Abs(Spec.RotationRate) > 0.01f)
+        {
+            TrySetFloatInStore(Store, TEXT("Rotation Rate"), Spec.RotationRate);
+            TrySetFloatInStore(Store, TEXT("RotationRate"), Spec.RotationRate);
+        }
+        if (FMath::Abs(Spec.InitialRotation) > 0.01f)
+        {
+            TrySetFloatInStore(Store, TEXT("Initial Rotation"), Spec.InitialRotation);
+            TrySetFloatInStore(Store, TEXT("Rotation"), Spec.InitialRotation);
+        }
+
+        Script->MarkPackageDirty();
+    }
 }
 
 void FNiagaraSpecExecutor::SetVariableFloat(UNiagaraSystem* System, const FString& EmitterName, const FString& VarName, float Value)
