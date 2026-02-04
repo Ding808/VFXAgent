@@ -25,6 +25,58 @@
 #include "Editor.h"
 #include "NiagaraParameterStore.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "NiagaraEmitter.h"
+#include "NiagaraScript.h"
+#include "Internationalization/Regex.h"
+#include "VFXTemplateSelector.h"
+#include "VFXMotionModuleLibrary.h"
+#include "VFXModuleStripper.h"
+#include "VFXModuleInserter.h"
+#include "VFXRendererValidationFixer.h"
+
+static FString NormalizeTemplateObjectPath(const FString& InPath);
+static void SetEmitterRequiresPersistentIDs(UNiagaraEmitter* Emitter, bool bEnabled);
+static void ApplyIntentModuleRules(UNiagaraSystem* System, const FString& EmitterName, const FVFXIntent& Intent, const FTemplateSelectionResult& Selection);
+
+static FString GetVFXAgentSetting(const TCHAR* Key, const FString& DefaultValue)
+{
+    FString Value;
+    const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+    const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+    for (const FString& File : ConfigFiles)
+    {
+        if (GConfig && GConfig->GetString(Section, Key, Value, File) && !Value.IsEmpty())
+        {
+            return Value;
+        }
+    }
+    return DefaultValue;
+}
+
+static TArray<FString> GetVFXAgentSettingArray(const TCHAR* Key)
+{
+    TArray<FString> Values;
+    const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+    const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+    for (const FString& File : ConfigFiles)
+    {
+        if (GConfig && GConfig->GetArray(Section, Key, Values, File) && Values.Num() > 0)
+        {
+            return Values;
+        }
+    }
+    return Values;
+}
+
+static UNiagaraScript* LoadNiagaraScriptFromPath(const FString& Path)
+{
+    if (Path.IsEmpty()) return nullptr;
+    const FString Normalized = NormalizeTemplateObjectPath(Path);
+    return LoadObject<UNiagaraScript>(nullptr, *Normalized);
+}
 
 // Helper for finding assets
 static void EnsureAssetRegistryReady()
@@ -134,6 +186,613 @@ static FString NormalizeTemplateObjectPath(const FString& InPath)
     return FString::Printf(TEXT("%s.%s"), *InPath, *AssetName);
 }
 
+static void SetEmitterRequiresPersistentIDs(UNiagaraEmitter* Emitter, bool bEnabled)
+{
+    if (!Emitter) return;
+    FBoolProperty* BoolProp = FindFProperty<FBoolProperty>(Emitter->GetClass(), TEXT("bRequiresPersistentIDs"));
+    if (BoolProp)
+    {
+        BoolProp->SetPropertyValue_InContainer(Emitter, bEnabled);
+    }
+}
+
+static bool SetStructObjectField(void* StructPtr, UStruct* StructType, const FName& FieldName, UObject* Value)
+{
+    if (!StructPtr || !StructType) return false;
+    FProperty* Prop = StructType->FindPropertyByName(FieldName);
+    if (FObjectPropertyBase* ObjProp = CastField<FObjectPropertyBase>(Prop))
+    {
+        ObjProp->SetObjectPropertyValue_InContainer(StructPtr, Value);
+        return true;
+    }
+    return false;
+}
+
+struct FModuleInsertOptions
+{
+    FString Mode;      // First | Last | Phase | Anchor
+    FString Phase;     // Phase name
+    FString Anchor;    // Virtual anchor
+    FString Relative;  // Before | After
+    int32 Priority = 0;
+};
+
+static EModulePhase ParsePhase(const FString& Value)
+{
+    const FString Lower = Value.ToLower();
+    if (Lower.Contains(TEXT("presim"))) return EModulePhase::PreSim;
+    if (Lower.Contains(TEXT("force"))) return EModulePhase::Forces;
+    if (Lower.Contains(TEXT("damp"))) return EModulePhase::Damping;
+    if (Lower.Contains(TEXT("clamp"))) return EModulePhase::Clamp;
+    if (Lower.Contains(TEXT("integrate"))) return EModulePhase::Integrate;
+    if (Lower.Contains(TEXT("collision"))) return EModulePhase::CollisionDetect;
+    if (Lower.Contains(TEXT("event"))) return EModulePhase::EventWrite;
+    if (Lower.Contains(TEXT("postcollision"))) return EModulePhase::PostCollisionResponse;
+    if (Lower.Contains(TEXT("curve"))) return EModulePhase::Curves;
+    if (Lower.Contains(TEXT("render"))) return EModulePhase::RenderPrep;
+    if (Lower.Contains(TEXT("kill")) || Lower.Contains(TEXT("cull"))) return EModulePhase::KillCull;
+    return EModulePhase::Unknown;
+}
+
+static UNiagaraScript* GetScriptFromEntry(void* ElemPtr, UStruct* StructType)
+{
+    if (!ElemPtr || !StructType) return nullptr;
+    const FName Fields[] = { TEXT("Script"), TEXT("ScriptObject"), TEXT("GeneratorScript"), TEXT("EventScript") };
+    for (const FName& Field : Fields)
+    {
+        FProperty* Prop = StructType->FindPropertyByName(Field);
+        if (FObjectPropertyBase* ObjProp = CastField<FObjectPropertyBase>(Prop))
+        {
+            if (UObject* Obj = ObjProp->GetObjectPropertyValue_InContainer(ElemPtr))
+            {
+                return Cast<UNiagaraScript>(Obj);
+            }
+        }
+    }
+    return nullptr;
+}
+
+static bool IsRelativeBefore(const FString& Value)
+{
+    const FString Lower = Value.ToLower();
+    return Lower.Contains(TEXT("before"));
+}
+
+static int32 FindPhaseBoundaryIndex(UNiagaraEmitter* Emitter, const FName& ArrayPropName, EModulePhase Phase, bool bBefore)
+{
+    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
+    if (!ArrayProp) return INDEX_NONE;
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+
+    int32 FirstIndex = INDEX_NONE;
+    int32 LastIndex = INDEX_NONE;
+    if (FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner))
+    {
+        UStruct* StructType = StructProp->Struct;
+        for (int32 i = 0; i < Helper.Num(); ++i)
+        {
+            void* ElemPtr = Helper.GetRawPtr(i);
+            UNiagaraScript* Script = GetScriptFromEntry(ElemPtr, StructType);
+            if (ClassifyScriptPhase(Script) == Phase)
+            {
+                if (FirstIndex == INDEX_NONE) FirstIndex = i;
+                LastIndex = i;
+            }
+        }
+    }
+
+    if (FirstIndex == INDEX_NONE) return INDEX_NONE;
+    return bBefore ? FirstIndex : (LastIndex + 1);
+}
+
+static int32 FindAnchorIndex(UNiagaraEmitter* Emitter, const FName& ArrayPropName, const FString& Anchor, bool bBefore)
+{
+    const FString Lower = Anchor.ToLower();
+    if (Lower == TEXT("@forcesend")) return FindPhaseBoundaryIndex(Emitter, ArrayPropName, EModulePhase::Forces, false);
+    if (Lower == TEXT("@collisionbegin")) return FindPhaseBoundaryIndex(Emitter, ArrayPropName, EModulePhase::CollisionDetect, true);
+    if (Lower == TEXT("@collisionend")) return FindPhaseBoundaryIndex(Emitter, ArrayPropName, EModulePhase::CollisionDetect, false);
+    if (Lower == TEXT("@eventwriteend")) return FindPhaseBoundaryIndex(Emitter, ArrayPropName, EModulePhase::EventWrite, false);
+    if (Lower == TEXT("@curvesbegin")) return FindPhaseBoundaryIndex(Emitter, ArrayPropName, EModulePhase::Curves, true);
+    // If anchor matches a phase name, use it
+    const EModulePhase AnchorPhase = ParsePhase(Anchor);
+    if (AnchorPhase != EModulePhase::Unknown)
+    {
+        return FindPhaseBoundaryIndex(Emitter, ArrayPropName, AnchorPhase, bBefore);
+    }
+    return INDEX_NONE;
+}
+
+static int32 FindInsertIndexForPhase(UNiagaraEmitter* Emitter, const FName& ArrayPropName, EModulePhase Phase, bool bBefore, int32 Priority)
+{
+    int32 Index = FindPhaseBoundaryIndex(Emitter, ArrayPropName, Phase, bBefore);
+    if (Index != INDEX_NONE) return Index;
+
+    // If no matching phase exists, insert before the first module with a higher phase index
+    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
+    if (!ArrayProp) return INDEX_NONE;
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+    if (FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner))
+    {
+        UStruct* StructType = StructProp->Struct;
+        for (int32 i = 0; i < Helper.Num(); ++i)
+        {
+            void* ElemPtr = Helper.GetRawPtr(i);
+            UNiagaraScript* Script = GetScriptFromEntry(ElemPtr, StructType);
+            EModulePhase Other = ClassifyScriptPhase(Script);
+            if ((int32)Other > (int32)Phase)
+            {
+                return i;
+            }
+        }
+    }
+
+    return Helper.Num();
+}
+
+static bool InsertScriptWithOrdering(UNiagaraEmitter* Emitter, const FName& ArrayPropName, UNiagaraScript* Script, const FModuleInsertOptions& Options)
+{
+    if (!Emitter || !Script) return false;
+    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
+    if (!ArrayProp) return false;
+
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+
+    // Avoid duplicates
+    if (FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner))
+    {
+        UStruct* StructType = StructProp->Struct;
+        for (int32 i = 0; i < Helper.Num(); ++i)
+        {
+            void* ElemPtr = Helper.GetRawPtr(i);
+            UNiagaraScript* Existing = GetScriptFromEntry(ElemPtr, StructType);
+            if (Existing == Script)
+            {
+                return true;
+            }
+        }
+    }
+
+    const FString ModeLower = Options.Mode.ToLower();
+    const bool bBefore = IsRelativeBefore(Options.Relative);
+    int32 InsertIndex = Helper.Num();
+
+    if (ModeLower.Contains(TEXT("first")))
+    {
+        InsertIndex = 0;
+    }
+    else if (ModeLower.Contains(TEXT("last")))
+    {
+        InsertIndex = Helper.Num();
+    }
+    else if (ModeLower.Contains(TEXT("anchor")))
+    {
+        InsertIndex = FindAnchorIndex(Emitter, ArrayPropName, Options.Anchor, bBefore);
+        if (InsertIndex == INDEX_NONE) InsertIndex = Helper.Num();
+    }
+    else // Phase (default)
+    {
+        const EModulePhase Phase = ParsePhase(Options.Phase);
+        InsertIndex = FindInsertIndexForPhase(Emitter, ArrayPropName, Phase, bBefore, Options.Priority);
+    }
+
+    Helper.InsertValues(InsertIndex, 1);
+    void* ElemPtr = Helper.GetRawPtr(InsertIndex);
+    if (FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner))
+    {
+        UStruct* StructType = StructProp->Struct;
+        if (!SetStructObjectField(ElemPtr, StructType, TEXT("Script"), Script))
+        {
+            SetStructObjectField(ElemPtr, StructType, TEXT("ScriptObject"), Script);
+            SetStructObjectField(ElemPtr, StructType, TEXT("GeneratorScript"), Script);
+            SetStructObjectField(ElemPtr, StructType, TEXT("EventScript"), Script);
+        }
+    }
+
+    return true;
+}
+
+struct FModuleNode
+{
+    FString Id;
+    EModulePhase Phase = EModulePhase::Unknown;
+    int32 Priority = 0;
+    bool bIsAnchor = false;
+};
+
+enum class ERuleMatchMode : uint8
+{
+    Contains,
+    Exact,
+    Regex
+};
+
+struct FModuleSortRule
+{
+    FString Match;
+    ERuleMatchMode Mode = ERuleMatchMode::Contains;
+    EModulePhase Phase = EModulePhase::Unknown;
+    int32 Priority = 0;
+    FString Before;
+    FString After;
+};
+
+static ERuleMatchMode ParseMatchMode(const FString& Value)
+{
+    const FString Lower = Value.ToLower();
+    if (Lower.Contains(TEXT("exact"))) return ERuleMatchMode::Exact;
+    if (Lower.Contains(TEXT("regex"))) return ERuleMatchMode::Regex;
+    return ERuleMatchMode::Contains;
+}
+
+static bool RuleMatches(const FModuleSortRule& Rule, const FString& Name)
+{
+    if (Rule.Match.IsEmpty()) return false;
+    const FString Target = Name;
+    if (Rule.Mode == ERuleMatchMode::Exact)
+    {
+        return Target.Equals(Rule.Match, ESearchCase::IgnoreCase);
+    }
+    if (Rule.Mode == ERuleMatchMode::Regex)
+    {
+        FRegexPattern Pattern(Rule.Match);
+        FRegexMatcher Matcher(Pattern, Target);
+        return Matcher.FindNext();
+    }
+    return Target.Contains(Rule.Match, ESearchCase::IgnoreCase);
+}
+
+static FModuleSortRule ParseRuleString(const FString& RuleStr)
+{
+    FModuleSortRule Rule;
+    TArray<FString> Parts;
+    RuleStr.ParseIntoArray(Parts, TEXT(";"), true);
+    for (const FString& Part : Parts)
+    {
+        FString Key, Value;
+        if (!Part.Split(TEXT("="), &Key, &Value)) continue;
+        Key = Key.TrimStartAndEnd();
+        Value = Value.TrimStartAndEnd();
+        if (Key.Equals(TEXT("match"), ESearchCase::IgnoreCase)) Rule.Match = Value;
+        else if (Key.Equals(TEXT("mode"), ESearchCase::IgnoreCase)) Rule.Mode = ParseMatchMode(Value);
+        else if (Key.Equals(TEXT("phase"), ESearchCase::IgnoreCase)) Rule.Phase = ParsePhase(Value);
+        else if (Key.Equals(TEXT("priority"), ESearchCase::IgnoreCase)) Rule.Priority = FCString::Atoi(*Value);
+        else if (Key.Equals(TEXT("before"), ESearchCase::IgnoreCase)) Rule.Before = Value;
+        else if (Key.Equals(TEXT("after"), ESearchCase::IgnoreCase)) Rule.After = Value;
+    }
+    return Rule;
+}
+
+static TArray<FModuleSortRule> GetGlobalModuleSortRules()
+{
+    TArray<FModuleSortRule> Rules;
+    const TArray<FString> RuleStrings = GetVFXAgentSettingArray(TEXT("ModuleSortRules"));
+    for (const FString& Str : RuleStrings)
+    {
+        const FModuleSortRule Rule = ParseRuleString(Str);
+        if (!Rule.Match.IsEmpty()) Rules.Add(Rule);
+    }
+    return Rules;
+}
+
+static FString PhaseAnchorBeginId(EModulePhase Phase)
+{
+    return FString::Printf(TEXT("@PhaseBegin.%d"), (int32)Phase);
+}
+
+static FString PhaseAnchorEndId(EModulePhase Phase)
+{
+    return FString::Printf(TEXT("@PhaseEnd.%d"), (int32)Phase);
+}
+
+static FString MapVirtualAnchorToNodeId(const FString& Anchor)
+{
+    const FString Lower = Anchor.ToLower();
+    if (Lower == TEXT("@forcesend")) return PhaseAnchorEndId(EModulePhase::Forces);
+    if (Lower == TEXT("@collisionbegin")) return PhaseAnchorBeginId(EModulePhase::CollisionDetect);
+    if (Lower == TEXT("@collisionend")) return PhaseAnchorEndId(EModulePhase::CollisionDetect);
+    if (Lower == TEXT("@eventwriteend")) return PhaseAnchorEndId(EModulePhase::EventWrite);
+    if (Lower == TEXT("@curvesbegin")) return PhaseAnchorBeginId(EModulePhase::Curves);
+    const EModulePhase AsPhase = ParsePhase(Anchor);
+    if (AsPhase != EModulePhase::Unknown)
+    {
+        return PhaseAnchorBeginId(AsPhase);
+    }
+    return Anchor; // allow direct id reference
+}
+
+static void AddEdge(TMap<FString, TSet<FString>>& Edges, const FString& From, const FString& To)
+{
+    if (From.IsEmpty() || To.IsEmpty() || From == To) return;
+    Edges.FindOrAdd(From).Add(To);
+}
+
+static bool TopoSortModules(const TArray<FModuleNode>& Nodes, const TMap<FString, TSet<FString>>& Edges, TArray<FString>& OutOrder)
+{
+    TMap<FString, int32> InDegree;
+    TMap<FString, TArray<FString>> Adj;
+    for (const FModuleNode& Node : Nodes)
+    {
+        InDegree.Add(Node.Id, 0);
+        Adj.Add(Node.Id, TArray<FString>());
+    }
+
+    for (const TPair<FString, TSet<FString>>& Pair : Edges)
+    {
+        const FString& From = Pair.Key;
+        for (const FString& To : Pair.Value)
+        {
+            if (!Adj.Contains(From) || !InDegree.Contains(To)) continue;
+            Adj[From].Add(To);
+            InDegree[To]++;
+        }
+    }
+
+    auto NodeKey = [&Nodes](const FString& Id)
+    {
+        const FModuleNode* Found = Nodes.FindByPredicate([&](const FModuleNode& N) { return N.Id == Id; });
+        const int32 PhaseIdx = Found ? (int32)Found->Phase : 999;
+        const int32 Priority = Found ? Found->Priority : 0;
+        return TTuple<int32, int32, FString>(PhaseIdx, Priority, Id);
+    };
+
+    TArray<FString> Zero;
+    for (const TPair<FString, int32>& Pair : InDegree)
+    {
+        if (Pair.Value == 0) Zero.Add(Pair.Key);
+    }
+
+    Zero.Sort([&](const FString& A, const FString& B)
+    {
+        return NodeKey(A) < NodeKey(B);
+    });
+
+    while (Zero.Num() > 0)
+    {
+        const FString Current = Zero[0];
+        Zero.RemoveAt(0);
+        OutOrder.Add(Current);
+        for (const FString& Next : Adj[Current])
+        {
+            int32& Deg = InDegree[Next];
+            Deg--;
+            if (Deg == 0)
+            {
+                Zero.Add(Next);
+            }
+        }
+        Zero.Sort([&](const FString& A, const FString& B)
+        {
+            return NodeKey(A) < NodeKey(B);
+        });
+    }
+
+    return OutOrder.Num() == Nodes.Num();
+}
+
+static void SortEmitterModuleStack(UNiagaraEmitter* Emitter, const FName& ArrayPropName)
+{
+    if (!Emitter) return;
+    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
+    if (!ArrayProp) return;
+
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+    if (Helper.Num() <= 1) return;
+
+    FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner);
+    if (!StructProp) return;
+    UStruct* StructType = StructProp->Struct;
+
+    struct FEntry
+    {
+        FString Id;
+        EModulePhase Phase = EModulePhase::Unknown;
+        TArray<uint8> Data;
+        UNiagaraScript* Script = nullptr;
+    };
+
+    TArray<FEntry> Entries;
+    Entries.Reserve(Helper.Num());
+    for (int32 i = 0; i < Helper.Num(); ++i)
+    {
+        void* ElemPtr = Helper.GetRawPtr(i);
+        UNiagaraScript* Script = GetScriptFromEntry(ElemPtr, StructType);
+        FEntry Entry;
+        Entry.Script = Script;
+        Entry.Phase = ClassifyScriptPhase(Script);
+        Entry.Id = Script ? Script->GetName() : FString::Printf(TEXT("Unknown_%d"), i);
+        Entry.Data.SetNumZeroed(StructProp->GetSize());
+        StructProp->CopyCompleteValue(Entry.Data.GetData(), ElemPtr);
+        Entries.Add(MoveTemp(Entry));
+    }
+
+    // Build nodes + anchors
+    TArray<FModuleNode> Nodes;
+    TMap<FString, int32> NodeIndex;
+
+    auto AddNode = [&](const FString& Id, EModulePhase Phase, bool bAnchor)
+    {
+        if (NodeIndex.Contains(Id)) return;
+        FModuleNode Node;
+        Node.Id = Id;
+        Node.Phase = Phase;
+        Node.Priority = 0;
+        Node.bIsAnchor = bAnchor;
+        NodeIndex.Add(Id, Nodes.Num());
+        Nodes.Add(Node);
+    };
+
+    const EModulePhase PhaseOrder[] = {
+        EModulePhase::PreSim, EModulePhase::Forces, EModulePhase::Damping, EModulePhase::Clamp,
+        EModulePhase::Integrate, EModulePhase::CollisionDetect, EModulePhase::EventWrite,
+        EModulePhase::PostCollisionResponse, EModulePhase::Curves, EModulePhase::RenderPrep, EModulePhase::KillCull
+    };
+
+    for (const EModulePhase Phase : PhaseOrder)
+    {
+        AddNode(FString::Printf(TEXT("@PhaseBegin.%d"), (int32)Phase), Phase, true);
+        AddNode(FString::Printf(TEXT("@PhaseEnd.%d"), (int32)Phase), Phase, true);
+    }
+
+    for (const FEntry& Entry : Entries)
+    {
+        AddNode(Entry.Id, Entry.Phase, false);
+    }
+
+    // Apply global rules to set phase/priority and constraints
+    const TArray<FModuleSortRule> GlobalRules = GetGlobalModuleSortRules();
+    for (FModuleNode& Node : Nodes)
+    {
+        if (Node.bIsAnchor) continue;
+        for (const FModuleSortRule& Rule : GlobalRules)
+        {
+            if (RuleMatches(Rule, Node.Id))
+            {
+                if (Rule.Phase != EModulePhase::Unknown) Node.Phase = Rule.Phase;
+                Node.Priority = FMath::Max(Node.Priority, Rule.Priority);
+            }
+        }
+    }
+
+    // Propagate updated phase to entries
+    for (FEntry& Entry : Entries)
+    {
+        const FModuleNode* Node = Nodes.FindByPredicate([&](const FModuleNode& N) { return N.Id == Entry.Id; });
+        if (Node)
+        {
+            Entry.Phase = Node->Phase;
+        }
+    }
+
+    TMap<FString, TSet<FString>> Edges;
+    // Phase ordering
+    for (int32 i = 0; i < UE_ARRAY_COUNT(PhaseOrder) - 1; ++i)
+    {
+        const FString EndA = FString::Printf(TEXT("@PhaseEnd.%d"), (int32)PhaseOrder[i]);
+        const FString BeginB = FString::Printf(TEXT("@PhaseBegin.%d"), (int32)PhaseOrder[i + 1]);
+        AddEdge(Edges, EndA, BeginB);
+    }
+
+    // Attach modules to their phase anchors
+    for (const FEntry& Entry : Entries)
+    {
+        const FString Begin = FString::Printf(TEXT("@PhaseBegin.%d"), (int32)Entry.Phase);
+        const FString End = FString::Printf(TEXT("@PhaseEnd.%d"), (int32)Entry.Phase);
+        AddEdge(Edges, Begin, Entry.Id);
+        AddEdge(Edges, Entry.Id, End);
+    }
+
+    // Apply rule-based before/after constraints
+    for (const FModuleSortRule& Rule : GlobalRules)
+    {
+        for (const FEntry& Entry : Entries)
+        {
+            if (!RuleMatches(Rule, Entry.Id)) continue;
+            if (!Rule.Before.IsEmpty())
+            {
+                const FString AnchorId = MapVirtualAnchorToNodeId(Rule.Before);
+                AddEdge(Edges, Entry.Id, AnchorId);
+            }
+            if (!Rule.After.IsEmpty())
+            {
+                const FString AnchorId = MapVirtualAnchorToNodeId(Rule.After);
+                AddEdge(Edges, AnchorId, Entry.Id);
+            }
+        }
+    }
+
+    // Hard constraints for collision events
+    const FString ForcesEnd = FString::Printf(TEXT("@PhaseEnd.%d"), (int32)EModulePhase::Forces);
+    const FString ClampEnd = FString::Printf(TEXT("@PhaseEnd.%d"), (int32)EModulePhase::Clamp);
+    const FString CollisionBegin = FString::Printf(TEXT("@PhaseBegin.%d"), (int32)EModulePhase::CollisionDetect);
+    const FString CollisionEnd = FString::Printf(TEXT("@PhaseEnd.%d"), (int32)EModulePhase::CollisionDetect);
+    const FString EventBegin = FString::Printf(TEXT("@PhaseBegin.%d"), (int32)EModulePhase::EventWrite);
+    const FString EventEnd = FString::Printf(TEXT("@PhaseEnd.%d"), (int32)EModulePhase::EventWrite);
+    const FString CurvesBegin = FString::Printf(TEXT("@PhaseBegin.%d"), (int32)EModulePhase::Curves);
+    AddEdge(Edges, ForcesEnd, CollisionBegin);
+    AddEdge(Edges, ClampEnd, CollisionBegin);
+    AddEdge(Edges, CollisionEnd, EventBegin);
+    AddEdge(Edges, EventEnd, CurvesBegin);
+
+    TArray<FString> Order;
+    const bool bOk = TopoSortModules(Nodes, Edges, Order);
+    if (!bOk)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("Module order constraints cycle detected. Falling back to phase+stable ordering."));
+        Order.Reset();
+        Entries.Sort([](const FEntry& A, const FEntry& B)
+        {
+            if (A.Phase != B.Phase) return (int32)A.Phase < (int32)B.Phase;
+            return A.Id < B.Id;
+        });
+        for (const FEntry& E : Entries) Order.Add(E.Id);
+    }
+
+    TMap<FString, const FEntry*> EntryMap;
+    for (const FEntry& E : Entries) EntryMap.Add(E.Id, &E);
+
+    TArray<const FEntry*> SortedEntries;
+    for (const FString& Id : Order)
+    {
+        if (Id.StartsWith(TEXT("@"))) continue;
+        if (const FEntry* Found = EntryMap.FindRef(Id))
+        {
+            SortedEntries.Add(Found);
+        }
+    }
+
+    if (SortedEntries.Num() != Entries.Num())
+    {
+        for (const FEntry& E : Entries)
+        {
+            if (!SortedEntries.Contains(&E)) SortedEntries.Add(&E);
+        }
+    }
+
+    Helper.Resize(SortedEntries.Num());
+    for (int32 i = 0; i < SortedEntries.Num(); ++i)
+    {
+        void* ElemPtr = Helper.GetRawPtr(i);
+        StructProp->CopyCompleteValue(ElemPtr, SortedEntries[i]->Data.GetData());
+    }
+}
+
+static void SetStructGuidField(void* StructPtr, UStruct* StructType, const FName& FieldName, const FGuid& Value)
+{
+    if (!StructPtr || !StructType) return;
+    FProperty* Prop = StructType->FindPropertyByName(FieldName);
+    if (FStructProperty* StructProp = CastField<FStructProperty>(Prop))
+    {
+        if (StructProp->Struct == TBaseStructure<FGuid>::Get())
+        {
+            StructProp->CopyCompleteValue(StructProp->ContainerPtrToValuePtr<void>(StructPtr), &Value);
+        }
+    }
+}
+
+static void SetStructNameField(void* StructPtr, UStruct* StructType, const FName& FieldName, const FName& Value)
+{
+    if (!StructPtr || !StructType) return;
+    FProperty* Prop = StructType->FindPropertyByName(FieldName);
+    if (FNameProperty* NameProp = CastField<FNameProperty>(Prop))
+    {
+        NameProp->SetPropertyValue_InContainer(StructPtr, Value);
+    }
+}
+
+static void SetStructFloatField(void* StructPtr, UStruct* StructType, const FName& FieldName, float Value)
+{
+    if (!StructPtr || !StructType) return;
+    FProperty* Prop = StructType->FindPropertyByName(FieldName);
+    if (FFloatProperty* FloatProp = CastField<FFloatProperty>(Prop))
+    {
+        FloatProp->SetPropertyValue_InContainer(StructPtr, Value);
+    }
+    else if (FIntProperty* IntProp = CastField<FIntProperty>(Prop))
+    {
+        IntProp->SetPropertyValue_InContainer(StructPtr, FMath::RoundToInt(Value));
+    }
+}
+
 static bool AddBasicEmitterToSystem(UNiagaraSystem* System, const FString& EmitterName)
 {
     if (!System)
@@ -202,14 +861,14 @@ static bool AddBasicEmitterToSystem(UNiagaraSystem* System, const FString& Emitt
 
 bool FNiagaraSpecExecutor::ValidateSpec(const FVFXEffectSpec& Spec, FString& OutError)
 {
-    if (Spec.SystemName.IsEmpty())
+    if (Spec.Name.IsEmpty())
     {
-        OutError = TEXT("SystemName is empty");
+        OutError = TEXT("Name is empty");
         return false;
     }
-    if (Spec.TargetPath.IsEmpty())
+    if (Spec.OutputPath.IsEmpty())
     {
-        OutError = TEXT("TargetPath is empty");
+        OutError = TEXT("OutputPath is empty");
         return false;
     }
     if (Spec.Emitters.Num() == 0)
@@ -222,7 +881,7 @@ bool FNiagaraSpecExecutor::ValidateSpec(const FVFXEffectSpec& Spec, FString& Out
 
 UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec& Spec)
 {
-    UNiagaraSystem* System = CreateNiagaraSystemAsset(Spec.TargetPath, Spec.SystemName);
+    UNiagaraSystem* System = CreateNiagaraSystemAsset(Spec.OutputPath, Spec.Name);
     if (!System) return nullptr;
 
     // Clear any default emitters created by the factory so we only keep generated emitters.
@@ -243,19 +902,57 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec&
             TemplateIdLower == TEXT("auto") ||
             TemplateIdLower == TEXT("generated");
 
-        const bool bHasTemplate = !EmitterSpec.TemplatePath.IsEmpty() || (!EmitterSpec.TemplateId.IsEmpty() && !bExplicitNoTemplate);
+        const bool bUseIntentStrategy = Spec.bHasIntent;
+        FTemplateSelectionResult Selection;
+        if (bUseIntentStrategy)
+        {
+            Selection = FVFXTemplateSelector::SelectStrategy(Spec.Intent, EmitterSpec);
+        }
+
+        bool bHasTemplate = !EmitterSpec.TemplatePath.IsEmpty() || (!EmitterSpec.TemplateId.IsEmpty() && !bExplicitNoTemplate);
+        FString Template;
+        if (bUseIntentStrategy)
+        {
+            const bool bExplicitTemplate = !EmitterSpec.TemplatePath.IsEmpty() || (!EmitterSpec.TemplateId.IsEmpty() && !bExplicitNoTemplate);
+            if (bExplicitTemplate)
+            {
+                Template = EmitterSpec.TemplatePath;
+                if (Template.IsEmpty()) Template = FindTemplatePath(EmitterSpec.TemplateId);
+            }
+            else
+            {
+                if (Selection.Strategy == EConstructionStrategy::BuildFromScratch)
+                {
+                    bHasTemplate = false;
+                }
+                else
+                {
+                    Template = Selection.TemplatePath;
+                    bHasTemplate = !Template.IsEmpty();
+                }
+            }
+
+            UE_LOG(LogVFXAgent, Log, TEXT("Emitter '%s' strategy: %s | Template: %s | Reason: %s"),
+                *EmitterSpec.Name,
+                StrategyToString(Selection.Strategy),
+                *Template,
+                *Selection.StrategyReason);
+        }
 
         bool bAdded = false;
         if (bHasTemplate)
         {
-            FString Template = EmitterSpec.TemplatePath;
-            if (Template.IsEmpty()) Template = FindTemplatePath(EmitterSpec.TemplateId);
+            if (Template.IsEmpty())
+            {
+                Template = EmitterSpec.TemplatePath;
+                if (Template.IsEmpty()) Template = FindTemplatePath(EmitterSpec.TemplateId);
+            }
 
             bAdded = AddEmitterFromTemplate(System, Template, EmitterSpec.Name);
             if (!bAdded)
             {
-                UE_LOG(LogVFXAgent, Warning, TEXT("Failed to add emitter from template '%s'. Falling back to Fountain."), *Template);
-                bAdded = AddEmitterFromTemplate(System, FindTemplatePath(TEXT("Fountain")), EmitterSpec.Name);
+                UE_LOG(LogVFXAgent, Warning, TEXT("Failed to add emitter from template '%s'. Falling back to Minimal."), *Template);
+                bAdded = AddEmitterFromTemplate(System, FindTemplatePath(TEXT("Minimal")), EmitterSpec.Name);
             }
         }
         else
@@ -270,11 +967,16 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec&
         }
 
         ConfigureEmitter(System, EmitterSpec.Name, EmitterSpec);
+
+        if (bUseIntentStrategy)
+        {
+            ApplyIntentModuleRules(System, EmitterSpec.Name, Spec.Intent, Selection);
+        }
     }
 
     if (System->GetEmitterHandles().Num() == 0)
     {
-        UE_LOG(LogVFXAgent, Error, TEXT("No emitters were added to system '%s'."), *Spec.SystemName);
+        UE_LOG(LogVFXAgent, Error, TEXT("No emitters were added to system '%s'."), *Spec.Name);
         return nullptr;
     }
 
@@ -327,7 +1029,7 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec&
     // System->PostEditChange();
     
     UE_LOG(LogVFXAgent, Log, TEXT("System '%s' fully initialized with %d emitters for preview"), 
-           *Spec.SystemName, System->GetNumEmitters());
+           *Spec.Name, System->GetNumEmitters());
 #endif
 
     return System;
@@ -441,13 +1143,169 @@ static UMaterialInterface* GetDefaultParticleMaterial()
     static TWeakObjectPtr<UMaterialInterface> Cached;
     if (!Cached.IsValid())
     {
-        Cached = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/EngineMaterials/ParticleSpriteMaterial.ParticleSpriteMaterial"));
+        Cached = LoadObject<UMaterialInterface>(nullptr, TEXT("/Niagara/DefaultAssets/DefaultSpriteMaterial.DefaultSpriteMaterial"));
     }
     if (!Cached.IsValid())
     {
         Cached = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"));
     }
     return Cached.Get();
+}
+
+static bool IsDefaultEngineMaterial(UMaterialInterface* Material)
+{
+    if (!Material) return true;
+    const FString Path = Material->GetPathName().ToLower();
+    return Path.Contains(TEXT("/niagara/defaultassets/defaultspritematerial")) ||
+           Path.Contains(TEXT("/engine/enginematerials/defaultmaterial")) ||
+           Path.Contains(TEXT("/engine/enginematerials/particlespritematerial"));
+}
+
+static TArray<FAssetData> GatherMaterialLibraryAssets()
+{
+    static bool bInitialized = false;
+    static TArray<FAssetData> CachedAssets;
+    if (bInitialized)
+    {
+        return CachedAssets;
+    }
+
+    TArray<FString> Paths = GetVFXAgentSettingArray(TEXT("MaterialLibraryPaths"));
+    if (Paths.Num() == 0)
+    {
+        Paths = {
+            TEXT("/Game/VFX/Materials"),
+            TEXT("/Game/VFX/MaterialLibrary"),
+            TEXT("/Game/VFXAgent/Materials"),
+            TEXT("/Game/FX/Materials")
+        };
+    }
+
+    EnsureAssetRegistryReady();
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+    FARFilter Filter;
+    Filter.ClassPaths.Add(UMaterial::StaticClass()->GetClassPathName());
+    Filter.ClassPaths.Add(UMaterialInstance::StaticClass()->GetClassPathName());
+    Filter.ClassPaths.Add(UMaterialInstanceConstant::StaticClass()->GetClassPathName());
+    Filter.bRecursivePaths = true;
+
+    for (const FString& Path : Paths)
+    {
+        if (!Path.IsEmpty())
+        {
+            Filter.PackagePaths.Add(*Path);
+        }
+    }
+
+    AssetRegistryModule.Get().GetAssets(Filter, CachedAssets);
+    bInitialized = true;
+    return CachedAssets;
+}
+
+static int32 ScoreMaterialCandidate(const FString& LowerName, const FString& LowerPath, const TArray<FString>& Keywords)
+{
+    int32 Score = 0;
+    for (const FString& K : Keywords)
+    {
+        if (LowerName.Contains(K) || LowerPath.Contains(K))
+        {
+            Score += 5;
+        }
+    }
+
+    if (LowerPath.StartsWith(TEXT("/game/")))
+    {
+        Score += 3;
+    }
+    if (LowerPath.Contains(TEXT("default")) || LowerPath.Contains(TEXT("placeholder")) || LowerPath.Contains(TEXT("debug")))
+    {
+        Score -= 4;
+    }
+    if (LowerPath.StartsWith(TEXT("/engine/")) || LowerPath.StartsWith(TEXT("/niagara/")))
+    {
+        Score -= 10;
+    }
+
+    return Score;
+}
+
+static void BuildMaterialKeywords(const FVFXIntent& Intent, const FString& EmitterName, TArray<FString>& OutKeywords)
+{
+    const FString Archetype = UEnum::GetValueAsString(Intent.Archetype).ToLower();
+    if (Archetype.Contains(TEXT("tornado"))) { OutKeywords.Add(TEXT("tornado")); OutKeywords.Add(TEXT("vortex")); OutKeywords.Add(TEXT("swirl")); }
+    if (Archetype.Contains(TEXT("explosion"))) { OutKeywords.Add(TEXT("explosion")); OutKeywords.Add(TEXT("burst")); OutKeywords.Add(TEXT("shock")); }
+    if (Archetype.Contains(TEXT("fire"))) { OutKeywords.Add(TEXT("fire")); OutKeywords.Add(TEXT("flame")); OutKeywords.Add(TEXT("ember")); }
+    if (Archetype.Contains(TEXT("smoke"))) { OutKeywords.Add(TEXT("smoke")); OutKeywords.Add(TEXT("fog")); OutKeywords.Add(TEXT("cloud")); }
+    if (Archetype.Contains(TEXT("aura"))) { OutKeywords.Add(TEXT("aura")); OutKeywords.Add(TEXT("magic")); OutKeywords.Add(TEXT("glow")); }
+    if (Archetype.Contains(TEXT("trail"))) { OutKeywords.Add(TEXT("trail")); OutKeywords.Add(TEXT("ribbon")); }
+    if (Archetype.Contains(TEXT("beam"))) { OutKeywords.Add(TEXT("beam")); OutKeywords.Add(TEXT("laser")); }
+    if (Archetype.Contains(TEXT("dust"))) { OutKeywords.Add(TEXT("dust")); OutKeywords.Add(TEXT("sand")); }
+    if (Archetype.Contains(TEXT("sparks"))) { OutKeywords.Add(TEXT("spark")); OutKeywords.Add(TEXT("sparkle")); }
+    if (Archetype.Contains(TEXT("impact"))) { OutKeywords.Add(TEXT("impact")); OutKeywords.Add(TEXT("hit")); }
+
+    const FString NameLower = EmitterName.ToLower();
+    if (NameLower.Contains(TEXT("core"))) OutKeywords.Add(TEXT("core"));
+    if (NameLower.Contains(TEXT("smoke"))) OutKeywords.Add(TEXT("smoke"));
+    if (NameLower.Contains(TEXT("dust"))) OutKeywords.Add(TEXT("dust"));
+    if (NameLower.Contains(TEXT("debris"))) OutKeywords.Add(TEXT("debris"));
+    if (NameLower.Contains(TEXT("trail"))) OutKeywords.Add(TEXT("trail"));
+    if (NameLower.Contains(TEXT("ribbon"))) OutKeywords.Add(TEXT("ribbon"));
+    if (NameLower.Contains(TEXT("beam"))) OutKeywords.Add(TEXT("beam"));
+    if (NameLower.Contains(TEXT("spark"))) OutKeywords.Add(TEXT("spark"));
+}
+
+static UMaterialInterface* SelectPreferredMaterialFromLibrary(const FVFXIntent& Intent, const FString& EmitterName)
+{
+    const TArray<FAssetData> Assets = GatherMaterialLibraryAssets();
+    if (Assets.Num() == 0)
+    {
+        return nullptr;
+    }
+
+    TArray<FString> Keywords;
+    BuildMaterialKeywords(Intent, EmitterName, Keywords);
+
+    int32 BestScore = MIN_int32;
+    const FAssetData* BestAsset = nullptr;
+
+    for (const FAssetData& Asset : Assets)
+    {
+        const FString NameLower = Asset.AssetName.ToString().ToLower();
+        const FString PathLower = Asset.GetObjectPathString().ToLower();
+        const int32 Score = ScoreMaterialCandidate(NameLower, PathLower, Keywords);
+        if (Score > BestScore)
+        {
+            BestScore = Score;
+            BestAsset = &Asset;
+        }
+    }
+
+    if (!BestAsset)
+    {
+        return nullptr;
+    }
+
+    return Cast<UMaterialInterface>(BestAsset->GetAsset());
+}
+
+static void ApplyPreferredMaterialToEmitter(UNiagaraEmitter* Emitter, UMaterialInterface* PreferredMaterial)
+{
+    if (!Emitter || !PreferredMaterial) return;
+
+    TArray<UNiagaraRendererProperties*> Renderers = GetEmitterRenderers(Emitter);
+    for (UNiagaraRendererProperties* Renderer : Renderers)
+    {
+        if (!Renderer) continue;
+
+        UMaterialInterface* Current = FVFXRendererValidationFixer::GetRendererMaterial(Renderer);
+        if (!Current || IsDefaultEngineMaterial(Current))
+        {
+            FVFXRendererValidationFixer::SetRendererMaterial(Renderer, PreferredMaterial);
+        }
+    }
+
+    Emitter->Modify();
+    Emitter->PostEditChange();
 }
 
 static void EnsureRendererMaterial(UNiagaraRendererProperties* Renderer)
@@ -469,6 +1327,103 @@ static void EnsureRendererMaterial(UNiagaraRendererProperties* Renderer)
         {
             Ribbon->Material = DefaultMat;
         }
+    }
+}
+
+static UNiagaraEmitter* FindEmitterInstanceByName(UNiagaraSystem* System, const FString& EmitterName)
+{
+    if (!System) return nullptr;
+    for (FNiagaraEmitterHandle& H : System->GetEmitterHandles())
+    {
+        if (H.GetName() == FName(*EmitterName) || H.GetName() == FName(*(EmitterName + "0")))
+        {
+            return H.GetInstance().Emitter;
+        }
+    }
+    if (System->GetEmitterHandles().Num() > 0)
+    {
+        return System->GetEmitterHandles().Last().GetInstance().Emitter;
+    }
+    return nullptr;
+}
+
+static void ApplyIntentModuleRules(
+    UNiagaraSystem* System,
+    const FString& EmitterName,
+    const FVFXIntent& Intent,
+    const FTemplateSelectionResult& Selection)
+{
+    UNiagaraEmitter* Emitter = FindEmitterInstanceByName(System, EmitterName);
+    if (!Emitter)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("ApplyIntentModuleRules: emitter not found: %s"), *EmitterName);
+        return;
+    }
+
+    FMotionBehaviorConfig MotionConfig = FVFXMotionModuleLibrary::GetMotionConfigByArchetype(
+        FVFXMotionModuleLibrary::DetermineMotionArchetype(Intent));
+
+    // Strip forbidden modules
+    if (Selection.ModulesToStrip.Num() > 0)
+    {
+        FModuleStripResult StripResult = FVFXModuleStripper::StripModulesByPattern(Emitter, Selection.ModulesToStrip);
+        UE_LOG(LogVFXAgent, Log, TEXT("ModuleStripper: removed %d modules for %s"), StripResult.ModulesRemoved, *EmitterName);
+        if (StripResult.FailedToRemove.Num() > 0)
+        {
+            UE_LOG(LogVFXAgent, Warning, TEXT("ModuleStripper failures (%s): %s"), *EmitterName, *FString::Join(StripResult.FailedToRemove, TEXT(", ")));
+        }
+    }
+
+    if (Selection.bMustStripAllVelocity)
+    {
+        FModuleStripResult StripResult = FVFXModuleStripper::StripAllVelocityModules(Emitter);
+        UE_LOG(LogVFXAgent, Log, TEXT("ModuleStripper: removed velocity modules (%d) for %s"), StripResult.ModulesRemoved, *EmitterName);
+    }
+    if (Selection.bMustStripGravity)
+    {
+        FModuleStripResult StripResult = FVFXModuleStripper::StripGravityModules(Emitter);
+        UE_LOG(LogVFXAgent, Log, TEXT("ModuleStripper: removed gravity modules (%d) for %s"), StripResult.ModulesRemoved, *EmitterName);
+    }
+    if (Selection.bMustStripNoise)
+    {
+        FModuleStripResult StripResult = FVFXModuleStripper::StripNoiseModules(Emitter);
+        UE_LOG(LogVFXAgent, Log, TEXT("ModuleStripper: removed noise modules (%d) for %s"), StripResult.ModulesRemoved, *EmitterName);
+    }
+
+    // Insert required motion modules
+    FModuleInsertResult InsertResult = FVFXModuleInserter::InsertModules(Emitter, MotionConfig.RequiredModules, EmitterName);
+    if (InsertResult.ModulesInserted > 0)
+    {
+        UE_LOG(LogVFXAgent, Log, TEXT("ModuleInserter: inserted %d modules for %s"), InsertResult.ModulesInserted, *EmitterName);
+    }
+
+    // Apply motion parameter defaults
+    TMap<FString, float> MotionParams = FVFXMotionModuleLibrary::GenerateMotionParameters(MotionConfig.Archetype, Intent);
+    for (const TPair<FString, float>& KV : MotionParams)
+    {
+        FNiagaraSpecExecutor::SetVariableFloat(System, EmitterName, KV.Key, KV.Value);
+    }
+    for (const FMotionModuleDescriptor& Module : MotionConfig.RequiredModules)
+    {
+        for (const TPair<FString, float>& ParamKV : Module.DefaultParams)
+        {
+            FNiagaraSpecExecutor::SetVariableFloat(System, EmitterName, ParamKV.Key, ParamKV.Value);
+        }
+    }
+
+    // Renderer validation and cleanup (remove None renderers)
+    UMaterialInterface* PreferredMat = SelectPreferredMaterialFromLibrary(Intent, EmitterName);
+    UMaterialInterface* DefaultMat = PreferredMat ? PreferredMat : GetDefaultParticleMaterial();
+    FRendererValidationReport RenderReport = FVFXRendererValidationFixer::ValidateAndFixRenderers(Emitter, DefaultMat);
+    if (RenderReport.InvalidRenderersRemoved > 0 || RenderReport.RenderersFixed > 0)
+    {
+        UE_LOG(LogVFXAgent, Log, TEXT("RendererValidationFixer: %s"), *RenderReport.Summary);
+    }
+
+    // Replace default materials with preferred library material when possible
+    if (PreferredMat)
+    {
+        ApplyPreferredMaterialToEmitter(Emitter, PreferredMat);
     }
 }
 
@@ -682,6 +1637,56 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateNiagaraSystemAsset(const FString& Ta
     return Cast<UNiagaraSystem>(NewAsset);
 }
 
+bool FNiagaraSpecExecutor::AddModuleToEmitter(UNiagaraSystem* System, const FString& EmitterName, const FString& ModuleScriptPath, const FString& StackName)
+{
+    if (!System) return false;
+
+    FNiagaraEmitterHandle* Handle = nullptr;
+    for (FNiagaraEmitterHandle& H : System->GetEmitterHandles())
+    {
+        if (H.GetName() == FName(*EmitterName))
+        {
+            Handle = &H;
+            break;
+        }
+    }
+    if (!Handle && System->GetEmitterHandles().Num() > 0)
+    {
+        Handle = &System->GetEmitterHandles().Last();
+    }
+    if (!Handle) return false;
+
+    FVersionedNiagaraEmitter VersionedEmitter = Handle->GetInstance();
+    UNiagaraEmitter* EmitterInstance = VersionedEmitter.Emitter;
+    if (!EmitterInstance) return false;
+
+    UNiagaraScript* Script = LoadNiagaraScriptFromPath(ModuleScriptPath);
+    if (!Script)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("AddModuleToEmitter: failed to load script '%s'"), *ModuleScriptPath);
+        return false;
+    }
+
+    FName ArrayPropName(TEXT("ParticleUpdateScriptProps"));
+    const FString Lower = StackName.ToLower();
+    if (Lower.Contains(TEXT("spawn")) && Lower.Contains(TEXT("particle"))) ArrayPropName = TEXT("ParticleSpawnScriptProps");
+    else if (Lower.Contains(TEXT("update")) && Lower.Contains(TEXT("particle"))) ArrayPropName = TEXT("ParticleUpdateScriptProps");
+    else if (Lower.Contains(TEXT("emitter")) && Lower.Contains(TEXT("spawn"))) ArrayPropName = TEXT("EmitterSpawnScriptProps");
+    else if (Lower.Contains(TEXT("emitter")) && Lower.Contains(TEXT("update"))) ArrayPropName = TEXT("EmitterUpdateScriptProps");
+    else if (Lower.Contains(TEXT("event"))) ArrayPropName = TEXT("EventHandlerScriptProps");
+    else if (!StackName.IsEmpty()) ArrayPropName = FName(*StackName);
+
+    FModuleInsertOptions Options;
+    Options.Mode = TEXT("Last");
+
+    const bool bInserted = InsertScriptWithOrdering(EmitterInstance, ArrayPropName, Script, Options);
+    SortEmitterModuleStack(EmitterInstance, ArrayPropName);
+
+    EmitterInstance->Modify();
+    EmitterInstance->PostEditChange();
+    return bInserted;
+}
+
 bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const FString& TemplatePath, const FString& EmitterName)
 {
     if (!System) return false;
@@ -869,6 +1874,32 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
         }
     }
 
+    // Apply facing/alignment options for sprite renderer
+    if (Spec.RendererType == EVFXRendererType::Sprite)
+    {
+        RendererProps = GetEmitterRenderers(EmitterInstance);
+        for (UNiagaraRendererProperties* Prop : RendererProps)
+        {
+            if (UNiagaraSpriteRendererProperties* Sprite = Cast<UNiagaraSpriteRendererProperties>(Prop))
+            {
+                if (!Spec.FacingMode.IsEmpty())
+                {
+                    const FString Facing = Spec.FacingMode.ToLower();
+                    if (Facing.Contains(TEXT("custom"))) Sprite->FacingMode = ENiagaraSpriteFacingMode::CustomFacingVector;
+                    else Sprite->FacingMode = ENiagaraSpriteFacingMode::FaceCamera;
+                }
+
+                if (!Spec.Alignment.IsEmpty())
+                {
+                    const FString Align = Spec.Alignment.ToLower();
+                    if (Align.Contains(TEXT("velocity"))) Sprite->Alignment = ENiagaraSpriteAlignment::VelocityAligned;
+                    else if (Align.Contains(TEXT("custom"))) Sprite->Alignment = ENiagaraSpriteAlignment::CustomAlignment;
+                    else Sprite->Alignment = ENiagaraSpriteAlignment::Unaligned;
+                }
+            }
+        }
+    }
+
     // Apply local space
     SetEmitterLocalSpace(EmitterInstance, Spec.bLocalSpace);
 
@@ -935,6 +1966,15 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
         SetVariableLinearColor(System, Namespace, TEXT("ColorEnd"), Spec.ColorEnd);
         SetVariableLinearColor(System, Namespace, TEXT("Scale Color.End Color"), Spec.ColorEnd);
     }
+
+    // === ALPHA OVER LIFE ===
+    SetVariableFloat(System, Namespace, TEXT("Alpha"), Spec.Alpha);
+    if (Spec.bUseAlphaOverLife)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Alpha End"), Spec.AlphaEnd);
+        SetVariableFloat(System, Namespace, TEXT("Scale Color.End Alpha"), Spec.AlphaEnd);
+        SetVariableFloat(System, Namespace, TEXT("Scale Color.EndAlpha"), Spec.AlphaEnd);
+    }
     
     // === VELOCITY PARAMETERS ===
     SetVariableVec3(System, Namespace, TEXT("AddVelocity.Velocity"), Spec.Velocity);
@@ -961,6 +2001,43 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
     {
         SetVariableFloat(System, Namespace, TEXT("Drag.Drag"), Spec.Drag);
         SetVariableFloat(System, Namespace, TEXT("Drag"), Spec.Drag);
+    }
+
+    // === NOISE / CURL NOISE / VORTEX / LIMIT VELOCITY / LIFT ===
+    if (Spec.CurlNoiseStrength > 0.0f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Curl Noise Force.Strength"), Spec.CurlNoiseStrength);
+        SetVariableFloat(System, Namespace, TEXT("CurlNoiseForce.Strength"), Spec.CurlNoiseStrength);
+    }
+    if (Spec.CurlNoiseFrequency > 0.0f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Curl Noise Force.Frequency"), Spec.CurlNoiseFrequency);
+        SetVariableFloat(System, Namespace, TEXT("CurlNoiseForce.Frequency"), Spec.CurlNoiseFrequency);
+    }
+    if (Spec.NoiseStrength > 0.0f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Noise Force.Strength"), Spec.NoiseStrength);
+        SetVariableFloat(System, Namespace, TEXT("NoiseForce.Strength"), Spec.NoiseStrength);
+    }
+    if (Spec.NoiseFrequency > 0.0f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Noise Force.Frequency"), Spec.NoiseFrequency);
+        SetVariableFloat(System, Namespace, TEXT("NoiseForce.Frequency"), Spec.NoiseFrequency);
+    }
+    if (Spec.LimitVelocity > 0.0f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Limit Velocity.Max Speed"), Spec.LimitVelocity);
+        SetVariableFloat(System, Namespace, TEXT("LimitVelocity.MaxVelocity"), Spec.LimitVelocity);
+    }
+    if (Spec.VortexStrength > 0.0f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Vortex Force.Strength"), Spec.VortexStrength);
+        SetVariableVec3(System, Namespace, TEXT("Vortex Force.Axis"), Spec.VortexAxis);
+    }
+    if (Spec.LiftStrength > 0.0f)
+    {
+        SetVariableFloat(System, Namespace, TEXT("Lift Force.Strength"), Spec.LiftStrength);
+        SetVariableFloat(System, Namespace, TEXT("Lift.Strength"), Spec.LiftStrength);
     }
     
     // === ACCELERATION / GRAVITY ===
@@ -1040,6 +2117,14 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
             TrySetColorInStore(Store, TEXT("Color End"), Spec.ColorEnd);
         }
 
+        // Alpha
+        TrySetFloatInStore(Store, TEXT("Alpha"), Spec.Alpha);
+        if (Spec.bUseAlphaOverLife)
+        {
+            TrySetFloatInStore(Store, TEXT("End Alpha"), Spec.AlphaEnd);
+            TrySetFloatInStore(Store, TEXT("Alpha End"), Spec.AlphaEnd);
+        }
+
         // Velocity
         TrySetVec3InStore(Store, TEXT("Velocity"), Spec.Velocity);
 
@@ -1057,6 +2142,15 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
             TrySetFloatInStore(Store, TEXT("Drag"), Spec.Drag);
         }
 
+        // Noise / Curl / Vortex / Limit Velocity / Lift
+        if (Spec.CurlNoiseStrength > 0.0f) TrySetFloatInStore(Store, TEXT("Curl Noise Strength"), Spec.CurlNoiseStrength);
+        if (Spec.CurlNoiseFrequency > 0.0f) TrySetFloatInStore(Store, TEXT("Curl Noise Frequency"), Spec.CurlNoiseFrequency);
+        if (Spec.NoiseStrength > 0.0f) TrySetFloatInStore(Store, TEXT("Noise Strength"), Spec.NoiseStrength);
+        if (Spec.NoiseFrequency > 0.0f) TrySetFloatInStore(Store, TEXT("Noise Frequency"), Spec.NoiseFrequency);
+        if (Spec.LimitVelocity > 0.0f) TrySetFloatInStore(Store, TEXT("Limit Velocity"), Spec.LimitVelocity);
+        if (Spec.VortexStrength > 0.0f) TrySetFloatInStore(Store, TEXT("Vortex Strength"), Spec.VortexStrength);
+        if (Spec.LiftStrength > 0.0f) TrySetFloatInStore(Store, TEXT("Lift Strength"), Spec.LiftStrength);
+
         // Rotation
         if (FMath::Abs(Spec.RotationRate) > 0.01f)
         {
@@ -1071,6 +2165,161 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
 
         Script->MarkPackageDirty();
     }
+
+    // Reorder update stacks using phase-based topo sort
+    SortEmitterModuleStack(EmitterInstance, TEXT("UpdateScriptProps"));
+    SortEmitterModuleStack(EmitterInstance, TEXT("ParticleUpdateScriptProps"));
+}
+
+bool FNiagaraSpecExecutor::ConfigureCollisionEventHandler(UNiagaraSystem* System, const FString& SourceEmitterName, const FString& TargetEmitterName, const FVFXEventRecipe& Event)
+{
+    if (!System) return false;
+
+    FNiagaraEmitterHandle* SourceHandle = nullptr;
+    FNiagaraEmitterHandle* TargetHandle = nullptr;
+    for (FNiagaraEmitterHandle& H : System->GetEmitterHandles())
+    {
+        if (H.GetName() == FName(*SourceEmitterName)) SourceHandle = &H;
+        if (H.GetName() == FName(*TargetEmitterName)) TargetHandle = &H;
+    }
+
+    if (!SourceHandle || !TargetHandle)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("Collision event setup failed: missing source or target emitter."));
+        return false;
+    }
+
+    UNiagaraEmitter* SourceEmitter = SourceHandle->GetInstance().Emitter;
+    UNiagaraEmitter* TargetEmitter = TargetHandle->GetInstance().Emitter;
+    if (!SourceEmitter || !TargetEmitter) return false;
+
+    // Load module scripts from settings
+    const FString CollisionModulePath = GetVFXAgentSetting(TEXT("CollisionModuleScriptPath"), TEXT("/Niagara/Modules/Collision/Collision.Collision"));
+    const FString GenerateCollisionEventPath = GetVFXAgentSetting(TEXT("GenerateCollisionEventScriptPath"), TEXT("/Niagara/Modules/Collision/Generate Collision Event.Generate Collision Event"));
+    const FString ReceiveCollisionEventPath = GetVFXAgentSetting(TEXT("ReceiveCollisionEventScriptPath"), TEXT("/Niagara/Modules/Events/Receive Collision Event.Receive Collision Event"));
+    const FString EventSpawnPath = GetVFXAgentSetting(TEXT("EventSpawnScriptPath"), TEXT("/Niagara/Modules/Spawn/Spawn Burst Instantaneous.Spawn Burst Instantaneous"));
+
+    UNiagaraScript* CollisionModule = LoadNiagaraScriptFromPath(CollisionModulePath);
+    UNiagaraScript* GenerateCollisionEvent = LoadNiagaraScriptFromPath(GenerateCollisionEventPath);
+    UNiagaraScript* ReceiveCollisionEvent = LoadNiagaraScriptFromPath(ReceiveCollisionEventPath);
+    UNiagaraScript* EventSpawn = LoadNiagaraScriptFromPath(EventSpawnPath);
+
+    FModuleInsertOptions CollisionOptions;
+    CollisionOptions.Mode = GetVFXAgentSetting(TEXT("CollisionModuleInsertMode"), TEXT("Phase"));
+    CollisionOptions.Phase = GetVFXAgentSetting(TEXT("CollisionModuleInsertPhase"), TEXT("CollisionDetect"));
+    CollisionOptions.Anchor = GetVFXAgentSetting(TEXT("CollisionModuleInsertAnchor"), TEXT("@CollisionBegin"));
+    CollisionOptions.Relative = GetVFXAgentSetting(TEXT("CollisionModuleInsertRelative"), TEXT("After"));
+    CollisionOptions.Priority = FCString::Atoi(*GetVFXAgentSetting(TEXT("CollisionModuleInsertPriority"), TEXT("0")));
+
+    FModuleInsertOptions GenerateOptions;
+    GenerateOptions.Mode = GetVFXAgentSetting(TEXT("GenerateCollisionEventInsertMode"), TEXT("Anchor"));
+    GenerateOptions.Phase = GetVFXAgentSetting(TEXT("GenerateCollisionEventInsertPhase"), TEXT("EventWrite"));
+    GenerateOptions.Anchor = GetVFXAgentSetting(TEXT("GenerateCollisionEventInsertAnchor"), TEXT("@EventWriteEnd"));
+    GenerateOptions.Relative = GetVFXAgentSetting(TEXT("GenerateCollisionEventInsertRelative"), TEXT("Before"));
+    GenerateOptions.Priority = FCString::Atoi(*GetVFXAgentSetting(TEXT("GenerateCollisionEventInsertPriority"), TEXT("0")));
+
+    FModuleInsertOptions ReceiveOptions;
+    ReceiveOptions.Mode = GetVFXAgentSetting(TEXT("ReceiveCollisionEventInsertMode"), TEXT("Anchor"));
+    ReceiveOptions.Phase = GetVFXAgentSetting(TEXT("ReceiveCollisionEventInsertPhase"), TEXT("EventWrite"));
+    ReceiveOptions.Anchor = GetVFXAgentSetting(TEXT("ReceiveCollisionEventInsertAnchor"), TEXT("@EventWriteEnd"));
+    ReceiveOptions.Relative = GetVFXAgentSetting(TEXT("ReceiveCollisionEventInsertRelative"), TEXT("Before"));
+    ReceiveOptions.Priority = FCString::Atoi(*GetVFXAgentSetting(TEXT("ReceiveCollisionEventInsertPriority"), TEXT("0")));
+
+    FModuleInsertOptions EventSpawnOptions;
+    EventSpawnOptions.Mode = GetVFXAgentSetting(TEXT("EventSpawnInsertMode"), TEXT("Phase"));
+    EventSpawnOptions.Phase = GetVFXAgentSetting(TEXT("EventSpawnInsertPhase"), TEXT("EventWrite"));
+    EventSpawnOptions.Anchor = GetVFXAgentSetting(TEXT("EventSpawnInsertAnchor"), TEXT("@EventWriteEnd"));
+    EventSpawnOptions.Relative = GetVFXAgentSetting(TEXT("EventSpawnInsertRelative"), TEXT("After"));
+    EventSpawnOptions.Priority = FCString::Atoi(*GetVFXAgentSetting(TEXT("EventSpawnInsertPriority"), TEXT("0")));
+
+    if (!GenerateCollisionEvent || !ReceiveCollisionEvent)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("Missing collision event scripts. Check Niagara event module paths in settings."));
+        return false;
+    }
+
+    // Ensure collision + generate event modules are present on source emitter
+    if (CollisionModule)
+    {
+        InsertScriptWithOrdering(SourceEmitter, TEXT("UpdateScriptProps"), CollisionModule, CollisionOptions);
+        InsertScriptWithOrdering(SourceEmitter, TEXT("ParticleUpdateScriptProps"), CollisionModule, CollisionOptions);
+    }
+    InsertScriptWithOrdering(SourceEmitter, TEXT("UpdateScriptProps"), GenerateCollisionEvent, GenerateOptions);
+    InsertScriptWithOrdering(SourceEmitter, TEXT("ParticleUpdateScriptProps"), GenerateCollisionEvent, GenerateOptions);
+
+    // Add event handler scripts to target emitter
+    InsertScriptWithOrdering(TargetEmitter, TEXT("EventHandlerScriptProps"), ReceiveCollisionEvent, ReceiveOptions);
+    if (EventSpawn)
+    {
+        InsertScriptWithOrdering(TargetEmitter, TEXT("EventHandlerScriptProps"), EventSpawn, EventSpawnOptions);
+    }
+
+    // Ensure persistent IDs for event routing
+    SetEmitterRequiresPersistentIDs(SourceEmitter, true);
+
+    // Patch handler source linkage and spawn counts
+    FArrayProperty* HandlerArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), TEXT("EventHandlerScriptProps"));
+    if (HandlerArrayProp)
+    {
+        FScriptArrayHelper HandlerHelper(HandlerArrayProp, HandlerArrayProp->ContainerPtrToValuePtr<void>(TargetEmitter));
+        if (FStructProperty* StructProp = CastField<FStructProperty>(HandlerArrayProp->Inner))
+        {
+            UStruct* StructType = StructProp->Struct;
+            for (int32 i = 0; i < HandlerHelper.Num(); ++i)
+            {
+                void* ElemPtr = HandlerHelper.GetRawPtr(i);
+                SetStructGuidField(ElemPtr, StructType, TEXT("SourceEmitterID"), SourceHandle->GetId());
+                SetStructNameField(ElemPtr, StructType, TEXT("SourceEmitterName"), SourceHandle->GetName());
+                SetStructNameField(ElemPtr, StructType, TEXT("EventName"), FName(TEXT("Collision")));
+                SetStructFloatField(ElemPtr, StructType, TEXT("MaxEventsPerFrame"), 128.0f);
+
+                if (Event.BurstOverride > 0)
+                {
+                    SetStructFloatField(ElemPtr, StructType, TEXT("SpawnNumber"), (float)Event.BurstOverride);
+                    SetStructFloatField(ElemPtr, StructType, TEXT("SpawnNumberOverride"), (float)Event.BurstOverride);
+                }
+                else if (Event.BurstMultiplier != 1.0f)
+                {
+                    SetStructFloatField(ElemPtr, StructType, TEXT("SpawnNumber"), Event.BurstMultiplier);
+                }
+            }
+        }
+    }
+
+    // Configure event generator props (if exposed)
+    FArrayProperty* GeneratorArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), TEXT("EventGeneratorProps"));
+    if (GeneratorArrayProp)
+    {
+        FScriptArrayHelper GenHelper(GeneratorArrayProp, GeneratorArrayProp->ContainerPtrToValuePtr<void>(SourceEmitter));
+        if (FStructProperty* StructProp = CastField<FStructProperty>(GeneratorArrayProp->Inner))
+        {
+            UStruct* StructType = StructProp->Struct;
+            if (GenHelper.Num() == 0)
+            {
+                GenHelper.AddValue();
+            }
+            for (int32 i = 0; i < GenHelper.Num(); ++i)
+            {
+                void* ElemPtr = GenHelper.GetRawPtr(i);
+                SetStructNameField(ElemPtr, StructType, TEXT("EventName"), FName(TEXT("Collision")));
+                SetStructFloatField(ElemPtr, StructType, TEXT("MaxEventsPerFrame"), 128.0f);
+                SetStructObjectField(ElemPtr, StructType, TEXT("GeneratorScript"), GenerateCollisionEvent);
+                SetStructObjectField(ElemPtr, StructType, TEXT("Script"), GenerateCollisionEvent);
+            }
+        }
+    }
+
+    // Enforce ordering on update stacks after event wiring
+    SortEmitterModuleStack(SourceEmitter, TEXT("UpdateScriptProps"));
+    SortEmitterModuleStack(SourceEmitter, TEXT("ParticleUpdateScriptProps"));
+
+    SourceEmitter->Modify();
+    TargetEmitter->Modify();
+    SourceEmitter->PostEditChange();
+    TargetEmitter->PostEditChange();
+
+    UE_LOG(LogVFXAgent, Log, TEXT("Configured collision event handler (direct API): %s -> %s"), *SourceEmitterName, *TargetEmitterName);
+    return true;
 }
 
 void FNiagaraSpecExecutor::SetVariableFloat(UNiagaraSystem* System, const FString& EmitterName, const FString& VarName, float Value)

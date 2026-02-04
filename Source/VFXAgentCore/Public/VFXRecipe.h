@@ -3,8 +3,150 @@
 #include "CoreMinimal.h"
 #include "VFXRecipe.generated.h"
 
+// ============================================================================
+// VFX INTENT LAYER - Director-level semantic understanding
+// ============================================================================
+
+UENUM(BlueprintType)
+enum class EVFXArchetype : uint8
+{
+	Explosion UMETA(DisplayName = "Explosion"),
+	Tornado UMETA(DisplayName = "Tornado"),
+	Aura UMETA(DisplayName = "Aura"),
+	Trail UMETA(DisplayName = "Trail"),
+	Fountain UMETA(DisplayName = "Fountain"),
+	Beam UMETA(DisplayName = "Beam"),
+	Dust UMETA(DisplayName = "Dust"),
+	Smoke UMETA(DisplayName = "Smoke"),
+	Fire UMETA(DisplayName = "Fire"),
+	Sparks UMETA(DisplayName = "Sparks"),
+	Impact UMETA(DisplayName = "Impact"),
+	Custom UMETA(DisplayName = "Custom")
+};
+
+UENUM(BlueprintType)
+enum class EVFXMotionModel : uint8
+{
+	Radial UMETA(DisplayName = "Radial (Outward Explosion)"),
+	RadialInward UMETA(DisplayName = "Radial Inward (Vortex Attraction)"),
+	Orbit UMETA(DisplayName = "Orbit (Circular Motion)"),
+	Vortex UMETA(DisplayName = "Vortex (Swirling)"),
+	Directional UMETA(DisplayName = "Directional (Cone/Beam)"),
+	Vertical UMETA(DisplayName = "Vertical (Upward/Downward)"),
+	Turbulent UMETA(DisplayName = "Turbulent (Chaotic)"),
+	Static UMETA(DisplayName = "Static (Stationary)")
+};
+
+// Behaviors that should NEVER be used for a given effect
 USTRUCT(BlueprintType)
-struct FVFXEmitterRecipe
+struct VFXAGENTCORE_API FVFXPatternAvoidance
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avoidance")
+	bool bAvoidConeVelocity = false; // No outward cone spray
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avoidance")
+	bool bAvoidRadialExplosion = false; // No radial burst
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avoidance")
+	bool bAvoidUniformGravity = false; // No downward gravity
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avoidance")
+	bool bAvoidUniformRotation = false; // No simple spin
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Avoidance")
+	bool bAvoidHighSpread = false; // Stay tight/focused
+};
+
+// Motion behavior definition for directing Niagara composition
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXMotionBehavior
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion")
+	EVFXMotionModel PrimaryModel = EVFXMotionModel::Radial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion")
+	FVector MotionAxis = FVector(0, 0, 1); // For orbit/vortex
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion")
+	bool bRadiusDependsOnHeight = false; // Funnel effect
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion")
+	bool bAngularVelocityIncreases = false; // Faster at top
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion")
+	bool bCentripetal = false; // Attract to center
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion")
+	float CentripetalStrength = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Motion")
+	bool bHeightDriven = false; // Different behavior at different heights
+};
+
+// Visual hierarchy - what is dominant and secondary
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXVisualHierarchy
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hierarchy")
+	FString DominantElement; // Main visual (e.g., "core_funnel")
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hierarchy")
+	float DominantWeight = 1.0f; // Visual priority (0-1)
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hierarchy")
+	TArray<FString> SecondaryElements; // Supporting visuals
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Hierarchy")
+	TArray<float> SecondaryWeights; // Individual priorities
+};
+
+// The VFX Intent - Director's understanding BEFORE generating Niagara
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXIntent
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	EVFXArchetype Archetype = EVFXArchetype::Custom;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	FVFXMotionBehavior Motion;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	FVFXVisualHierarchy Hierarchy;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	FVFXPatternAvoidance Avoidance;
+
+	// Required effect layers (names like "core_funnel", "debris", "dust")
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	TArray<FString> RequiredLayers;
+
+	// Key physics behaviors needed
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	TArray<FString> RequiredForces; // e.g., "vortex", "centripetal", "lift"
+
+	// How many emitters needed
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	int32 SuggestedEmitterCount = 1;
+
+	// Semantic description for logging
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	FString Description;
+};
+
+// ============================================================================
+// RECIPE STRUCTURES (Niagara-level compilation targets)
+// ============================================================================
+
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXEmitterRecipe
 {
 	GENERATED_BODY()
 
@@ -111,7 +253,7 @@ struct FVFXEmitterRecipe
 };
 
 USTRUCT(BlueprintType)
-struct FVFXTextureRecipe
+struct VFXAGENTCORE_API FVFXTextureRecipe
 {
 	GENERATED_BODY()
 
@@ -141,7 +283,7 @@ struct FVFXTextureRecipe
 };
 
 USTRUCT(BlueprintType)
-struct FVFXMaterialRecipe
+struct VFXAGENTCORE_API FVFXMaterialRecipe
 {
 	GENERATED_BODY()
 
@@ -158,7 +300,7 @@ struct FVFXMaterialRecipe
 	bool bIsUnlit = false;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
-	FString BaseMaterialPath = "/Engine/EngineMaterials/ParticleSpriteMaterial";
+	FString BaseMaterialPath = "/Niagara/DefaultAssets/DefaultSpriteMaterial.DefaultSpriteMaterial";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
 	FLinearColor BaseColor = FLinearColor::White;
@@ -207,7 +349,7 @@ enum class EVFXRendererType : uint8
 };
 
 USTRUCT(BlueprintType)
-struct FVFXPerSpawnInfo
+struct VFXAGENTCORE_API FVFXPerSpawnInfo
 {
 	GENERATED_BODY()
 
@@ -221,8 +363,203 @@ struct FVFXPerSpawnInfo
 	float BurstTime = 0.0f; // Time for burst spawn (0 = immediate)
 };
 
+UENUM(BlueprintType)
+enum class EVFXForceType : uint8
+{
+	CurlNoise UMETA(DisplayName = "CurlNoise"),
+	Noise UMETA(DisplayName = "Noise"),
+	Drag UMETA(DisplayName = "Drag"),
+	Gravity UMETA(DisplayName = "Gravity"),
+	Vortex UMETA(DisplayName = "Vortex"),
+	Lift UMETA(DisplayName = "Lift"),
+	LimitVelocity UMETA(DisplayName = "LimitVelocity")
+};
+
 USTRUCT(BlueprintType)
-struct FVFXEmitterSpec
+struct VFXAGENTCORE_API FVFXCurveKey
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curve")
+	float Time = 0.0f; // 0-1
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curve")
+	float Value = 0.0f;
+};
+
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXColorKey
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curve")
+	float Time = 0.0f; // 0-1
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curve")
+	FLinearColor Color = FLinearColor::White;
+};
+
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXCurveRecipe
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curve")
+	TArray<FVFXCurveKey> Size;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curve")
+	TArray<FVFXCurveKey> Alpha;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curve")
+	TArray<FVFXColorKey> Color;
+};
+
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXForceRecipe
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	EVFXForceType Type = EVFXForceType::CurlNoise;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	float Strength = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	float Frequency = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	FVector Direction = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	float Radius = 100.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	float MaxVelocity = 1000.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Force")
+	bool bEnabled = true;
+};
+
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXRenderRecipe
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Render")
+	FString RendererType = "Sprite"; // Sprite, Mesh, Ribbon, Light
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Render")
+	FString FacingMode = "Camera"; // Camera, Velocity, Custom
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Render")
+	FString Alignment = "Unaligned"; // Unaligned, VelocityAligned, Custom
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Render")
+	bool bSoftParticles = true;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Render")
+	bool bVelocityAligned = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Render")
+	float MotionStretch = 0.0f;
+};
+
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXLayerRecipe
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layer")
+	FString Name = "Layer";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layer")
+	FString Role = "core"; // core/smoke/sparks/trail/etc
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spawn")
+	FVFXPerSpawnInfo Spawn;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lifetime")
+	float Lifetime = 2.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lifetime")
+	float LifetimeVariation = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Size")
+	float Size = 10.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Color")
+	FLinearColor Color = FLinearColor::White;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Velocity")
+	FVector InitialVelocity = FVector::ZeroVector;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Velocity")
+	float VelocityVariation = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Forces")
+	TArray<FVFXForceRecipe> Forces;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Curves")
+	FVFXCurveRecipe Curves;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Render")
+	FVFXRenderRecipe Render;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shape")
+	FString EmitShape = "Point";
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Shape")
+	FVector ShapeSize = FVector(100, 100, 100);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendering")
+	int32 SortOrder = 0;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Rendering")
+	bool bLocalSpace = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Material")
+	int32 MaterialIndex = -1;
+};
+
+UENUM(BlueprintType)
+enum class EVFXEventType : uint8
+{
+	OnEmitterStart UMETA(DisplayName = "OnEmitterStart"),
+	OnEmitterBurst UMETA(DisplayName = "OnEmitterBurst"),
+	OnEmitterDeath UMETA(DisplayName = "OnEmitterDeath"),
+	OnEmitterCollision UMETA(DisplayName = "OnEmitterCollision")
+};
+
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXEventRecipe
+{
+	GENERATED_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	FString SourceLayer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	FString TargetLayer;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	EVFXEventType Type = EVFXEventType::OnEmitterDeath;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	float Delay = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	float BurstMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	float RateMultiplier = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Event")
+	int32 BurstOverride = 0;
+};
+
+USTRUCT(BlueprintType)
+struct VFXAGENTCORE_API FVFXEmitterSpec
 {
 	GENERATED_BODY()
 
@@ -276,6 +613,31 @@ struct FVFXEmitterSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter")
 	float VelocityVariation = 0.0f;
 
+	// Forces (module-driven)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Forces")
+	float CurlNoiseStrength = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Forces")
+	float CurlNoiseFrequency = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Forces")
+	float NoiseStrength = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Forces")
+	float NoiseFrequency = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Forces")
+	float LimitVelocity = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Forces")
+	float VortexStrength = 0.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Forces")
+	FVector VortexAxis = FVector(0, 0, 1);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Forces")
+	float LiftStrength = 0.0f;
+
 	// Physics
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Physics")
 	float Drag = 0.0f;
@@ -299,6 +661,29 @@ struct FVFXEmitterSpec
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rotation")
 	float RotationRateVariation = 0.0f;
 
+	// Alpha over life
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Color")
+	float Alpha = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Color")
+	float AlphaEnd = 1.0f;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Color")
+	bool bUseAlphaOverLife = false;
+
+	// Render options
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rendering")
+	FString FacingMode;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rendering")
+	FString Alignment;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rendering")
+	bool bVelocityAligned = false;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rendering")
+	float MotionStretch = 0.0f;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitter|Rendering")
 	int32 SortOrder = 0;
 
@@ -316,22 +701,32 @@ struct FVFXEmitterSpec
 };
 
 USTRUCT(BlueprintType)
-struct FVFXEffectSpec
+struct VFXAGENTCORE_API FVFXEffectSpec
 {
 	GENERATED_BODY()
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
-	FString SystemName;
+	FString Name;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
-	FString TargetPath;
+	FString OutputPath;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
 	TArray<FVFXEmitterSpec> Emitters;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	TArray<FVFXMaterialRecipe> Materials;
+	
+	// NEW: Intent for constraint-aware generation (non-optional for simplicity)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	FVFXIntent Intent;
+	
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Effect")
+	bool bHasIntent = false;
 };
 
 USTRUCT(BlueprintType)
-struct FVFXRepairReport
+struct VFXAGENTCORE_API FVFXRepairReport
 {
 	GENERATED_BODY()
 
@@ -349,10 +744,20 @@ struct FVFXRepairReport
 };
 
 USTRUCT(BlueprintType)
-struct FVFXRecipe
+struct VFXAGENTCORE_API FVFXRecipe
 {
 	GENERATED_BODY()
 
+	// ========== NEW: VFX Intent Layer (Director's Understanding) ==========
+	// This is the semantic understanding of WHAT the effect is, BEFORE Niagara modules
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Intent")
+	FVFXIntent Intent;
+	
+	// ========== NEW: Niagara Spec (Constraint-aware compilation target) ==========
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Spec")
+	FVFXEffectSpec Spec;
+
+	// ========== System-level properties ==========
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "System")
 	bool bLoop = true;
 
@@ -367,6 +772,14 @@ struct FVFXRecipe
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Emitters")
 	TArray<FVFXEmitterRecipe> Emitters;
+
+	// New layered recipe format
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Layers")
+	TArray<FVFXLayerRecipe> Layers;
+
+	// Event chain between layers
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Events")
+	TArray<FVFXEventRecipe> Events;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Parameters")
 	TMap<FString, FString> Parameters; // User parameters like color, intensity

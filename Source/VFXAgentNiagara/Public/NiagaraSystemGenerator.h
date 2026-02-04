@@ -27,36 +27,8 @@ public:
 	}
 
 private:
-	// Helper functions
-	class UNiagaraEmitter* CreateBasicEmitter(
-		const FVFXEmitterRecipe& EmitterRecipe,
-		UNiagaraSystem* ParentSystem);
-
-	// Optional template system used as a source of initialized emitters/modules.
-	UPROPERTY(Transient)
-	TObjectPtr<class UNiagaraSystem> TemplateSystem;
-
-	bool BindMaterialToEmitter(
-		class UNiagaraEmitter* Emitter,
-		const FVFXMaterialRecipe& MaterialRecipe);
-
-	// Get or create a basic material
-	class UMaterialInstanceConstant* GetOrCreateBasicMaterial(
-		const FString& Path,
-		const FVFXMaterialRecipe& MaterialRecipe);
-
-	/**
-	 * Generate and assign materials for all emitters in the recipe
-	 */
-	void GenerateMaterialsForRecipe(
+	// Assign materials from the library to generated emitters
+	void AssignMaterialsFromLibrary(
 		const FVFXRecipe& Recipe,
-		const FString& OutputPath,
 		UNiagaraSystem* System);
-
-	/**
-	 * Generate textures specified in materials
-	 */
-	TMap<FString, FString> GenerateTexturesForMaterial(
-		const FVFXMaterialRecipe& MaterialRecipe,
-		const FString& OutputPath);
 };

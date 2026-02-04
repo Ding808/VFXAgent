@@ -2,10 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
-#include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Input/SCheckBox.h"
 #include "Types/SlateEnums.h"
 #include "VFXRecipe.h"
+#include "VFXDirectorTypes.h"
 
 class ILLMProvider;
 
@@ -24,33 +24,29 @@ private:
 	// UI callbacks
 	FReply OnGenerateClicked();
 	FReply OnGenerateFromImageClicked();
-	FReply OnApplyRefinementClicked();
 	FReply OnChooseOutputPathClicked();
 	FReply OnChooseImagePathClicked();
 	FReply OnTestLLMClicked();
-	FReply OnGenerateWithIterativeOptimizationClicked();
 
 	// Helper functions
 	void LogMessage(const FString& Message);
 	void UpdateLastRecipe(const FVFXRecipe& Recipe);
 	void RefreshLLMSettingsFromConfig();
-	void PerformIterativeGeneration(const FString& Prompt, const FString& ImagePath, bool bUseOptimization);
 	FVFXRecipe EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, const FString& Prompt);
 
 	// UI elements
 	TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;
-	TSharedPtr<class SMultiLineEditableTextBox> RefinementTextBox;
 	TSharedPtr<class SEditableTextBox> OutputPathTextBox;
 	TSharedPtr<class SEditableTextBox> AssetNameTextBox;
 	TSharedPtr<class SEditableTextBox> ImagePathTextBox;
 	TSharedPtr<class SMultiLineEditableTextBox> LogTextBox;
-	TSharedPtr<class SCheckBox> EnableIterativeOptimizationCheckBox;
-	TSharedPtr<SSpinBox<int32>> MaxIterationsSpinBox;
-	TSharedPtr<SSpinBox<float>> TargetQualitySpinBox;
+	TSharedPtr<class SCheckBox> UseDirectorPipelineCheckBox;
 
 	// Data
 	FVFXRecipe LastRecipe;
 	FString LastPrompt;
+	FString LastDirectorJson;
+	FVFXExecutionReport LastExecutionReport;
 
 	// LLM Provider
 	UObject* LLMProviderObject = nullptr;

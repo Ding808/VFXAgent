@@ -1,6 +1,6 @@
 #include "NiagaraSystemGenerator.h"
 #include "NiagaraSpecExecutor.h"
-#include "MaterialGenerator.h"
+#include "VFXRecipeCompiler.h"
 #include "VFXAgentLog.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
@@ -8,6 +8,11 @@
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.h"
 #include "Materials/MaterialInterface.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstanceConstant.h"
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Modules/ModuleManager.h"
+#include "Misc/ConfigCacheIni.h"
 #include "UObject/UnrealType.h"
 
 // NOTE: Removed automatic repair/retry logic that appended "_Fixed" to the system name.
@@ -19,109 +24,50 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     const FVFXRecipe& Recipe,
     const FString& TemplateSystemPath)
 {
-    UE_LOG(LogVFXAgent, Log, TEXT("Starting Niagara Generation Refactor for: %s"), *SystemName);
+    UE_LOG(LogVFXAgent, Log, TEXT("Starting Recipe-Driven Niagara Generation for: %s"), *SystemName);
 
-    // 1. Convert Legacy Recipe to New Spec
-    FVFXEffectSpec Spec;
-    Spec.SystemName = SystemName;
-    Spec.TargetPath = OutputPath;
+    TArray<FString> Warnings;
+    FVFXEffectSpec Spec = FRecipeCompiler::Compile(SystemName, OutputPath, Recipe, TemplateSystemPath, Warnings);
 
-    if (Recipe.Emitters.Num() > 0)
+    if (Warnings.Num() > 0)
     {
-        for (const FVFXEmitterRecipe& SrcEmitter : Recipe.Emitters)
+        for (const FString& W : Warnings)
         {
-            FVFXEmitterSpec EmitterSpec;
-            EmitterSpec.Name = SrcEmitter.Name.IsEmpty() ? TEXT("Emitter") : SrcEmitter.Name;
-            EmitterSpec.TemplatePath = FString();
-            if (!SrcEmitter.TemplateName.IsEmpty())
-            {
-                EmitterSpec.TemplateId = SrcEmitter.TemplateName;
-            }
-            else if (!TemplateSystemPath.IsEmpty())
-            {
-                EmitterSpec.TemplatePath = TemplateSystemPath;
-            }
-            
-            if (SrcEmitter.RendererType == "Ribbon") EmitterSpec.RendererType = EVFXRendererType::Ribbon;
-            else if (SrcEmitter.RendererType == "Light") EmitterSpec.RendererType = EVFXRendererType::Light;
-            else EmitterSpec.RendererType = EVFXRendererType::Sprite;
-
-            // Basic parameters
-            EmitterSpec.Spawn.Rate = SrcEmitter.SpawnRate;
-            EmitterSpec.Spawn.Burst = SrcEmitter.BurstCount;
-            EmitterSpec.Spawn.BurstTime = SrcEmitter.BurstTime;
-            EmitterSpec.Color = SrcEmitter.Color;
-            EmitterSpec.ColorEnd = SrcEmitter.ColorEnd;
-            EmitterSpec.bUseColorGradient = SrcEmitter.bUseColorGradient;
-            EmitterSpec.Lifetime = SrcEmitter.Lifetime;
-            EmitterSpec.LifetimeVariation = SrcEmitter.LifetimeVariation;
-            EmitterSpec.Size = SrcEmitter.Size;
-            EmitterSpec.SizeEnd = SrcEmitter.SizeEnd;
-            EmitterSpec.bUseSizeOverLife = SrcEmitter.bUseSizeOverLife;
-            EmitterSpec.SizeVariation = SrcEmitter.SizeVariation;
-            EmitterSpec.Velocity = SrcEmitter.Velocity;
-            EmitterSpec.VelocityVariation = SrcEmitter.VelocityVariation;
-            
-            // Extended parameters (Physics & Rotation)
-            EmitterSpec.Drag = SrcEmitter.Drag;
-            EmitterSpec.Acceleration = SrcEmitter.Acceleration;
-            EmitterSpec.bUseGravity = SrcEmitter.bUseGravity;
-            EmitterSpec.Mass = SrcEmitter.Mass;
-            EmitterSpec.RotationRate = SrcEmitter.RotationRate;
-            EmitterSpec.InitialRotation = SrcEmitter.InitialRotation;
-            EmitterSpec.RotationRateVariation = SrcEmitter.RotationRateVariation;
-
-            // Rendering and shape
-            EmitterSpec.SortOrder = SrcEmitter.SortOrder;
-            EmitterSpec.bLocalSpace = SrcEmitter.bLocalSpace;
-            EmitterSpec.EmitShape = SrcEmitter.EmitShape;
-            EmitterSpec.ShapeSize = SrcEmitter.ShapeSize;
-
-            Spec.Emitters.Add(EmitterSpec);
+            UE_LOG(LogVFXAgent, Warning, TEXT("Recipe Warning: %s"), *W);
         }
     }
-    else
-    {
-        // Fallback for empty recipe or legacy single-emitter interpretation
-        FVFXEmitterSpec EmitterSpec;
-        EmitterSpec.Name = TEXT("MainEmitter");
-        EmitterSpec.TemplateId = "Fountain";
-        EmitterSpec.RendererType = EVFXRendererType::Sprite;
-        Spec.Emitters.Add(EmitterSpec);
-    }
-    
-    // 2. Validate
-    FString SpecError;
-    if (!FNiagaraSpecExecutor::ValidateSpec(Spec, SpecError))
-    {
-        UE_LOG(LogVFXAgent, Error, TEXT("Spec Validation Failed: %s"), *SpecError);
-        return nullptr;
-    }
 
-    // 3. Single-pass execution: create, save/compile and self-check once.
     UE_LOG(LogVFXAgent, Log, TEXT("Generating System (single attempt)"));
-    UNiagaraSystem* ResultSystem = FNiagaraSpecExecutor::CreateSystemFromSpec(Spec);
+    FVFXRepairReport Report;
+    UNiagaraSystem* ResultSystem = FSystemAssembler::Assemble(Spec, Report);
     if (!ResultSystem)
     {
-        UE_LOG(LogVFXAgent, Error, TEXT("Failed to create system from spec: %s"), *Spec.SystemName);
+        UE_LOG(LogVFXAgent, Error, TEXT("Failed to assemble system from recipe: %s"), *SystemName);
         return nullptr;
     }
 
-    // Generate materials and textures if specified in the recipe (do this before save/compile)
-    if (Recipe.Materials.Num() > 0)
+    // Assign materials from the library (no material generation)
+    AssignMaterialsFromLibrary(Recipe, ResultSystem);
+
+    // Apply collision event handlers (module-stack level) after system creation
+    if (Recipe.Events.Num() > 0)
     {
-        UE_LOG(LogVFXAgent, Log, TEXT("Generating materials for system..."));
-        GenerateMaterialsForRecipe(Recipe, OutputPath, ResultSystem);
+        for (const FVFXEventRecipe& Event : Recipe.Events)
+        {
+            if (Event.Type == EVFXEventType::OnEmitterCollision)
+            {
+                FNiagaraSpecExecutor::ConfigureCollisionEventHandler(ResultSystem, Event.SourceLayer, Event.TargetLayer, Event);
+            }
+        }
     }
 
-    FVFXRepairReport Report;
     if (FNiagaraSpecExecutor::SaveCompileAndSelfCheck(ResultSystem, Report))
     {
         UE_LOG(LogVFXAgent, Log, TEXT("Generation Success! Asset: %s"), *Report.SystemPath);
         return ResultSystem;
     }
 
-    UE_LOG(LogVFXAgent, Warning, TEXT("SelfCheck Failed for system '%s' but automatic repair/retry is disabled."), *Spec.SystemName);
+    UE_LOG(LogVFXAgent, Warning, TEXT("SelfCheck Failed for system '%s' but automatic repair/retry is disabled."), *Spec.Name);
     for (const FString& E : Report.Errors)
     {
         UE_LOG(LogVFXAgent, Warning, TEXT("Error: %s"), *E);
@@ -135,56 +81,175 @@ bool UNiagaraSystemGenerator::UpdateNiagaraSystem(UNiagaraSystem* System, const 
 {
     // Simplified update using Executor's Configure
     if (!System) return false;
-    
-    // We only update if we have at least one emitter in the recipe
-    if(Recipe.Emitters.Num() == 0) return false;
 
-    const FVFXEmitterRecipe& SrcEmitter = Recipe.Emitters[0];
+    TArray<FString> Warnings;
+    FVFXEffectSpec Spec = FRecipeCompiler::Compile(System->GetName(), System->GetPathName(), Recipe, FString(), Warnings);
+    if (Spec.Emitters.Num() == 0) return false;
 
-    FVFXEmitterSpec EmitterSpec;
-    EmitterSpec.Spawn.Rate = SrcEmitter.SpawnRate;
-    EmitterSpec.Lifetime = SrcEmitter.Lifetime;
-    EmitterSpec.Spawn.Burst = SrcEmitter.BurstCount;
-    EmitterSpec.Color = SrcEmitter.Color;
-    
-    // Assumes we update the first emitter or matching name
-    FString EmitterName = SrcEmitter.Name.IsEmpty() ? "MainEmitter" : SrcEmitter.Name;
-    FNiagaraSpecExecutor::ConfigureEmitter(System, EmitterName, EmitterSpec);
+    for (const FVFXEmitterSpec& EmitterSpec : Spec.Emitters)
+    {
+        FNiagaraSpecExecutor::ConfigureEmitter(System, EmitterSpec.Name, EmitterSpec);
+    }
+
+    if (Recipe.Events.Num() > 0)
+    {
+        for (const FVFXEventRecipe& Event : Recipe.Events)
+        {
+            if (Event.Type == EVFXEventType::OnEmitterCollision)
+            {
+                FNiagaraSpecExecutor::ConfigureCollisionEventHandler(System, Event.SourceLayer, Event.TargetLayer, Event);
+            }
+        }
+    }
     return true;
 }
 
-// Private dummy implementations to satisfy linker/header
-UNiagaraEmitter* UNiagaraSystemGenerator::CreateBasicEmitter(const FVFXEmitterRecipe& EmitterRecipe, UNiagaraSystem* ParentSystem)
+static TArray<FString> GetMaterialLibraryPaths()
 {
-    return nullptr;
+    TArray<FString> Paths;
+    const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+    const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+    for (const FString& File : ConfigFiles)
+    {
+        if (GConfig && GConfig->GetArray(Section, TEXT("MaterialLibraryPaths"), Paths, File) && Paths.Num() > 0)
+        {
+            break;
+        }
+    }
+    if (Paths.Num() == 0)
+    {
+        Paths.Add(TEXT("/Game/VFXAgent/Materials"));
+    }
+    return Paths;
 }
 
-bool UNiagaraSystemGenerator::BindMaterialToEmitter(
-    UNiagaraEmitter* Emitter,
-    const FVFXMaterialRecipe& MaterialRecipe)
+static void CollectMaterialAssets(const TArray<FString>& RootPaths, TArray<FAssetData>& OutAssets)
 {
-    // Stub: material binding is not implemented yet
-    return false;
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+    FARFilter Filter;
+    for (const FString& Root : RootPaths)
+    {
+        Filter.PackagePaths.Add(*Root);
+    }
+    Filter.ClassPaths.Add(UMaterialInterface::StaticClass()->GetClassPathName());
+    Filter.ClassPaths.Add(UMaterial::StaticClass()->GetClassPathName());
+    Filter.ClassPaths.Add(UMaterialInstanceConstant::StaticClass()->GetClassPathName());
+    Filter.bRecursivePaths = true;
+    AssetRegistryModule.Get().GetAssets(Filter, OutAssets);
 }
 
-class UMaterialInstanceConstant* UNiagaraSystemGenerator::GetOrCreateBasicMaterial(
-    const FString& Path,
-    const FVFXMaterialRecipe& MaterialRecipe)
+static void AppendKeywordsFromText(const FString& Text, TSet<FString>& Out)
 {
-    // Stub: material creation is not implemented yet
-    return nullptr;
+    FString Token;
+    for (int32 i = 0; i < Text.Len(); ++i)
+    {
+        const TCHAR C = Text[i];
+        if (FChar::IsAlnum(C))
+        {
+            Token.AppendChar(FChar::ToLower(C));
+        }
+        else if (!Token.IsEmpty())
+        {
+            if (Token.Len() > 2)
+            {
+                Out.Add(Token);
+            }
+            Token.Reset();
+        }
+    }
+    if (Token.Len() > 2)
+    {
+        Out.Add(Token);
+    }
+
+    const FString Lower = Text.ToLower();
+    if (Lower.Contains(TEXT("烟")) || Lower.Contains(TEXT("雾"))) Out.Add(TEXT("smoke"));
+    if (Lower.Contains(TEXT("火")) || Lower.Contains(TEXT("焰"))) Out.Add(TEXT("fire"));
+    if (Lower.Contains(TEXT("电")) || Lower.Contains(TEXT("雷"))) Out.Add(TEXT("electric"));
+    if (Lower.Contains(TEXT("光")) || Lower.Contains(TEXT("辉"))) Out.Add(TEXT("glow"));
+    if (Lower.Contains(TEXT("尘"))) Out.Add(TEXT("dust"));
+    if (Lower.Contains(TEXT("爆"))) Out.Add(TEXT("burst"));
+    if (Lower.Contains(TEXT("尾")) || Lower.Contains(TEXT("拖"))) Out.Add(TEXT("trail"));
 }
 
-void UNiagaraSystemGenerator::GenerateMaterialsForRecipe(
-	const FVFXRecipe& Recipe,
-	const FString& OutputPath,
-	UNiagaraSystem* System)
+static TArray<FString> BuildKeywords(const FString& Text)
 {
-	if (!System)
-	{
-		UE_LOG(LogVFXAgent, Error, TEXT("Cannot generate materials for null system"));
-		return;
-	}
+    TSet<FString> Keywords;
+    AppendKeywordsFromText(Text, Keywords);
+
+    if (Keywords.Contains(TEXT("smoke"))) { Keywords.Add(TEXT("fog")); Keywords.Add(TEXT("mist")); }
+    if (Keywords.Contains(TEXT("spark"))) { Keywords.Add(TEXT("sparks")); Keywords.Add(TEXT("ember")); }
+    if (Keywords.Contains(TEXT("electric"))) { Keywords.Add(TEXT("lightning")); }
+    if (Keywords.Contains(TEXT("fire"))) { Keywords.Add(TEXT("flame")); }
+    if (Keywords.Contains(TEXT("trail"))) { Keywords.Add(TEXT("ribbon")); }
+    if (Keywords.Contains(TEXT("glow"))) { Keywords.Add(TEXT("flare")); }
+
+    TArray<FString> Result = Keywords.Array();
+    return Result;
+}
+
+static int32 ScoreMaterialName(const FString& MaterialNameLower, const TArray<FString>& Keywords)
+{
+    int32 Score = 0;
+    for (const FString& Key : Keywords)
+    {
+        if (MaterialNameLower == Key)
+        {
+            Score += 20;
+        }
+        else if (MaterialNameLower.Contains(Key))
+        {
+            Score += 10;
+        }
+    }
+    return Score;
+}
+
+static FString NormalizeEmitterNameForMatch(const FString& Name)
+{
+    FString Result = Name;
+    while (Result.Len() > 0 && FChar::IsDigit(Result[Result.Len() - 1]))
+    {
+        Result.LeftChopInline(1);
+    }
+    return Result.ToLower();
+}
+
+void UNiagaraSystemGenerator::AssignMaterialsFromLibrary(
+    const FVFXRecipe& Recipe,
+    UNiagaraSystem* System)
+{
+    if (!System)
+    {
+        UE_LOG(LogVFXAgent, Error, TEXT("Cannot assign materials for null system"));
+        return;
+    }
+
+    const TArray<FString> LibraryPaths = GetMaterialLibraryPaths();
+    TArray<FAssetData> MaterialAssets;
+    CollectMaterialAssets(LibraryPaths, MaterialAssets);
+
+    if (MaterialAssets.Num() == 0)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("No materials found in library paths. Using default Niagara material."));
+    }
+
+    TArray<TArray<FString>> MaterialKeywords;
+    MaterialKeywords.Reserve(Recipe.Materials.Num());
+    for (const FVFXMaterialRecipe& Mat : Recipe.Materials)
+    {
+        MaterialKeywords.Add(BuildKeywords(Mat.Name + TEXT(" ") + Mat.Description));
+    }
+
+    TMap<FString, TArray<FString>> EmitterKeywords;
+    for (const FVFXLayerRecipe& Layer : Recipe.Layers)
+    {
+        EmitterKeywords.Add(Layer.Name.ToLower(), BuildKeywords(Layer.Name + TEXT(" ") + Layer.Role));
+    }
+    for (const FVFXEmitterRecipe& Emitter : Recipe.Emitters)
+    {
+        EmitterKeywords.Add(Emitter.Name.ToLower(), BuildKeywords(Emitter.Name + TEXT(" ") + Emitter.RendererType));
+    }
 
     // Helper to retrieve renderer properties from a UNiagaraEmitter using reflection.
     auto GetEmitterRenderers = [](UNiagaraEmitter* Emitter)
@@ -233,174 +298,83 @@ void UNiagaraSystemGenerator::GenerateMaterialsForRecipe(
         Emitter->PostEditChange();
     };
 
-	// Create material generator
-	UMaterialGenerator* MaterialGen = UMaterialGenerator::CreateInstance();
-	if (!MaterialGen)
-	{
-		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create material generator"));
-		return;
-	}
-
-	// Materials output path
-	FString MaterialsPath = OutputPath / TEXT("Materials");
-
-    // Generate each material
-    TArray<UMaterialInterface*> CreatedMaterials;
-    CreatedMaterials.SetNum(Recipe.Materials.Num());
-	for (int32 i = 0; i < Recipe.Materials.Num(); i++)
-	{
-		const FVFXMaterialRecipe& MatRecipe = Recipe.Materials[i];
-		
-		UE_LOG(LogVFXAgent, Log, TEXT("Generating material %d: %s"), i, *MatRecipe.Name);
-
-        // Generate textures first if needed
-        TMap<FString, FString> GeneratedTexturePaths = GenerateTexturesForMaterial(MatRecipe, MaterialsPath);
-
-        // Resolve generated textures into material recipe fields
-        FVFXMaterialRecipe ResolvedRecipe = MatRecipe;
-        auto ResolveTexturePath = [&GeneratedTexturePaths](FString& PathField)
-        {
-            if (PathField.IsEmpty())
-            {
-                return;
-            }
-            if (GeneratedTexturePaths.Contains(PathField))
-            {
-                PathField = GeneratedTexturePaths[PathField];
-            }
-        };
-        ResolveTexturePath(ResolvedRecipe.BaseColorTexture);
-        ResolveTexturePath(ResolvedRecipe.EmissiveTexture);
-        ResolveTexturePath(ResolvedRecipe.OpacityTexture);
-
-        if (ResolvedRecipe.BaseColorTexture.IsEmpty() && GeneratedTexturePaths.Num() > 0)
-        {
-            for (const TPair<FString, FString>& KV : GeneratedTexturePaths)
-            {
-                const FString Lower = KV.Key.ToLower();
-                if (Lower.Contains(TEXT("color")) || Lower.Contains(TEXT("albedo")) || Lower.Contains(TEXT("gradient")))
-                {
-                    ResolvedRecipe.BaseColorTexture = KV.Value;
-                    break;
-                }
-            }
-            if (ResolvedRecipe.BaseColorTexture.IsEmpty())
-            {
-                ResolvedRecipe.BaseColorTexture = GeneratedTexturePaths.CreateConstIterator().Value();
-            }
-        }
-
-        if (ResolvedRecipe.EmissiveTexture.IsEmpty() && GeneratedTexturePaths.Num() > 0)
-        {
-            for (const TPair<FString, FString>& KV : GeneratedTexturePaths)
-            {
-                const FString Lower = KV.Key.ToLower();
-                if (Lower.Contains(TEXT("emissive")) || Lower.Contains(TEXT("glow")))
-                {
-                    ResolvedRecipe.EmissiveTexture = KV.Value;
-                    break;
-                }
-            }
-        }
-
-        if (ResolvedRecipe.OpacityTexture.IsEmpty() && GeneratedTexturePaths.Num() > 0)
-        {
-            for (const TPair<FString, FString>& KV : GeneratedTexturePaths)
-            {
-                const FString Lower = KV.Key.ToLower();
-                if (Lower.Contains(TEXT("opacity")) || Lower.Contains(TEXT("alpha")) || Lower.Contains(TEXT("mask")))
-                {
-                    ResolvedRecipe.OpacityTexture = KV.Value;
-                    break;
-                }
-            }
-        }
-
-        // Generate the material
-        UMaterialInstanceConstant* Material = MaterialGen->GenerateMaterial(ResolvedRecipe, MaterialsPath);
-        if (Material)
-		{
-			UE_LOG(LogVFXAgent, Log, TEXT("Material created successfully: %s"), *Material->GetPathName());
-            CreatedMaterials[i] = Material;
-		}
-		else
-		{
-			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to generate material: %s"), *MatRecipe.Name);
-		}
-	}
-
-    // Bind materials to emitters by MaterialIndex (fallback to first material)
-    const TArray<FNiagaraEmitterHandle>& Handles = System->GetEmitterHandles();
-    for (int32 EmitterIdx = 0; EmitterIdx < Recipe.Emitters.Num(); ++EmitterIdx)
+    auto PickMaterialByKeywords = [&](const TArray<FString>& Keywords) -> UMaterialInterface*
     {
-        const FVFXEmitterRecipe& EmitterRecipe = Recipe.Emitters[EmitterIdx];
-        int32 MatIndex = EmitterRecipe.MaterialIndex;
-        if (MatIndex < 0 && CreatedMaterials.Num() == 1)
+        int32 BestScore = 0;
+        FAssetData BestAsset;
+        for (const FAssetData& Asset : MaterialAssets)
         {
-            MatIndex = 0;
-        }
-        if (!CreatedMaterials.IsValidIndex(MatIndex) || !CreatedMaterials[MatIndex])
-        {
-            continue;
-        }
-
-        UNiagaraEmitter* Emitter = nullptr;
-        if (Handles.IsValidIndex(EmitterIdx))
-        {
-            Emitter = Handles[EmitterIdx].GetInstance().Emitter;
-        }
-        if (!Emitter)
-        {
-            // Fallback: match by name
-            for (const FNiagaraEmitterHandle& Handle : Handles)
+            const FString AssetNameLower = Asset.AssetName.ToString().ToLower();
+            const int32 Score = ScoreMaterialName(AssetNameLower, Keywords);
+            if (Score > BestScore)
             {
-                if (Handle.GetName().ToString().Equals(EmitterRecipe.Name, ESearchCase::IgnoreCase))
-                {
-                    Emitter = Handle.GetInstance().Emitter;
-                    break;
-                }
+                BestScore = Score;
+                BestAsset = Asset;
+            }
+        }
+        if (BestScore == 0)
+        {
+            return nullptr;
+        }
+        return LoadObject<UMaterialInterface>(nullptr, *BestAsset.GetObjectPathString());
+    };
+
+    UMaterialInterface* DefaultMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Niagara/DefaultAssets/DefaultSpriteMaterial.DefaultSpriteMaterial"));
+
+    const TArray<FNiagaraEmitterHandle>& Handles = System->GetEmitterHandles();
+    for (const FNiagaraEmitterHandle& Handle : Handles)
+    {
+        UNiagaraEmitter* Emitter = Handle.GetInstance().Emitter;
+        if (!Emitter) continue;
+
+        const FString HandleName = Handle.GetName().ToString();
+        const FString Normalized = NormalizeEmitterNameForMatch(HandleName);
+
+        int32 MatIndex = -1;
+        for (const FVFXEmitterRecipe& EmitterRecipe : Recipe.Emitters)
+        {
+            if (NormalizeEmitterNameForMatch(EmitterRecipe.Name) == Normalized)
+            {
+                MatIndex = EmitterRecipe.MaterialIndex;
+                break;
+            }
+        }
+        for (const FVFXLayerRecipe& Layer : Recipe.Layers)
+        {
+            if (NormalizeEmitterNameForMatch(Layer.Name) == Normalized)
+            {
+                MatIndex = (MatIndex >= 0) ? MatIndex : Layer.MaterialIndex;
+                break;
             }
         }
 
-        if (Emitter)
+        TArray<FString> Keywords;
+        if (MatIndex >= 0 && MaterialKeywords.IsValidIndex(MatIndex))
         {
-            ApplyMaterialToEmitter(Emitter, CreatedMaterials[MatIndex]);
+            Keywords = MaterialKeywords[MatIndex];
+        }
+        else if (EmitterKeywords.Contains(Normalized))
+        {
+            Keywords = EmitterKeywords[Normalized];
+        }
+        else
+        {
+            Keywords = BuildKeywords(HandleName);
+        }
+
+        UMaterialInterface* ChosenMaterial = PickMaterialByKeywords(Keywords);
+        if (!ChosenMaterial && MaterialAssets.Num() > 0)
+        {
+            ChosenMaterial = LoadObject<UMaterialInterface>(nullptr, *MaterialAssets[0].GetObjectPathString());
+        }
+        if (!ChosenMaterial)
+        {
+            ChosenMaterial = DefaultMaterial;
+        }
+
+        if (ChosenMaterial)
+        {
+            ApplyMaterialToEmitter(Emitter, ChosenMaterial);
         }
     }
-}
-
-TMap<FString, FString> UNiagaraSystemGenerator::GenerateTexturesForMaterial(
-    const FVFXMaterialRecipe& MaterialRecipe,
-    const FString& OutputPath)
-{
-    TMap<FString, FString> Result;
-	if (MaterialRecipe.GeneratedTextures.Num() == 0)
-	{
-        return Result;
-	}
-
-	UMaterialGenerator* MaterialGen = UMaterialGenerator::CreateInstance();
-	if (!MaterialGen)
-	{
-        return Result;
-	}
-
-	FString TexturesPath = OutputPath / TEXT("Textures");
-
-	for (const FVFXTextureRecipe& TexRecipe : MaterialRecipe.GeneratedTextures)
-	{
-		UE_LOG(LogVFXAgent, Log, TEXT("Generating texture: %s"), *TexRecipe.Name);
-		
-		UTexture2D* Texture = MaterialGen->GenerateProceduralTexture(TexRecipe, TexturesPath);
-        if (Texture)
-		{
-			UE_LOG(LogVFXAgent, Log, TEXT("Texture created: %s"), *Texture->GetPathName());
-            Result.Add(TexRecipe.Name, Texture->GetPathName());
-		}
-		else
-		{
-			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to generate texture: %s"), *TexRecipe.Name);
-		}
-	}
-    return Result;
 }

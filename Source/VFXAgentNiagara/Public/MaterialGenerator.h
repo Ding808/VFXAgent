@@ -30,12 +30,22 @@ public:
 	{
 		return NewObject<UMaterialGenerator>();
 	}
+	
+	/**
+	 * Find or create a suitable parent material for the effect (static for external use)
+	 */
+	static UMaterial* GetParentMaterial(const FVFXMaterialRecipe& MaterialRecipe);
 
 private:
 	/**
-	 * Find or create a suitable parent material for the effect
+	 * Build a procedural parent material when no textures are available
 	 */
-	UMaterial* GetParentMaterial(const FVFXMaterialRecipe& MaterialRecipe);
+	UMaterial* BuildProceduralParentMaterial(const FVFXMaterialRecipe& Recipe, const FString& OutputPath);
+
+	/**
+	 * Whether the recipe should use a procedural noise-based parent material
+	 */
+	bool ShouldUseProceduralParent(const FVFXMaterialRecipe& Recipe) const;
 
 	/**
 	 * Apply color and opacity parameters to material instance

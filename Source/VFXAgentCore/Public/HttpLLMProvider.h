@@ -32,6 +32,11 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VFXAgent|LLM")
 	FString GetLastRawRecipeJson() const { return LastRawRecipeJson; }
 
+	// Director JSON (plan + action list) async request
+	using FOnDirectorJsonComplete = TFunction<void(bool /*bSuccess*/, const FString& /*DirectorJson*/, const FString& /*Error*/)>;
+	void RequestDirectorJsonAsync(const FString& UserPrompt, const FString& OptionalStyleRefs, FOnDirectorJsonComplete OnComplete) const;
+	void RequestDirectorRevisionJsonAsync(const FString& OriginalDirectorJson, const FString& ExecutionReportJson, FOnDirectorJsonComplete OnComplete) const;
+
 	// Async variants (recommended for editor UI to avoid blocking the game thread).
 	using FOnRecipeComplete = TFunction<void(const FVFXRecipe& /*Recipe*/, const FString& /*Error*/)>;
 	void GenerateRecipeAsync(const FString& Prompt, FOnRecipeComplete OnComplete);
@@ -66,6 +71,8 @@ private:
 	float TimeoutSeconds = 30.0f;
 
 	FString BuildSystemPrompt() const;
+	FString BuildDirectorSystemPrompt() const;
+	FString BuildDirectorRevisionPrompt(const FString& OriginalDirectorJson, const FString& ExecutionReportJson) const;
 	FString BuildVisionSystemPrompt() const;
 	FString BuildVisionUserPrompt(const FString& OptionalPrompt) const;
 	FString BuildImageAnalysisPrompt() const;
@@ -73,6 +80,7 @@ private:
 	bool TryRequestRecipeJson(const FString& UserPrompt, FString& OutRecipeJson, FString& OutError) const;
 	using FOnRecipeJsonComplete = TFunction<void(bool /*bSuccess*/, const FString& /*RecipeJson*/, const FString& /*Error*/)>;
 	void RequestRecipeJsonAsync(const FString& UserPrompt, FOnRecipeJsonComplete OnComplete) const;
+	void RequestDirectorJsonInternalAsync(const FString& UserPrompt, const FString& SystemPrompt, FOnDirectorJsonComplete OnComplete) const;
 	void RequestRecipeJsonWithImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const;
 	void RequestRecipeJsonWithImageDataAsync(const FString& ImageDataOrBase64, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const;
 	void RequestImageAnalysisAsync(const FString& ImagePath, TFunction<void(bool, const FString&, const FString&)> OnComplete) const;

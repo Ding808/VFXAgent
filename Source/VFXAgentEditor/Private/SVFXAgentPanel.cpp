@@ -5,8 +5,9 @@
 #include "MockLLMProvider.h"
 #include "HttpLLMProvider.h"
 #include "NiagaraSystemGenerator.h"
+#include "VFXDirectorJson.h"
+#include "VFXActionExecutorNiagara.h"
 #include "NiagaraSystem.h"
-#include "VFXIterativeOptimizer.h"
 #include "JsonObjectConverter.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SBoxPanel.h"
@@ -14,7 +15,6 @@
 #include "Widgets/Input/SEditableTextBox.h"
 #include "Widgets/Input/SMultiLineEditableTextBox.h"
 #include "Widgets/Input/SCheckBox.h"
-#include "Widgets/Input/SSpinBox.h"
 #include "Widgets/Layout/SSpacer.h"
 #include "Widgets/Text/STextBlock.h"
 #include "Types/SlateEnums.h"
@@ -169,73 +169,16 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 					]
 				]
 
-				// Iterative Optimization Section
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5.0f, 10.0f, 5.0f, 5.0f)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString("Iterative Optimization:"))
-					.Font(FCoreStyle::Get().GetFontStyle("SmallFont"))
-				]
-
 				+ SVerticalBox::Slot()
 				.AutoHeight()
 				.Padding(5.0f)
 				[
-					SAssignNew(EnableIterativeOptimizationCheckBox, SCheckBox)
+					SAssignNew(UseDirectorPipelineCheckBox, SCheckBox)
 					.IsChecked(ECheckBoxState::Checked)
 					.Content()
 					[
 						SNew(STextBlock)
-						.Text(FText::FromString("Enable AI self-refinement (multiple LLM calls)"))
-					]
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5.0f)
-				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Max Iterations: "))
-					]
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(5.0f, 0.0f)
-					[
-						SAssignNew(MaxIterationsSpinBox, SSpinBox<int32>)
-						.MinValue(1)
-						.MaxValue(10)
-						.Value(5)
-					]
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5.0f)
-				[
-					SNew(SHorizontalBox)
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					[
-						SNew(STextBlock)
-						.Text(FText::FromString("Target Quality Score (0-1): "))
-					]
-
-					+ SHorizontalBox::Slot()
-					.AutoWidth()
-					.Padding(5.0f, 0.0f)
-					[
-						SAssignNew(TargetQualitySpinBox, SSpinBox<float>)
-						.MinValue(0.0f)
-						.MaxValue(1.0f)
-						.Delta(0.05f)
-						.Value(0.85f)
+						.Text(FText::FromString("Use Director Pipeline (deterministic actions)"))
 					]
 				]
 
@@ -271,58 +214,6 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 			]
 		]
 
-		// Refinement Section
-		+ SVerticalBox::Slot()
-		.AutoHeight()
-		.Padding(10.0f)
-		[
-			SNew(SBorder)
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-			[
-				SNew(SVerticalBox)
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5.0f)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString("Refine VFX"))
-					.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5.0f)
-				[
-					SNew(STextBlock)
-					.Text(FText::FromString("Natural language refinement (iterative editing):"))
-					.Font(FCoreStyle::Get().GetFontStyle("SmallFont"))
-				]
-
-				+ SVerticalBox::Slot()
-				.FillHeight(1.0f)
-				.MaxHeight(80.0f)
-				.Padding(5.0f)
-				[
-					SAssignNew(RefinementTextBox, SMultiLineEditableTextBox)
-					.Text(FText::FromString("Make it red and slower"))
-					.HintText(FText::FromString("Refine the VFX..."))
-					.AutoWrapText(true)
-					.IsReadOnly(false)
-					.SelectAllTextWhenFocused(false)
-					.ClearKeyboardFocusOnCommit(false)
-				]
-
-				+ SVerticalBox::Slot()
-				.AutoHeight()
-				.Padding(5.0f)
-				[
-					SNew(SButton)
-					.Text(FText::FromString("Apply Refinement"))
-					.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
-					.OnClicked(this, &SVFXAgentPanel::OnApplyRefinementClicked)
-				]
-			]
-		]
 
 		// Log Section
 		+ SVerticalBox::Slot()
@@ -439,21 +330,72 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 	}
 
 	bRequestInFlight = true;
-	
-	// Check if iterative optimization is enabled
-	bool bUseIterativeOptimization = EnableIterativeOptimizationCheckBox.IsValid() && 
-		(EnableIterativeOptimizationCheckBox->GetCheckedState() == ECheckBoxState::Checked);
-	
-	FString ImagePath = ImagePathTextBox.IsValid() ? ImagePathTextBox->GetText().ToString() : FString();
-	
-	if (bUseIterativeOptimization)
+
+	const bool bUseDirectorPipeline = UseDirectorPipelineCheckBox.IsValid() &&
+		(UseDirectorPipelineCheckBox->GetCheckedState() == ECheckBoxState::Checked);
+	if (bUseDirectorPipeline)
 	{
-		LogMessage(TEXT("Using iterative optimization mode"));
-		PerformIterativeGeneration(Prompt, ImagePath, true);
+		if (!LLMProviderObject || !LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+		{
+			LogMessage(TEXT("ERROR: Director pipeline requires HttpLLMProvider"));
+			bRequestInFlight = false;
+			return FReply::Handled();
+		}
+
+		UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+		LogMessage(TEXT("Requesting Director JSON (plan + actions) from LLM..."));
+		HttpProvider->RequestDirectorJsonAsync(Prompt, FString(), [this, Prompt, SafeAssetName, SafeOutputPath](bool bSuccess, const FString& DirectorJson, const FString& Error)
+		{
+			if (!bSuccess)
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("WARNING: Director JSON request failed: %s"), *Error));
+				return;
+			}
+
+			LastDirectorJson = DirectorJson;
+			FVFXDirectorPlan Plan;
+			FString ParseError;
+			if (!FVFXDirectorJson::ParseDirectorJson(DirectorJson, Plan, ParseError))
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("ERROR: Director JSON parse failed: %s"), *ParseError));
+				return;
+			}
+
+			FVFXNiagaraActionExecutor Executor;
+			FVFXActionContext Context;
+			Context.DefaultOutputPath = SafeOutputPath;
+			LastExecutionReport = FVFXExecutionReport();
+			Context.Report = &LastExecutionReport;
+
+			LogMessage(TEXT("Executing Director action list..."));
+			Executor.ExecuteActionList(Plan.Actions, Context);
+
+			for (const FString& W : LastExecutionReport.Warnings)
+			{
+				LogMessage(FString::Printf(TEXT("WARN: %s"), *W));
+			}
+			for (const FString& E : LastExecutionReport.Errors)
+			{
+				LogMessage(FString::Printf(TEXT("ERROR: %s"), *E));
+			}
+
+			if (!LastExecutionReport.bSuccess)
+			{
+				LogMessage(TEXT("Director execution failed. Self-refinement is disabled; no retry will be attempted."));
+				bRequestInFlight = false;
+				return;
+			}
+
+			bRequestInFlight = false;
+			LogMessage(TEXT("Director pipeline completed."));
+		});
+
 		return FReply::Handled();
 	}
 	
-	// Standard generation without optimization
+	// Standard generation
 	LogMessage(TEXT("Requesting recipe from LLM (async)..."));
 	
 	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
@@ -865,244 +807,6 @@ FReply SVFXAgentPanel::OnTestLLMClicked()
 	return FReply::Handled();
 }
 
-FReply SVFXAgentPanel::OnApplyRefinementClicked()
-{
-	RefreshLLMSettingsFromConfig();
-	if (bRequestInFlight)
-	{
-		LogMessage(TEXT("NOTE: LLM request already in progress..."));
-		return FReply::Handled();
-	}
-	if (!RefinementTextBox.IsValid())
-	{
-		LogMessage("ERROR: Refinement text box is not valid");
-		return FReply::Handled();
-	}
-
-	FString RefinementPrompt = RefinementTextBox->GetText().ToString();
-
-	LogMessage(FString::Printf(TEXT("Applying refinement...\nRefinement: %s"), *RefinementPrompt));
-
-	if (!LLMProvider)
-	{
-		LogMessage("ERROR: LLM Provider not initialized");
-		return FReply::Handled();
-	}
-
-	bRequestInFlight = true;
-	LogMessage(TEXT("Requesting refinement from LLM (async)..."));
-
-	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
-	{
-		UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
-		HttpProvider->RefineRecipeAsync(LastRecipe, RefinementPrompt, [this](const FVFXRecipe& RefinedRecipe, const FString& Error)
-		{
-			if (!Error.IsEmpty())
-			{
-				bRequestInFlight = false;
-				LogMessage(FString::Printf(TEXT("WARNING: Refinement failed: %s"), *Error));
-				return;
-			}
-
-			LastRecipe = RefinedRecipe;
-			LogMessage(FString::Printf(TEXT("Recipe refined:\nVersion: %d\nEmitters: %d"),
-				RefinedRecipe.Version,
-				RefinedRecipe.Emitters.Num()));
-
-			// Generate a new version of the Niagara System
-			FString OutputPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : "/Game/VFXAgent/Generated";
-			FString BaseAssetName = AssetNameTextBox.IsValid() ? AssetNameTextBox->GetText().ToString() : "VFX_GeneratedEffect";
-
-			// Sanitize base asset name
-			FString SafeBaseName = BaseAssetName;
-			if (SafeBaseName.IsEmpty())
-			{
-				SafeBaseName = TEXT("VFX_GeneratedEffect");
-			}
-			for (int32 i = 0; i < SafeBaseName.Len(); ++i)
-			{
-				TCHAR& C = SafeBaseName[i];
-				if (!(FChar::IsAlnum(C) || C == TCHAR('_')))
-				{
-					C = TCHAR('_');
-				}
-			}
-
-			FString NewAssetName = FString::Printf(TEXT("%s_v%d"), *SafeBaseName, RefinedRecipe.Version);
-
-			// Validate OutputPath (must be /Game/... or inside Content)
-			FString SafeOutputPath = OutputPath.TrimStartAndEnd();
-			if (!SafeOutputPath.StartsWith(TEXT("/Game")))
-			{
-				FString FullSelected = FPaths::ConvertRelativePathToFull(SafeOutputPath);
-				FString ContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
-				if (FullSelected.StartsWith(ContentDir))
-				{
-					FString Relative = FullSelected.Mid(ContentDir.Len());
-					Relative = Relative.Replace(TEXT("\\"), TEXT("/"));
-					Relative = Relative.TrimStartAndEnd();
-					SafeOutputPath = FString::Printf(TEXT("/Game/%s"), *Relative);
-					if (SafeOutputPath.EndsWith(TEXT("/")))
-					{
-						SafeOutputPath.LeftChopInline(1);
-					}
-				}
-				else
-				{
-					LogMessage(FString::Printf(TEXT("ERROR: Output path must be inside the project's Content folder or start with /Game/: %s"), *OutputPath));
-					bRequestInFlight = false;
-					return;
-				}
-			}
-
-			UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
-			if (!Generator)
-			{
-				LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
-				bRequestInFlight = false;
-				return;
-			}
-
-			try
-			{
-				UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator (refine): %p"), Generator);
-				LogMessage("Generating refined Niagara System, please wait...");
-
-				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-				const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
-				const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-				FVFXRecipe FinalRecipe = RefinedRecipe;
-				if (!bUseTemplates)
-				{
-					for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
-					{
-						Emitter.TemplateName.Empty();
-					}
-				}
-				class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, FinalRecipe, TemplatePath);
-				if (System)
-				{
-					LogMessage(FString::Printf(TEXT("Successfully generated refined Niagara System: %s"), *NewAssetName));
-					LogMessage(TEXT("VFX refinement completed!"));
-				}
-				else
-				{
-					LogMessage(TEXT("ERROR: Failed to generate refined Niagara System - check log for details"));
-				}
-			}
-			catch (const std::exception& e)
-			{
-				LogMessage(FString::Printf(TEXT("ERROR: Exception during refinement: %s"), *FString(e.what())));
-			}
-			catch (...)
-			{
-				LogMessage(TEXT("ERROR: Unknown exception during refinement"));
-			}
-
-			bRequestInFlight = false;
-		});
-		return FReply::Handled();
-	}
-
-	// Fallback: synchronous refine for mock provider.
-	FVFXRecipe RefinedRecipe = LLMProvider->RefineRecipe(LastRecipe, RefinementPrompt);
-	bRequestInFlight = false;
-	LastRecipe = RefinedRecipe;
-	LogMessage(FString::Printf(TEXT("Recipe refined:\nVersion: %d\nEmitters: %d"),
-		RefinedRecipe.Version,
-		RefinedRecipe.Emitters.Num()));
-
-	// Generate a new version of the Niagara System
-	FString OutputPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : "/Game/VFXAgent/Generated";
-	FString BaseAssetName = AssetNameTextBox.IsValid() ? AssetNameTextBox->GetText().ToString() : "VFX_GeneratedEffect";
-
-	// Sanitize base asset name
-	FString SafeBaseName = BaseAssetName;
-	if (SafeBaseName.IsEmpty())
-	{
-		SafeBaseName = TEXT("VFX_GeneratedEffect");
-	}
-	for (int32 i = 0; i < SafeBaseName.Len(); ++i)
-	{
-		TCHAR& C = SafeBaseName[i];
-		if (!(FChar::IsAlnum(C) || C == TCHAR('_')))
-		{
-			C = TCHAR('_');
-		}
-	}
-
-	FString NewAssetName = FString::Printf(TEXT("%s_v%d"), *SafeBaseName, RefinedRecipe.Version);
-
-	// Validate OutputPath (must be /Game/... or inside Content)
-	FString SafeOutputPath = OutputPath.TrimStartAndEnd();
-	if (!SafeOutputPath.StartsWith(TEXT("/Game")))
-	{
-		FString FullSelected = FPaths::ConvertRelativePathToFull(SafeOutputPath);
-		FString ContentDir = FPaths::ConvertRelativePathToFull(FPaths::ProjectContentDir());
-		if (FullSelected.StartsWith(ContentDir))
-		{
-			FString Relative = FullSelected.Mid(ContentDir.Len());
-			Relative = Relative.Replace(TEXT("\\"), TEXT("/"));
-			Relative = Relative.TrimStartAndEnd();
-			SafeOutputPath = FString::Printf(TEXT("/Game/%s"), *Relative);
-			if (SafeOutputPath.EndsWith(TEXT("/")))
-			{
-				SafeOutputPath.LeftChopInline(1);
-			}
-		}
-		else
-		{
-			LogMessage(FString::Printf(TEXT("ERROR: Output path must be inside the project's Content folder or start with /Game/: %s"), *OutputPath));
-			return FReply::Handled();
-		}
-	}
-
-	UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
-	if (!Generator)
-	{
-		LogMessage("ERROR: Failed to create NiagaraSystemGenerator");
-		return FReply::Handled();
-	}
-
-	try
-	{
-		UE_LOG(LogVFXAgent, Log, TEXT("Created UNiagaraSystemGenerator (refine): %p"), Generator);
-		LogMessage("Generating refined Niagara System, please wait...");
-
-		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-		const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
-		const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-		FVFXRecipe FinalRecipe = RefinedRecipe;
-		if (!bUseTemplates)
-		{
-			for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
-			{
-				Emitter.TemplateName.Empty();
-			}
-		}
-		class UNiagaraSystem* System = Generator->GenerateNiagaraSystem(NewAssetName, SafeOutputPath, FinalRecipe, TemplatePath);
-		if (System)
-		{
-			LogMessage(FString::Printf(TEXT("Successfully generated refined Niagara System: %s"), *NewAssetName));
-			LogMessage(TEXT("VFX refinement completed!"));
-		}
-		else
-		{
-			LogMessage(TEXT("ERROR: Failed to generate refined Niagara System - check log for details"));
-		}
-	}
-	catch (const std::exception& e)
-	{
-		LogMessage(FString::Printf(TEXT("ERROR: Exception during refinement: %s"), *FString(e.what())));
-	}
-	catch (...)
-	{
-		LogMessage(TEXT("ERROR: Unknown exception during refinement"));
-	}
-
-	return FReply::Handled();
-}
-
 void SVFXAgentPanel::LogMessage(const FString& Message)
 {
 	if (LogTextBox.IsValid())
@@ -1265,171 +969,6 @@ FReply SVFXAgentPanel::OnChooseImagePathClicked()
 	return FReply::Handled();
 }
 
-void SVFXAgentPanel::PerformIterativeGeneration(
-	const FString& Prompt,
-	const FString& ImagePath,
-	bool bUseOptimization)
-{
-	if (!LLMProvider)
-	{
-		LogMessage(TEXT("ERROR: LLM Provider not initialized"));
-		return;
-	}
-
-	FString OutputPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : "/Game/VFXAgent/Generated";
-	FString AssetName = AssetNameTextBox.IsValid() ? AssetNameTextBox->GetText().ToString() : "VFX_GeneratedEffect";
-
-	if (!bUseOptimization)
-	{
-		// Simple generation without iteration
-		LogMessage(TEXT("Generating without iterative optimization..."));
-		
-		if (!ImagePath.IsEmpty())
-		{
-			// Use image-based generation
-			FVFXGenerationRequest Request;
-			Request.TextPrompt = Prompt;
-			Request.ReferenceImagePath = ImagePath;
-			Request.bGenerateMaterials = true;
-			Request.bGenerateTextures = true;
-
-			LogMessage(FString::Printf(TEXT("Analyzing image: %s"), *ImagePath));
-			FVFXRecipe Recipe = LLMProvider->GenerateRecipeFromRequest(Request);
-			
-			if (Recipe.Emitters.Num() > 0)
-			{
-				FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
-				LastRecipe = EnhancedRecipe;
-				LastPrompt = Prompt;
-				LogMessage(FString::Printf(TEXT("Recipe generated with %d emitters"), EnhancedRecipe.Emitters.Num()));
-			}
-		}
-		else
-		{
-			// Text-only generation
-			FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
-			if (Recipe.Emitters.Num() > 0)
-			{
-				FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
-				LastRecipe = EnhancedRecipe;
-				LastPrompt = Prompt;
-			}
-		}
-		return;
-	}
-
-	// Iterative optimization
-	LogMessage(TEXT("=== Starting Iterative Optimization ==="));
-	
-	int32 MaxIterations = MaxIterationsSpinBox.IsValid() ? MaxIterationsSpinBox->GetValue() : 5;
-	float TargetQuality = TargetQualitySpinBox.IsValid() ? TargetQualitySpinBox->GetValue() : 0.85f;
-
-	LogMessage(FString::Printf(TEXT("Max iterations: %d, Target quality: %.2f"), MaxIterations, TargetQuality));
-
-	// Configure optimization
-	FVFXOptimizationConfig Config;
-	Config.MaxIterations = MaxIterations;
-	Config.TargetQualityScore = TargetQuality;
-	Config.bEnableVisualComparison = !ImagePath.IsEmpty();
-	Config.ReferenceImagePath = ImagePath;
-	Config.OriginalPrompt = Prompt;
-
-	// Generate initial recipe
-	LogMessage(TEXT("Iteration 0: Generating initial recipe..."));
-	FVFXRecipe InitialRecipe;
-	
-	if (!ImagePath.IsEmpty())
-	{
-		FVFXGenerationRequest Request;
-		Request.TextPrompt = Prompt;
-		Request.ReferenceImagePath = ImagePath;
-		Request.bGenerateMaterials = true;
-		Request.bGenerateTextures = true;
-		
-		InitialRecipe = LLMProvider->GenerateRecipeFromRequest(Request);
-	}
-	else
-	{
-		InitialRecipe = LLMProvider->GenerateRecipe(Prompt);
-	}
-
-	if (InitialRecipe.Emitters.Num() == 0)
-	{
-		if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
-		{
-			UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
-			const FString LastError = HttpProvider->GetLastError();
-			if (!LastError.IsEmpty())
-			{
-				LogMessage(FString::Printf(TEXT("LLM error: %s"), *LastError));
-			}
-			const FString RawJson = HttpProvider->GetLastRawRecipeJson();
-			if (!RawJson.IsEmpty())
-			{
-				LogMessage(FString::Printf(TEXT("Raw LLM JSON (first 1000 chars): %s"), *RawJson.Left(1000)));
-			}
-		}
-		LogMessage(TEXT("ERROR: Initial recipe generation failed"));
-		bRequestInFlight = false;
-		return;
-	}
-
-	LogMessage(FString::Printf(TEXT("Initial recipe: %d emitters, %d materials"), 
-		InitialRecipe.Emitters.Num(), InitialRecipe.Materials.Num()));
-
-	// Create optimizer
-	UVFXIterativeOptimizer* Optimizer = UVFXIterativeOptimizer::CreateInstance();
-	if (!Optimizer)
-	{
-		LogMessage(TEXT("ERROR: Failed to create optimizer"));
-		bRequestInFlight = false;
-		return;
-	}
-
-	// Perform optimization
-	LogMessage(TEXT("Starting iterative optimization..."));
-	FVFXRecipe OptimizedRecipe = Optimizer->OptimizeEffect(InitialRecipe, Config, LLMProvider);
-	OptimizedRecipe = EnhanceRecipeForPrompt(OptimizedRecipe, Prompt);
-
-	LastRecipe = OptimizedRecipe;
-	LastPrompt = Prompt;
-
-	LogMessage(TEXT("=== Optimization Complete ==="));
-	LogMessage(FString::Printf(TEXT("Final recipe: %d emitters, %d materials"),
-		OptimizedRecipe.Emitters.Num(), OptimizedRecipe.Materials.Num()));
-
-	// Generate the Niagara system with optimized recipe
-	LogMessage(TEXT("Generating Niagara system from optimized recipe..."));
-	
-	UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
-	if (!Generator)
-	{
-		LogMessage(TEXT("ERROR: Failed to create NiagaraSystemGenerator"));
-		bRequestInFlight = false;
-		return;
-	}
-
-	const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-	const FString TemplatePath = Settings ? Settings->DefaultTemplatePath : FString();
-
-	UNiagaraSystem* GeneratedSystem = Generator->GenerateNiagaraSystem(
-		AssetName,
-		OutputPath,
-		OptimizedRecipe,
-		TemplatePath);
-
-	if (GeneratedSystem)
-	{
-		LogMessage(FString::Printf(TEXT("SUCCESS! Niagara system generated: %s"), *GeneratedSystem->GetPathName()));
-	}
-	else
-	{
-		LogMessage(TEXT("ERROR: Failed to generate Niagara system"));
-	}
-
-	bRequestInFlight = false;
-}
-
 static bool PromptHasAny(const FString& Prompt, const TArray<FString>& Tokens)
 {
 	for (const FString& Token : Tokens)
@@ -1476,39 +1015,6 @@ FVFXRecipe SVFXAgentPanel::EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, cons
 	}
 	Out.Bounds = FVector(250.0f, 250.0f, 250.0f);
 
-	// Ensure materials exist
-	if (Out.Materials.Num() == 0)
-	{
-		FVFXMaterialRecipe ElectricMat;
-		ElectricMat.Name = TEXT("M_ElectricArc");
-		ElectricMat.Description = TEXT("Electric arc additive glow");
-		ElectricMat.bIsAdditive = true;
-		ElectricMat.BaseMaterialPath = TEXT("/Engine/EngineMaterials/ParticleSpriteMaterial");
-		ElectricMat.BaseColor = FLinearColor(0.2f, 0.6f, 1.0f, 1.0f);
-		ElectricMat.EmissiveColor = ElectricMat.BaseColor;
-		ElectricMat.EmissiveStrength = 6.0f;
-		ElectricMat.Opacity = 0.8f;
-		ElectricMat.Roughness = 0.7f;
-		Out.Materials.Add(ElectricMat);
-	}
-	if (bSmoke && Out.Materials.Num() < 2)
-	{
-		FVFXMaterialRecipe SmokeMat;
-		SmokeMat.Name = TEXT("M_Smoke");
-		SmokeMat.Description = TEXT("Soft smoke translucent");
-		SmokeMat.bIsAdditive = false;
-		SmokeMat.BaseMaterialPath = TEXT("/Engine/EngineMaterials/ParticleSpriteMaterial");
-		SmokeMat.BaseColor = FLinearColor(0.18f, 0.18f, 0.2f, 0.7f);
-		SmokeMat.EmissiveColor = FLinearColor::Black;
-		SmokeMat.EmissiveStrength = 0.0f;
-		SmokeMat.Opacity = 0.55f;
-		SmokeMat.Roughness = 1.0f;
-		Out.Materials.Add(SmokeMat);
-	}
-
-	const int32 ElectricMatIndex = 0;
-	const int32 SmokeMatIndex = (Out.Materials.Num() > 1) ? 1 : 0;
-
 	// Add extra layers if too simple
 	if (Out.Emitters.Num() < 4)
 	{
@@ -1530,7 +1036,6 @@ FVFXRecipe SVFXAgentPanel::EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, cons
 			Core.Drag = 2.0f;
 			Core.Acceleration = FVector(0, 0, -200);
 			Core.bUseGravity = false;
-			Core.MaterialIndex = ElectricMatIndex;
 			Core.SortOrder = 3;
 			Out.Emitters.Add(Core);
 		}
@@ -1551,7 +1056,6 @@ FVFXRecipe SVFXAgentPanel::EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, cons
 			Arc.bUseSizeOverLife = true;
 			Arc.Velocity = FVector(0, 0, 120);
 			Arc.Drag = 1.5f;
-			Arc.MaterialIndex = ElectricMatIndex;
 			Arc.SortOrder = 4;
 			Out.Emitters.Add(Arc);
 		}
@@ -1574,7 +1078,6 @@ FVFXRecipe SVFXAgentPanel::EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, cons
 			Sparks.Acceleration = FVector(0, 0, -520);
 			Sparks.bUseGravity = true;
 			Sparks.Drag = 0.6f;
-			Sparks.MaterialIndex = ElectricMatIndex;
 			Sparks.SortOrder = 2;
 			Out.Emitters.Add(Sparks);
 		}
@@ -1597,7 +1100,6 @@ FVFXRecipe SVFXAgentPanel::EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, cons
 			Smoke.Drag = 5.0f;
 			Smoke.Acceleration = FVector(0, 0, 15);
 			Smoke.bUseGravity = false;
-			Smoke.MaterialIndex = SmokeMatIndex;
 			Smoke.SortOrder = 1;
 			Out.Emitters.Add(Smoke);
 		}
@@ -1614,25 +1116,8 @@ FVFXRecipe SVFXAgentPanel::EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, cons
 			Glow.Size = 90.0f;
 			Glow.SizeEnd = 120.0f;
 			Glow.bUseSizeOverLife = true;
-			Glow.MaterialIndex = ElectricMatIndex;
 			Glow.SortOrder = 0;
 			Out.Emitters.Add(Glow);
-		}
-	}
-
-	// Ensure material index is set for existing emitters when missing
-	for (FVFXEmitterRecipe& E : Out.Emitters)
-	{
-		if (E.MaterialIndex < 0)
-		{
-			if (E.Name.Contains(TEXT("Smoke"), ESearchCase::IgnoreCase))
-			{
-				E.MaterialIndex = SmokeMatIndex;
-			}
-			else
-			{
-				E.MaterialIndex = ElectricMatIndex;
-			}
 		}
 	}
 

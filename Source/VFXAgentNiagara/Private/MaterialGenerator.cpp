@@ -6,6 +6,21 @@
 #include "Materials/MaterialExpressionVectorParameter.h"
 #include "Materials/MaterialExpressionScalarParameter.h"
 #include "Materials/MaterialExpressionTextureSampleParameter2D.h"
+#include "Materials/MaterialExpressionMultiply.h"
+#include "Materials/MaterialExpressionAdd.h"
+#include "Materials/MaterialExpressionNoise.h"
+#include "Materials/MaterialExpressionFresnel.h"
+#include "Materials/MaterialExpressionLinearInterpolate.h"
+#include "Materials/MaterialExpressionComponentMask.h"
+#include "Materials/MaterialExpressionClamp.h"
+#include "Materials/MaterialExpression.h"
+#include "UObject/UnrealType.h"
+#if __has_include("Materials/MaterialEditorOnlyData.h")
+#include "Materials/MaterialEditorOnlyData.h"
+#define VFXAGENT_HAS_MATERIAL_EDITOR_ONLY_DATA 1
+#else
+#define VFXAGENT_HAS_MATERIAL_EDITOR_ONLY_DATA 0
+#endif
 #include "Engine/Texture2D.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "UObject/SavePackage.h"
@@ -19,8 +34,21 @@ UMaterialInstanceConstant* UMaterialGenerator::GenerateMaterial(
 {
 	UE_LOG(LogVFXAgent, Log, TEXT("Generating material: %s at %s"), *MaterialRecipe.Name, *OutputPath);
 
-	// Get parent material
-	UMaterial* ParentMaterial = GetParentMaterial(MaterialRecipe);
+	// Get parent material (procedural if needed)
+	UMaterial* ParentMaterial = nullptr;
+	if (ShouldUseProceduralParent(MaterialRecipe))
+	{
+		ParentMaterial = BuildProceduralParentMaterial(MaterialRecipe, OutputPath);
+		if (ParentMaterial)
+		{
+			UE_LOG(LogVFXAgent, Log, TEXT("Using procedural parent material: %s"), *ParentMaterial->GetPathName());
+		}
+	}
+
+	if (!ParentMaterial)
+	{
+		ParentMaterial = GetParentMaterial(MaterialRecipe);
+	}
 	if (!ParentMaterial)
 	{
 		UE_LOG(LogVFXAgent, Error, TEXT("Failed to find parent material"));
@@ -151,23 +179,274 @@ UMaterial* UMaterialGenerator::GetParentMaterial(const FVFXMaterialRecipe& Mater
 		UMaterial* Material = LoadObject<UMaterial>(nullptr, *MaterialRecipe.BaseMaterialPath);
 		if (Material)
 		{
+			UE_LOG(LogVFXAgent, Log, TEXT("Using custom base material: %s"), *MaterialRecipe.BaseMaterialPath);
 			return Material;
+		}
+		else
+		{
+			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to load specified base material: %s"), *MaterialRecipe.BaseMaterialPath);
 		}
 	}
 
-	// Fallback to default particle materials based on properties
-	FString DefaultPath;
+	// Robust fallback chain for particle materials
+	// Try multiple known working paths in UE5
+	TArray<FString> CandidatePaths;
+	
 	if (MaterialRecipe.bIsAdditive)
 	{
-		DefaultPath = TEXT("/Engine/EngineMaterials/ParticleSpriteMaterial");
+		// Additive/Translucent particle materials
+		CandidatePaths.Add(TEXT("/Niagara/DefaultAssets/DefaultSpriteMaterial.DefaultSpriteMaterial"));
+		CandidatePaths.Add(TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"));
+		CandidatePaths.Add(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
 	}
 	else
 	{
-		DefaultPath = TEXT("/Engine/EngineMaterials/DefaultMaterial");
+		// Opaque materials
+		CandidatePaths.Add(TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"));
+		CandidatePaths.Add(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+		CandidatePaths.Add(TEXT("/Niagara/DefaultAssets/DefaultSpriteMaterial.DefaultSpriteMaterial"));
+	}
+	
+	// Try each candidate
+	for (const FString& Path : CandidatePaths)
+	{
+		UMaterial* Material = LoadObject<UMaterial>(nullptr, *Path);
+		if (Material)
+		{
+			UE_LOG(LogVFXAgent, Log, TEXT("Using fallback base material: %s"), *Path);
+			return Material;
+		}
+	}
+	
+	// Final emergency fallback - default material
+	UE_LOG(LogVFXAgent, Error, TEXT("Could not find any suitable base material! VFX may not render correctly."));
+	return LoadObject<UMaterial>(nullptr, TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"));
+}
+
+bool UMaterialGenerator::ShouldUseProceduralParent(const FVFXMaterialRecipe& Recipe) const
+{
+	const bool bHasAnyTexture =
+		!Recipe.BaseColorTexture.IsEmpty() ||
+		!Recipe.EmissiveTexture.IsEmpty() ||
+		!Recipe.OpacityTexture.IsEmpty() ||
+		!Recipe.NormalTexture.IsEmpty() ||
+		Recipe.GeneratedTextures.Num() > 0;
+
+	return !bHasAnyTexture;
+}
+
+UMaterial* UMaterialGenerator::BuildProceduralParentMaterial(const FVFXMaterialRecipe& Recipe, const FString& OutputPath)
+{
+#if WITH_EDITOR
+	const FString BaseName = Recipe.Name + TEXT("_Base");
+	FString PackageName = OutputPath / BaseName;
+	UPackage* Package = FindPackage(nullptr, *PackageName);
+	if (!Package)
+	{
+		Package = CreatePackage(*PackageName);
+	}
+	if (!Package)
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Failed to create material package: %s"), *PackageName);
+		return nullptr;
+	}
+	if (!Package->IsFullyLoaded())
+	{
+		Package->FullyLoad();
 	}
 
-	return LoadObject<UMaterial>(nullptr, *DefaultPath);
+	UMaterial* Material = FindObject<UMaterial>(Package, *BaseName);
+	if (!Material)
+	{
+		Material = NewObject<UMaterial>(Package, *BaseName, RF_Public | RF_Standalone);
+	}
+	if (!Material)
+	{
+		return nullptr;
+	}
+
+	Material->BlendMode = Recipe.bIsAdditive ? BLEND_Additive : BLEND_Translucent;
+#if ENGINE_MAJOR_VERSION > 5 || (ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5)
+	Material->SetShadingModel(MSM_Unlit);
+#else
+	Material->ShadingModels = FMaterialShadingModelField(MSM_Unlit);
+#endif
+	Material->TwoSided = true;
+	Material->bUseMaterialAttributes = false;
+
+	// Expressions
+	auto CreateExpressionByPath = [Material](const TCHAR* ClassPath, const TCHAR* ClassNameForLog) -> UMaterialExpression*
+	{
+		UClass* ExpressionClass = FindObject<UClass>(nullptr, ClassPath);
+		if (!ExpressionClass)
+		{
+			ExpressionClass = StaticLoadClass(UMaterialExpression::StaticClass(), nullptr, ClassPath);
+		}
+		if (!ExpressionClass)
+		{
+			UE_LOG(LogVFXAgent, Warning, TEXT("Failed to load material expression class: %s"), ClassNameForLog);
+			return nullptr;
+		}
+		return NewObject<UMaterialExpression>(Material, ExpressionClass);
+	};
+
+	UMaterialExpression* ParticleColor = CreateExpressionByPath(
+		TEXT("/Script/Engine.MaterialExpressionParticleColor"),
+		TEXT("MaterialExpressionParticleColor"));
+	UMaterialExpressionNoise* Noise = NewObject<UMaterialExpressionNoise>(Material);
+	Noise->Scale = 5.0f;
+
+	UMaterialExpressionScalarParameter* OpacityParam = NewObject<UMaterialExpressionScalarParameter>(Material);
+	OpacityParam->ParameterName = TEXT("Opacity");
+	OpacityParam->DefaultValue = Recipe.Opacity;
+
+	UMaterialExpressionScalarParameter* EmissiveStrength = NewObject<UMaterialExpressionScalarParameter>(Material);
+	EmissiveStrength->ParameterName = TEXT("EmissiveStrength");
+	EmissiveStrength->DefaultValue = Recipe.EmissiveStrength;
+
+	UMaterialExpressionScalarParameter* SoftParticleStrength = NewObject<UMaterialExpressionScalarParameter>(Material);
+	SoftParticleStrength->ParameterName = TEXT("SoftParticleStrength");
+	SoftParticleStrength->DefaultValue = 0.15f;
+
+	UMaterialExpressionScalarParameter* SoftParticleDistance = NewObject<UMaterialExpressionScalarParameter>(Material);
+	SoftParticleDistance->ParameterName = TEXT("SoftParticleDistance");
+	SoftParticleDistance->DefaultValue = 10.0f;
+
+	UMaterialExpressionScalarParameter* FresnelIntensity = NewObject<UMaterialExpressionScalarParameter>(Material);
+	FresnelIntensity->ParameterName = TEXT("FresnelIntensity");
+	FresnelIntensity->DefaultValue = 0.0f;
+
+	UMaterialExpressionScalarParameter* DissolveStrength = NewObject<UMaterialExpressionScalarParameter>(Material);
+	DissolveStrength->ParameterName = TEXT("DissolveStrength");
+	DissolveStrength->DefaultValue = 0.0f;
+
+	UMaterialExpressionComponentMask* ParticleAlpha = NewObject<UMaterialExpressionComponentMask>(Material);
+	ParticleAlpha->R = false;
+	ParticleAlpha->G = false;
+	ParticleAlpha->B = false;
+	ParticleAlpha->A = true;
+	ParticleAlpha->Input.Expression = ParticleColor;
+
+	UMaterialExpressionMultiply* BaseOpacityMul = NewObject<UMaterialExpressionMultiply>(Material);
+	BaseOpacityMul->A.Expression = ParticleAlpha;
+	BaseOpacityMul->B.Expression = OpacityParam;
+
+	UMaterialExpressionMultiply* NoiseOpacityMul = NewObject<UMaterialExpressionMultiply>(Material);
+	NoiseOpacityMul->A.Expression = BaseOpacityMul;
+	NoiseOpacityMul->B.Expression = Noise;
+
+	UMaterialExpressionLinearInterpolate* DissolveLerp = NewObject<UMaterialExpressionLinearInterpolate>(Material);
+	DissolveLerp->A.Expression = BaseOpacityMul;
+	DissolveLerp->B.Expression = NoiseOpacityMul;
+	DissolveLerp->Alpha.Expression = DissolveStrength;
+
+	UMaterialExpression* DepthFade = CreateExpressionByPath(
+		TEXT("/Script/Engine.MaterialExpressionDepthFade"),
+		TEXT("MaterialExpressionDepthFade"));
+	if (DepthFade)
+	{
+		FStructProperty* FadeDistanceProp = FindFProperty<FStructProperty>(
+			DepthFade->GetClass(),
+			TEXT("FadeDistance"));
+		if (FadeDistanceProp && FadeDistanceProp->Struct && FadeDistanceProp->Struct->GetFName() == TEXT("ExpressionInput"))
+		{
+			FExpressionInput* FadeDistanceInput = FadeDistanceProp->ContainerPtrToValuePtr<FExpressionInput>(DepthFade);
+			if (FadeDistanceInput)
+			{
+				FadeDistanceInput->Expression = SoftParticleDistance;
+			}
+		}
+	}
+
+	UMaterialExpressionLinearInterpolate* SoftParticleLerp = NewObject<UMaterialExpressionLinearInterpolate>(Material);
+	SoftParticleLerp->A.Expression = DissolveLerp;
+	SoftParticleLerp->B.Expression = DepthFade;
+	SoftParticleLerp->Alpha.Expression = SoftParticleStrength;
+
+	UMaterialExpressionMultiply* EmissiveMul = NewObject<UMaterialExpressionMultiply>(Material);
+	EmissiveMul->A.Expression = ParticleColor;
+	EmissiveMul->B.Expression = EmissiveStrength;
+
+	UMaterialExpressionMultiply* EmissiveNoiseMul = NewObject<UMaterialExpressionMultiply>(Material);
+	EmissiveNoiseMul->A.Expression = EmissiveMul;
+	EmissiveNoiseMul->B.Expression = Noise;
+
+	UMaterialExpressionFresnel* Fresnel = NewObject<UMaterialExpressionFresnel>(Material);
+	UMaterialExpressionMultiply* FresnelMul = NewObject<UMaterialExpressionMultiply>(Material);
+	FresnelMul->A.Expression = Fresnel;
+	FresnelMul->B.Expression = FresnelIntensity;
+
+	UMaterialExpressionAdd* EmissiveAdd = NewObject<UMaterialExpressionAdd>(Material);
+	EmissiveAdd->A.Expression = EmissiveNoiseMul;
+	EmissiveAdd->B.Expression = FresnelMul;
+
+#if WITH_EDITORONLY_DATA && VFXAGENT_HAS_MATERIAL_EDITOR_ONLY_DATA
+	if (UMaterialEditorOnlyData* EditorOnly = Material->GetEditorOnlyData())
+	{
+		EditorOnly->ExpressionCollection.Expressions =
+		{
+			ParticleColor,
+			Noise,
+			OpacityParam,
+			EmissiveStrength,
+			SoftParticleStrength,
+			SoftParticleDistance,
+			FresnelIntensity,
+			DissolveStrength,
+			ParticleAlpha,
+			BaseOpacityMul,
+			NoiseOpacityMul,
+			DissolveLerp,
+			DepthFade,
+			SoftParticleLerp,
+			EmissiveMul,
+			EmissiveNoiseMul,
+			Fresnel,
+			FresnelMul,
+			EmissiveAdd
+		};
+
+		EditorOnly->EmissiveColor.Expression = EmissiveAdd;
+		EditorOnly->Opacity.Expression = SoftParticleLerp;
+	}
+	else
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("Material editor-only data unavailable; procedural graph not assigned."));
+	}
+#else
+	UE_LOG(LogVFXAgent, Warning, TEXT("Material editor-only data header not found; procedural graph not assigned."));
+#endif
+	Material->PostEditChange();
+	Material->MarkPackageDirty();
+	Package->SetDirtyFlag(true);
+
+	FSavePackageArgs SaveArgs;
+	SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;
+	SaveArgs.Error = GError;
+	SaveArgs.bForceByteSwapping = false;
+	SaveArgs.bWarnOfLongFilename = true;
+
+	FString PackageFilename = FPackageName::LongPackageNameToFilename(
+		PackageName,
+		FPackageName::GetAssetPackageExtension());
+
+	if (UPackage::SavePackage(Package, Material, *PackageFilename, SaveArgs))
+	{
+		FAssetRegistryModule::AssetCreated(Material);
+		UE_LOG(LogVFXAgent, Log, TEXT("Procedural parent material saved: %s"), *PackageFilename);
+	}
+	else
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("Failed to save procedural parent material: %s"), *PackageFilename);
+	}
+
+	return Material;
+#else
+	UE_LOG(LogVFXAgent, Warning, TEXT("Procedural material generation requires editor support; skipping."));
+	return nullptr;
+#endif
 }
+
 
 void UMaterialGenerator::ApplyColorParameters(
 	UMaterialInstanceConstant* Material,

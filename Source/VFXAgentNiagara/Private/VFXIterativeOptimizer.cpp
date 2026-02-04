@@ -1,5 +1,7 @@
 #include "VFXIterativeOptimizer.h"
 #include "VFXAgentLog.h"
+#include "VFXQualityScorer.h"
+#include "VFXMotionModuleLibrary.h"
 #include "ILLMProvider.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
@@ -75,8 +77,22 @@ FVFXOptimizationResult UVFXIterativeOptimizer::EvaluateEffect(
 	// Analyze recipe for common issues
 	AnalyzeRecipeIssues(Recipe, Result);
 
+	// If we have a generated system, use structural quality scoring
+	if (GeneratedSystem && Recipe.Spec.bHasIntent)
+	{
+		FVFXIntent Intent = Recipe.Spec.Intent;
+		EMotionArchetype MotionArchetype = FVFXMotionModuleLibrary::DetermineMotionArchetype(Intent);
+		FMotionBehaviorConfig MotionConfig = FVFXMotionModuleLibrary::GetMotionConfigByArchetype(MotionArchetype);
+		
+		FQualityScoreBreakdown QualityBreakdown = FVFXQualityScorer::ScoreSystem(GeneratedSystem, Intent, MotionConfig);
+		
+		Result.QualityScore = QualityBreakdown.TotalScore;
+		Result.ImprovementSuggestions.Append(QualityBreakdown.Issues);
+		
+		UE_LOG(LogVFXAgent, Log, TEXT("Structural Quality Score: %s"), *QualityBreakdown.Summary);
+	}
 	// If we have a reference image and visual comparison is enabled
-	if (Config.bEnableVisualComparison && !Config.ReferenceImagePath.IsEmpty() && GeneratedSystem)
+	else if (Config.bEnableVisualComparison && !Config.ReferenceImagePath.IsEmpty() && GeneratedSystem)
 	{
 		float VisualScore = CompareWithReferenceImage(GeneratedSystem, Config.ReferenceImagePath);
 		Result.QualityScore = VisualScore;
