@@ -8,8 +8,18 @@
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
 #include "Misc/Base64.h"
+#include "Misc/ConfigCacheIni.h"
 #include "Misc/FileHelper.h"
 #include "Misc/Paths.h"
+#include "HAL/FileManager.h"
+#include "Modules/ModuleManager.h"
+
+#if WITH_EDITOR
+#include "AssetRegistry/AssetRegistryModule.h"
+#include "Materials/Material.h"
+#include "Materials/MaterialInstance.h"
+#include "Materials/MaterialInstanceConstant.h"
+#endif
 
 #include "HttpModule.h"
 #include "HttpManager.h"
@@ -51,6 +61,72 @@ static bool IsPlaceholderApiKey(const FString& InKey)
 	Key.TrimStartAndEndInline();
 	return Key.IsEmpty() || Key.Equals(TEXT("set"), ESearchCase::IgnoreCase) || Key.Equals(TEXT("<set>"), ESearchCase::IgnoreCase);
 }
+
+#if WITH_EDITOR
+static TArray<FString> GetMaterialLibraryPathsFromConfig()
+{
+	TArray<FString> Paths;
+	const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+	const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+	for (const FString& File : ConfigFiles)
+	{
+		if (GConfig && GConfig->GetArray(Section, TEXT("MaterialLibraryPaths"), Paths, File) && Paths.Num() > 0)
+		{
+			break;
+		}
+	}
+	if (Paths.Num() == 0)
+	{
+		Paths.Add(TEXT("/Game/VFXAgent/Materials"));
+	}
+	return Paths;
+}
+
+static void CollectMaterialLibraryAssets(const TArray<FString>& RootPaths, TArray<FAssetData>& OutAssets)
+{
+	if (RootPaths.Num() == 0)
+	{
+		return;
+	}
+
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	FARFilter Filter;
+	Filter.ClassPaths.Add(UMaterial::StaticClass()->GetClassPathName());
+	Filter.ClassPaths.Add(UMaterialInstance::StaticClass()->GetClassPathName());
+	Filter.ClassPaths.Add(UMaterialInstanceConstant::StaticClass()->GetClassPathName());
+	Filter.bRecursivePaths = true;
+	for (const FString& Path : RootPaths)
+	{
+		Filter.PackagePaths.Add(*Path);
+	}
+
+	AssetRegistryModule.Get().GetAssets(Filter, OutAssets);
+}
+
+static void AppendMaterialLibraryNamesToPrompt(FString& Prompt)
+{
+	TArray<FString> Paths = GetMaterialLibraryPathsFromConfig();
+	TArray<FAssetData> Assets;
+	CollectMaterialLibraryAssets(Paths, Assets);
+	if (Assets.Num() == 0)
+	{
+		return;
+	}
+
+	TSet<FString> UniqueNames;
+	UniqueNames.Reserve(Assets.Num());
+	for (const FAssetData& Asset : Assets)
+	{
+		UniqueNames.Add(Asset.AssetName.ToString());
+	}
+
+	TArray<FString> Names = UniqueNames.Array();
+	Names.Sort();
+
+	Prompt += TEXT("\n\nMaterial library names (prefer these; choose closest match when naming materials): ");
+	Prompt += FString::Join(Names, TEXT(", "));
+}
+#endif
 
 FString UHttpLLMProvider::BuildSystemPrompt() const
 {
@@ -254,6 +330,17 @@ FString UHttpLLMProvider::BuildDirectorSystemPrompt() const
 		"- Use /Game/VFX/Archetypes/* emitter templates when possible.\n"
 		"- Actions must be deterministic and ordered.\n"
 		"- Do not include commentary or markdown.\n"
+	);
+}
+
+FString UHttpLLMProvider::BuildEffectSpecSystemPrompt() const
+{
+	return TEXT(
+		"You are a VFX specification generator. Output ONLY strict JSON matching EffectSpec v1.\n"
+		"No prose, no markdown. Required fields: effect_name, layers.\n"
+		"Each layer must include: id, name, role, renderer_type (sprite|ribbon|mesh), spawn, init, update, material.\n"
+		"material.hlsl_custom.enabled can be true with code, inputs, texture_inputs, outputs, contract.\n"
+		"If unsure, keep optional fields minimal but valid.\n"
 	);
 }
 
@@ -712,6 +799,20 @@ void UHttpLLMProvider::RequestDirectorJsonAsync(const FString& UserPrompt, const
 	RequestDirectorJsonInternalAsync(Combined, BuildDirectorSystemPrompt(), OnComplete);
 }
 
+void UHttpLLMProvider::RequestEffectSpecJsonAsync(const FString& UserPrompt, const FString& OptionalStyleRefs, FOnEffectSpecJsonComplete OnComplete) const
+{
+	FString Combined = UserPrompt;
+	if (!OptionalStyleRefs.IsEmpty())
+	{
+		Combined += TEXT("\n\nStyleRefs:\n");
+		Combined += OptionalStyleRefs;
+	}
+	const FString LogDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("VFXAgent"), TEXT("Logs"));
+	IFileManager::Get().MakeDirectory(*LogDir, true);
+	FFileHelper::SaveStringToFile(Combined, *(FPaths::Combine(LogDir, TEXT("effectspec_request.txt"))));
+	RequestDirectorJsonInternalAsync(Combined, BuildEffectSpecSystemPrompt(), OnComplete);
+}
+
 void UHttpLLMProvider::RequestDirectorRevisionJsonAsync(const FString& OriginalDirectorJson, const FString& ExecutionReportJson, FOnDirectorJsonComplete OnComplete) const
 {
 	const FString SystemPrompt = BuildDirectorRevisionPrompt(OriginalDirectorJson, ExecutionReportJson);
@@ -908,6 +1009,10 @@ FString UHttpLLMProvider::BuildVisionUserPrompt(const FString& OptionalPrompt) c
 		Prompt += TEXT("\n\nUser guidance: ");
 		Prompt += OptionalPrompt;
 	}
+
+#if WITH_EDITOR
+	AppendMaterialLibraryNamesToPrompt(Prompt);
+#endif
 
 	return Prompt;
 }
@@ -1389,6 +1494,13 @@ FVFXRecipe UHttpLLMProvider::GenerateRecipeFromRequest(const FVFXGenerationReque
 	{
 		EnhancedPrompt += TEXT("\n\nAdditional context: ") + Request.AdditionalContext;
 	}
+
+#if WITH_EDITOR
+	if (Request.bGenerateMaterials)
+	{
+		AppendMaterialLibraryNamesToPrompt(EnhancedPrompt);
+	}
+#endif
 
 	if (Request.bGenerateMaterials)
 	{

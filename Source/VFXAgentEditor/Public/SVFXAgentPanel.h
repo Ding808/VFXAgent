@@ -19,6 +19,7 @@ public:
 	void Construct(const FArguments& InArgs);
 
 	virtual bool SupportsKeyboardFocus() const override { return true; }
+	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
 private:
 	// UI callbacks
@@ -27,25 +28,39 @@ private:
 	FReply OnChooseOutputPathClicked();
 	FReply OnChooseImagePathClicked();
 	FReply OnTestLLMClicked();
+	FReply OnGenerateSpecClicked();
+	FReply OnValidateSpecClicked();
+	FReply OnBuildSpecClicked();
+	FReply OnPreviewClicked();
+	FReply OnReviseSpecClicked();
+	FReply OnCopyPipelineLogClicked();
+	FReply OnExportPipelineLogClicked();
 
 	// Helper functions
 	void LogMessage(const FString& Message);
 	void UpdateLastRecipe(const FVFXRecipe& Recipe);
 	void RefreshLLMSettingsFromConfig();
 	FVFXRecipe EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, const FString& Prompt);
+	void DrainPipelineLog();
+	void UpdatePipelineLogText();
+	FString BuildPipelineLogText() const;
 
 	// UI elements
 	TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;
+	TSharedPtr<class SMultiLineEditableTextBox> SpecTextBox;
 	TSharedPtr<class SEditableTextBox> OutputPathTextBox;
 	TSharedPtr<class SEditableTextBox> AssetNameTextBox;
 	TSharedPtr<class SEditableTextBox> ImagePathTextBox;
 	TSharedPtr<class SMultiLineEditableTextBox> LogTextBox;
+	TSharedPtr<class SMultiLineEditableTextBox> PipelineLogTextBox;
 	TSharedPtr<class SCheckBox> UseDirectorPipelineCheckBox;
 
 	// Data
 	FVFXRecipe LastRecipe;
 	FString LastPrompt;
 	FString LastDirectorJson;
+	FString LastEffectSpecJson;
+	FString LastGeneratedSystemPath;
 	FVFXExecutionReport LastExecutionReport;
 
 	// LLM Provider
@@ -60,4 +75,7 @@ private:
 	bool bCachedHasApiKey = false;
 
 	bool bRequestInFlight = false;
+	TArray<FString> PipelineLogLines;
+	bool bPipelineLogDirty = false;
+	int32 PipelineLogMaxLines = 500;
 };

@@ -2,6 +2,23 @@
 
 ## 快速测试
 
+### 0. 零模板管线验证（新）
+
+#### 步骤
+1. 打开VFXAgent面板
+2. 勾选并确认设置：`bDisallowTemplates=true`
+3. 在 Prompt 输入：`"anime energy explosion with trail and sparks"`
+4. 点击 **Generate Spec** -> **Validate** -> **Build**
+5. 打开生成的 NiagaraSystem
+
+#### 预期结果
+- ✅ 不依赖任何模板素材（Pipeline Log 中出现“Template usage blocked”或无模板日志）
+- ✅ 至少 3 层 emitter
+- ✅ 每层 emitter 只有 1 个 renderer 且材质非空
+
+#### Dry-Run
+- 如果开启 `bDryRun=true`，系统只做校验，不会生成资产。
+
 ### 1. 生成Tornado特效
 
 #### 方式A: 通过编辑器UI

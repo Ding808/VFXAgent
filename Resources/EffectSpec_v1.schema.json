@@ -1,0 +1,73 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EffectSpec v1",
+  "type": "object",
+  "required": ["effect_name", "layers"],
+  "properties": {
+    "effect_name": {"type": "string"},
+    "global_style": {
+      "type": "object",
+      "properties": {
+        "palette": {"type": "string"},
+        "realism_to_anime": {"type": "number", "minimum": 0, "maximum": 1},
+        "brightness": {"type": "number"},
+        "contrast": {"type": "number"},
+        "noise_style": {"type": "string"}
+      }
+    },
+    "layers": {
+      "type": "array",
+      "minItems": 3,
+      "items": {"$ref": "#/definitions/layer"}
+    },
+    "external_assets": {
+      "type": "object",
+      "properties": {
+        "reference_image": {"type": "string"},
+        "element_images": {"type": "array", "items": {"type": "string"}}
+      }
+    }
+  },
+  "definitions": {
+    "layer": {
+      "type": "object",
+      "required": ["id", "name", "role", "renderer_type", "spawn", "init", "update", "material"],
+      "properties": {
+        "id": {"type": "string"},
+        "name": {"type": "string"},
+        "role": {"type": "string"},
+        "renderer_type": {"type": "string", "enum": ["sprite", "ribbon", "mesh"]},
+        "spawn": {"type": "object"},
+        "init": {"type": "object"},
+        "update": {"type": "object"},
+        "material": {"$ref": "#/definitions/material"},
+        "textures_needed": {"type": "array"},
+        "model_needed": {"type": "object"},
+        "motion": {"type": "object"},
+        "quality_budget": {"type": "object"}
+      }
+    },
+    "material": {
+      "type": "object",
+      "required": ["shading", "blend"],
+      "properties": {
+        "shading": {"type": "string", "enum": ["unlit", "lit"]},
+        "blend": {"type": "string", "enum": ["additive", "translucent", "masked", "opaque"]},
+        "features": {"type": "object"},
+        "params": {"type": "object"},
+        "hlsl_custom": {"$ref": "#/definitions/hlsl_custom"}
+      }
+    },
+    "hlsl_custom": {
+      "type": "object",
+      "properties": {
+        "enabled": {"type": "boolean"},
+        "code": {"type": "string"},
+        "inputs": {"type": "array"},
+        "texture_inputs": {"type": "array"},
+        "outputs": {"type": "object"},
+        "contract": {"type": "string"}
+      }
+    }
+  }
+}

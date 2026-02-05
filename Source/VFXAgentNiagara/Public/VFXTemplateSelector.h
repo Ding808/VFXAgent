@@ -5,7 +5,7 @@
 #include "VFXMotionModuleLibrary.h"
 
 /**
- * Template Selector - Chooses construction strategy for Niagara emitters
+ * Template Selector (Deprecated) - Templates are disallowed by default
  * Strategies:
  *   - BuildFromScratch: Module whitelist construction (no template)
  *   - TemplateMinimal: Use Minimal template then replace/strip modules

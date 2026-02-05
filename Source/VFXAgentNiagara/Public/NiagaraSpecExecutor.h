@@ -16,6 +16,7 @@ public:
 	// Individual steps (exposed for fine-grained control if needed)
 	static UNiagaraSystem* CreateNiagaraSystemAsset(const FString& TargetPath, const FString& SystemName);
 	static bool AddEmitterFromTemplate(UNiagaraSystem* System, const FString& TemplatePath, const FString& EmitterName);
+	static bool AddBasicEmitterToSystem(UNiagaraSystem* System, const FString& EmitterName);
 	static bool AddModuleToEmitter(UNiagaraSystem* System, const FString& EmitterName, const FString& ModuleScriptPath, const FString& StackName);
 	static void ConfigureEmitter(UNiagaraSystem* System, const FString& EmitterName, const FVFXEmitterSpec& Spec);
 	static bool ConfigureCollisionEventHandler(UNiagaraSystem* System, const FString& SourceEmitterName, const FString& TargetEmitterName, const FVFXEventRecipe& Event);

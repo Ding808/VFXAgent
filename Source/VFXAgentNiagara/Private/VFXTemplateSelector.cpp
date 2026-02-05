@@ -1,9 +1,34 @@
 #include "VFXTemplateSelector.h"
 #include "VFXAgentLog.h"
+#include "Misc/ConfigCacheIni.h"
 
 FTemplateSelectionResult FVFXTemplateSelector::SelectStrategy(const FVFXIntent& Intent, const FVFXEmitterSpec& EmitterSpec)
 {
 	FTemplateSelectionResult Result;
+	bool bDisallowTemplates = true;
+	{
+		const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+		const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+		for (const FString& File : ConfigFiles)
+		{
+			if (GConfig && GConfig->GetBool(Section, TEXT("bDisallowTemplates"), bDisallowTemplates, File))
+			{
+				break;
+			}
+		}
+	}
+	if (bDisallowTemplates)
+	{
+		Result.Strategy = EConstructionStrategy::BuildFromScratch;
+		Result.TemplatePath = TEXT("");
+		Result.StrategyReason = TEXT("Templates disabled by config");
+		Result.ModulesToStrip.Reset();
+		Result.ModulesToAdd.Reset();
+		Result.bMustStripAllVelocity = false;
+		Result.bMustStripGravity = false;
+		Result.bMustStripNoise = false;
+		return Result;
+	}
 	
 	// Get motion configuration
 	EMotionArchetype MotionArchetype = FVFXMotionModuleLibrary::DetermineMotionArchetype(Intent);

@@ -6,11 +6,13 @@
 #include "VFXRendererValidationFixer.h"
 #include "VFXQualityScorer.h"
 #include "MaterialGenerator.h"
+#include "PipelineLog.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraScript.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Factories/Factory.h"
+#include "Misc/ConfigCacheIni.h"
 
 void FVFXNiagaraSpecBuilder::LogBuildAction(FNiagaraBuildContext& Context, const FString& Action)
 {
@@ -306,6 +308,25 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::CreateFromTemplate(const FString& Templ
 {
 	if (TemplatePath.IsEmpty())
 		return nullptr;
+
+	bool bDisallowTemplates = true;
+	{
+		const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+		const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+		for (const FString& File : ConfigFiles)
+		{
+			if (GConfig && GConfig->GetBool(Section, TEXT("bDisallowTemplates"), bDisallowTemplates, File))
+			{
+				break;
+			}
+		}
+	}
+	if (bDisallowTemplates)
+	{
+		UE_LOG(LogVFXAgent, Error, TEXT("Template usage blocked"));
+		FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Template usage blocked"));
+		return nullptr;
+	}
 	
 	// Try to load template emitter
 	UNiagaraEmitter* Template = LoadObject<UNiagaraEmitter>(nullptr, *TemplatePath);

@@ -8,6 +8,7 @@
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.h"   
 #include "NiagaraLightRendererProperties.h"
+#include "NiagaraMeshRendererProperties.h"
 #include "AssetToolsModule.h"
 #include "UObject/UnrealType.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -36,10 +37,12 @@
 #include "VFXModuleStripper.h"
 #include "VFXModuleInserter.h"
 #include "VFXRendererValidationFixer.h"
+#include "PipelineLog.h"
 
 static FString NormalizeTemplateObjectPath(const FString& InPath);
 static void SetEmitterRequiresPersistentIDs(UNiagaraEmitter* Emitter, bool bEnabled);
 static void ApplyIntentModuleRules(UNiagaraSystem* System, const FString& EmitterName, const FVFXIntent& Intent, const FTemplateSelectionResult& Selection);
+static void AddMinimalModuleChain(UNiagaraSystem* System, const FString& EmitterName, EVFXRendererType RendererType);
 
 static FString GetVFXAgentSetting(const TCHAR* Key, const FString& DefaultValue)
 {
@@ -71,11 +74,70 @@ static TArray<FString> GetVFXAgentSettingArray(const TCHAR* Key)
     return Values;
 }
 
+static bool GetVFXAgentSettingBool(const TCHAR* Key, bool bDefault)
+{
+    bool bValue = bDefault;
+    const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+    const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+    for (const FString& File : ConfigFiles)
+    {
+        if (GConfig && GConfig->GetBool(Section, Key, bValue, File))
+        {
+            return bValue;
+        }
+    }
+    return bDefault;
+}
+
 static UNiagaraScript* LoadNiagaraScriptFromPath(const FString& Path)
 {
     if (Path.IsEmpty()) return nullptr;
     const FString Normalized = NormalizeTemplateObjectPath(Path);
     return LoadObject<UNiagaraScript>(nullptr, *Normalized);
+}
+
+static void AddMinimalModuleChain(UNiagaraSystem* System, const FString& EmitterName, EVFXRendererType RendererType)
+{
+    if (!System) return;
+	(void)RendererType;
+
+    FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara,
+        FString::Printf(TEXT("Building minimal module chain for '%s'"), *EmitterName));
+
+    struct FModuleEntry
+    {
+        const TCHAR* Path;
+        const TCHAR* Stack;
+    };
+
+    const FModuleEntry Entries[] = {
+        { TEXT("/Niagara/Modules/Spawn/Spawn Rate.Spawn Rate"), TEXT("Particle Spawn") },
+        { TEXT("/Niagara/Modules/Spawn/Spawn Burst Instantaneous.Spawn Burst Instantaneous"), TEXT("Particle Spawn") },
+        { TEXT("/Niagara/Modules/Particle/Initialize Particle.Initialize Particle"), TEXT("Particle Spawn") },
+        { TEXT("/Niagara/Modules/Spawn/Velocity/Add Velocity.Add Velocity"), TEXT("Particle Spawn") },
+        { TEXT("/Niagara/Modules/Update/Drag.Drag"), TEXT("Particle Update") },
+        { TEXT("/Niagara/Modules/Update/Color/Scale Color.Scale Color"), TEXT("Particle Update") },
+        { TEXT("/Niagara/Modules/Update/Scale Sprite Size.Scale Sprite Size"), TEXT("Particle Update") }
+    };
+
+    for (const FModuleEntry& Entry : Entries)
+    {
+        const bool bOk = FNiagaraSpecExecutor::AddModuleToEmitter(System, EmitterName, Entry.Path, Entry.Stack);
+        if (!bOk)
+        {
+            FPipelineLog::Get().Push(EPipelineLogLevel::Warning, EPipelineStage::Niagara,
+                FString::Printf(TEXT("Failed to add module: %s"), Entry.Path));
+        }
+    }
+}
+
+static bool HasAnyModules(UNiagaraEmitter* Emitter, const FName& ArrayPropName)
+{
+    if (!Emitter) return false;
+    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
+    if (!ArrayProp) return false;
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+    return Helper.Num() > 0;
 }
 
 // Helper for finding assets
@@ -793,11 +855,64 @@ static void SetStructFloatField(void* StructPtr, UStruct* StructType, const FNam
     }
 }
 
-static bool AddBasicEmitterToSystem(UNiagaraSystem* System, const FString& EmitterName)
+bool FNiagaraSpecExecutor::AddBasicEmitterToSystem(UNiagaraSystem* System, const FString& EmitterName)
 {
     if (!System)
     {
         return false;
+    }
+
+    const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), true);
+    if (bDisallowTemplates)
+    {
+        UE_LOG(LogVFXAgent, Error, TEXT("Template usage blocked"));
+        FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Template usage blocked"));
+
+        // Use the engine's Empty emitter as a safe initializer even when templates are disallowed.
+        // This avoids crashes from uninitialized emitters while still producing a standalone emitter.
+        UNiagaraEmitter* EmptyTemplate = LoadObject<UNiagaraEmitter>(nullptr,
+            TEXT("/Niagara/DefaultAssets/Templates/Emitters/Empty.Empty"));
+        if (!EmptyTemplate)
+        {
+            EmptyTemplate = LoadObject<UNiagaraEmitter>(nullptr,
+                TEXT("/Niagara/DefaultAssets/Templates/Emitters/Minimal.Minimal"));
+        }
+        if (!EmptyTemplate)
+        {
+            UE_LOG(LogVFXAgent, Error, TEXT("Failed to load Empty or Minimal emitter template. Cannot create scratch emitter."));
+            return false;
+        }
+
+        const bool bOriginalInheritable = EmptyTemplate->bIsInheritable;
+        EmptyTemplate->bIsInheritable = false;
+        const FGuid VersionGuid = EmptyTemplate->GetExposedVersion().VersionGuid;
+
+#if WITH_EDITOR
+        const FGuid HandleId = FNiagaraEditorUtilities::AddEmitterToSystem(*System, *EmptyTemplate, VersionGuid, true);
+        for (FNiagaraEmitterHandle& EmitterHandle : System->GetEmitterHandles())
+        {
+            if (EmitterHandle.GetId() == HandleId)
+            {
+                EmitterHandle.SetName(FName(*EmitterName), *System);
+                EmitterHandle.SetIsEnabled(true, *System, true);
+                break;
+            }
+        }
+#else
+        System->AddEmitterHandle(*EmptyTemplate, FName(*EmitterName), VersionGuid);
+#endif
+
+        EmptyTemplate->bIsInheritable = bOriginalInheritable;
+
+        System->MarkPackageDirty();
+        if (UPackage* Pkg = System->GetOutermost())
+        {
+            Pkg->MarkPackageDirty();
+        }
+
+        UE_LOG(LogVFXAgent, Log, TEXT("Created scratch emitter '%s' (engine empty initializer)"), *EmitterName);
+        AddMinimalModuleChain(System, EmitterName, EVFXRendererType::Sprite);
+        return System->GetEmitterHandles().Num() > 0;
     }
 
 #if WITH_EDITOR
@@ -939,6 +1054,15 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec&
                 *Selection.StrategyReason);
         }
 
+        const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), true);
+        if (bDisallowTemplates)
+        {
+            bHasTemplate = false;
+            Template.Empty();
+            UE_LOG(LogVFXAgent, Error, TEXT("Template usage blocked"));
+            FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Template usage blocked"));
+        }
+
         bool bAdded = false;
         if (bHasTemplate)
         {
@@ -957,7 +1081,7 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec&
         }
         else
         {
-            bAdded = AddBasicEmitterToSystem(System, EmitterSpec.Name);
+            bAdded = FNiagaraSpecExecutor::AddBasicEmitterToSystem(System, EmitterSpec.Name);
         }
 
         if (!bAdded)
@@ -1095,6 +1219,7 @@ static void RemoveMismatchedRenderers(UNiagaraEmitter* Emitter, EVFXRendererType
             const bool bMatch =
                 (DesiredType == EVFXRendererType::Sprite && RP->IsA<UNiagaraSpriteRendererProperties>()) ||
                 (DesiredType == EVFXRendererType::Ribbon && RP->IsA<UNiagaraRibbonRendererProperties>()) ||
+                (DesiredType == EVFXRendererType::Mesh && RP->IsA<UNiagaraMeshRendererProperties>()) ||
                 (DesiredType == EVFXRendererType::Light && RP->IsA<UNiagaraLightRendererProperties>());
             if (!bMatch)
             {
@@ -1118,6 +1243,8 @@ static bool IsRendererOfType(UNiagaraRendererProperties* Renderer, EVFXRendererT
             return Renderer->IsA<UNiagaraSpriteRendererProperties>();
         case EVFXRendererType::Ribbon:
             return Renderer->IsA<UNiagaraRibbonRendererProperties>();
+        case EVFXRendererType::Mesh:
+            return Renderer->IsA<UNiagaraMeshRendererProperties>();
         case EVFXRendererType::Light:
             return Renderer->IsA<UNiagaraLightRendererProperties>();
         default:
@@ -1125,17 +1252,158 @@ static bool IsRendererOfType(UNiagaraRendererProperties* Renderer, EVFXRendererT
     }
 }
 
-static bool RendererHasMaterial(UNiagaraRendererProperties* Renderer)
+static UMaterialInterface* GetMaterialFromStruct(void* StructPtr, UStruct* Struct)
 {
+    if (!StructPtr || !Struct)
+    {
+        return nullptr;
+    }
+
+    for (TFieldIterator<FObjectPropertyBase> It(Struct); It; ++It)
+    {
+        FObjectPropertyBase* Prop = *It;
+        if (!Prop)
+        {
+            continue;
+        }
+        if (Prop->PropertyClass->IsChildOf(UMaterialInterface::StaticClass()) && Prop->GetName().Contains(TEXT("Material")))
+        {
+            return Cast<UMaterialInterface>(Prop->GetObjectPropertyValue_InContainer(StructPtr));
+        }
+    }
+
+    return nullptr;
+}
+
+static bool SetMaterialOnStruct(void* StructPtr, UStruct* Struct, UMaterialInterface* Material)
+{
+    if (!StructPtr || !Struct || !Material)
+    {
+        return false;
+    }
+
+    for (TFieldIterator<FObjectPropertyBase> It(Struct); It; ++It)
+    {
+        FObjectPropertyBase* Prop = *It;
+        if (!Prop)
+        {
+            continue;
+        }
+        if (Prop->PropertyClass->IsChildOf(UMaterialInterface::StaticClass()) && Prop->GetName().Contains(TEXT("Material")))
+        {
+            Prop->SetObjectPropertyValue_InContainer(StructPtr, Material);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static UMaterialInterface* GetRendererMaterialAny(UNiagaraRendererProperties* Renderer)
+{
+    if (!Renderer)
+    {
+        return nullptr;
+    }
+
     if (UNiagaraSpriteRendererProperties* Sprite = Cast<UNiagaraSpriteRendererProperties>(Renderer))
     {
-        return Sprite->Material != nullptr;
+        return Sprite->Material;
     }
     if (UNiagaraRibbonRendererProperties* Ribbon = Cast<UNiagaraRibbonRendererProperties>(Renderer))
     {
-        return Ribbon->Material != nullptr;
+        return Ribbon->Material;
     }
-    return false; // Light renderer doesn't use materials
+
+    const FName PossibleNames[] = { TEXT("OverrideMaterials"), TEXT("Materials") };
+    for (const FName& Name : PossibleNames)
+    {
+        FArrayProperty* MaterialsProp = FindFProperty<FArrayProperty>(Renderer->GetClass(), Name);
+        if (!MaterialsProp)
+        {
+            continue;
+        }
+        FScriptArrayHelper Helper(MaterialsProp, MaterialsProp->ContainerPtrToValuePtr<void>(Renderer));
+        if (Helper.Num() > 0)
+        {
+            void* ElemPtr = Helper.GetRawPtr(0);
+            if (FStructProperty* StructProp = CastField<FStructProperty>(MaterialsProp->Inner))
+            {
+                if (UMaterialInterface* Mat = GetMaterialFromStruct(ElemPtr, StructProp->Struct))
+                {
+                    return Mat;
+                }
+            }
+            else if (FObjectPropertyBase* ObjProp = CastField<FObjectPropertyBase>(MaterialsProp->Inner))
+            {
+                return Cast<UMaterialInterface>(ObjProp->GetObjectPropertyValue(ElemPtr));
+            }
+        }
+    }
+
+    return nullptr;
+}
+
+static bool SetRendererMaterialAny(UNiagaraRendererProperties* Renderer, UMaterialInterface* Material)
+{
+    if (!Renderer || !Material)
+    {
+        return false;
+    }
+
+    if (UNiagaraSpriteRendererProperties* Sprite = Cast<UNiagaraSpriteRendererProperties>(Renderer))
+    {
+        Sprite->Material = Material;
+        return true;
+    }
+    if (UNiagaraRibbonRendererProperties* Ribbon = Cast<UNiagaraRibbonRendererProperties>(Renderer))
+    {
+        Ribbon->Material = Material;
+        return true;
+    }
+
+    const FName PossibleNames[] = { TEXT("OverrideMaterials"), TEXT("Materials") };
+    for (const FName& Name : PossibleNames)
+    {
+        FArrayProperty* MaterialsProp = FindFProperty<FArrayProperty>(Renderer->GetClass(), Name);
+        if (!MaterialsProp)
+        {
+            continue;
+        }
+        FScriptArrayHelper Helper(MaterialsProp, MaterialsProp->ContainerPtrToValuePtr<void>(Renderer));
+        if (Helper.Num() == 0)
+        {
+            Helper.AddValue();
+        }
+        void* ElemPtr = Helper.GetRawPtr(0);
+        if (FStructProperty* StructProp = CastField<FStructProperty>(MaterialsProp->Inner))
+        {
+            if (SetMaterialOnStruct(ElemPtr, StructProp->Struct, Material))
+            {
+                return true;
+            }
+        }
+        else if (FObjectPropertyBase* ObjProp = CastField<FObjectPropertyBase>(MaterialsProp->Inner))
+        {
+            ObjProp->SetObjectPropertyValue(ElemPtr, Material);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool RendererHasMaterial(UNiagaraRendererProperties* Renderer)
+{
+    if (!Renderer)
+    {
+        return false;
+    }
+    if (Renderer->IsA<UNiagaraLightRendererProperties>())
+    {
+        return true;
+    }
+    return GetRendererMaterialAny(Renderer) != nullptr;
 }
 
 static UMaterialInterface* GetDefaultParticleMaterial()
@@ -1327,6 +1595,10 @@ static void EnsureRendererMaterial(UNiagaraRendererProperties* Renderer)
         {
             Ribbon->Material = DefaultMat;
         }
+    }
+    else
+    {
+        SetRendererMaterialAny(Renderer, DefaultMat);
     }
 }
 
@@ -1691,6 +1963,14 @@ bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const 
 {
     if (!System) return false;
 
+    const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), true);
+    if (bDisallowTemplates)
+    {
+        UE_LOG(LogVFXAgent, Error, TEXT("Template usage blocked"));
+        FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Template usage blocked"));
+        return false;
+    }
+
     const FString ObjectPath = NormalizeTemplateObjectPath(TemplatePath);
     if (ObjectPath.IsEmpty())
     {
@@ -1817,8 +2097,27 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
     UNiagaraEmitter* EmitterInstance = VersionedEmitter.Emitter;
     if (!EmitterInstance) return;
 
+    const bool bHasSpawnModules = HasAnyModules(EmitterInstance, TEXT("ParticleSpawnScriptProps"));
+    const bool bHasUpdateModules = HasAnyModules(EmitterInstance, TEXT("ParticleUpdateScriptProps"));
+    if (!bHasSpawnModules && !bHasUpdateModules)
+    {
+        AddMinimalModuleChain(System, EmitterName, Spec.RendererType);
+    }
+
     // 1. Configure Renderer
     bool bHasCorrectRenderer = false;
+
+    // Pre-clean: remove invalid renderers and ensure material binding if possible
+    {
+        UMaterialInterface* DefaultMat = GetDefaultParticleMaterial();
+        FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Fixing extra empty renderer..."));
+        FRendererValidationReport PreReport = FVFXRendererValidationFixer::ValidateAndFixRenderers(EmitterInstance, DefaultMat);
+        if (PreReport.InvalidRenderersRemoved > 0 || PreReport.RenderersFixed > 0)
+        {
+            UE_LOG(LogVFXAgent, Log, TEXT("RendererValidationFixer (pre): %s"), *PreReport.Summary);
+            FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Validate, PreReport.Summary);
+        }
+    }
 
     // Remove any renderers that don't match the requested type to avoid duplicates
     RemoveMismatchedRenderers(EmitterInstance, Spec.RendererType);
@@ -1839,6 +2138,7 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
         UNiagaraRendererProperties* NewProps = nullptr;
         if (Spec.RendererType == EVFXRendererType::Sprite) NewProps = NewObject<UNiagaraSpriteRendererProperties>(EmitterInstance);
         else if (Spec.RendererType == EVFXRendererType::Ribbon) NewProps = NewObject<UNiagaraRibbonRendererProperties>(EmitterInstance);
+        else if (Spec.RendererType == EVFXRendererType::Mesh) NewProps = NewObject<UNiagaraMeshRendererProperties>(EmitterInstance);
         else if (Spec.RendererType == EVFXRendererType::Light) NewProps = NewObject<UNiagaraLightRendererProperties>(EmitterInstance);
         
         if (NewProps)
@@ -1854,6 +2154,37 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
     if (Spec.RendererType == EVFXRendererType::Sprite || Spec.RendererType == EVFXRendererType::Ribbon)
     {
         EnsureSingleRendererHasMaterial(EmitterInstance, Spec.RendererType);
+    }
+
+    // Post-check: ensure exactly one renderer of correct type with non-null material
+    {
+        int32 MatchingCount = 0;
+        bool bHasMaterial = false;
+        for (UNiagaraRendererProperties* Prop : GetEmitterRenderers(EmitterInstance))
+        {
+            if (!Prop) continue;
+            if (IsRendererOfType(Prop, Spec.RendererType))
+            {
+                ++MatchingCount;
+                if (FVFXRendererValidationFixer::GetRendererMaterial(Prop) != nullptr)
+                {
+                    bHasMaterial = true;
+                }
+            }
+        }
+        if (MatchingCount != 1 || !bHasMaterial)
+        {
+            UE_LOG(LogVFXAgent, Warning, TEXT("Renderer self-check failed for '%s': count=%d, hasMaterial=%s"),
+                *EmitterName, MatchingCount, bHasMaterial ? TEXT("YES") : TEXT("NO"));
+            FPipelineLog::Get().Push(EPipelineLogLevel::Warning, EPipelineStage::Validate,
+                FString::Printf(TEXT("Renderer self-check failed for '%s': count=%d, hasMaterial=%s"),
+                    *EmitterName, MatchingCount, bHasMaterial ? TEXT("YES") : TEXT("NO")));
+        }
+        else
+        {
+            FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Validate,
+                FString::Printf(TEXT("Renderer self-check OK for '%s'"), *EmitterName));
+        }
     }
 
     // Apply renderer sort order where supported

@@ -36,12 +36,39 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "Generation")
 	bool bUseTemplates = true;
 
+	// If true, any attempt to use templates will be blocked (recommended).
+	UPROPERTY(EditAnywhere, config, Category = "Generation")
+	bool bDisallowTemplates = true;
+
+	// If true, build pipeline validates but does not create assets.
+	UPROPERTY(EditAnywhere, config, Category = "Generation")
+	bool bDryRun = false;
+
 	UPROPERTY(EditAnywhere, config, Category = "Generation")
 	FString AssetNamePrefix = "VFX_";
 
 	// Preferred material library search roots for auto material selection
 	UPROPERTY(EditAnywhere, config, Category = "Materials", meta=(DisplayName="Material Library Paths"))
 	TArray<FString> MaterialLibraryPaths;
+
+	// Preferred providers for model services
+	UPROPERTY(EditAnywhere, config, Category = "Providers", meta=(DisplayName="Preferred ImageGen Provider"))
+	FString PreferredImageGenProvider = "Local";
+
+	UPROPERTY(EditAnywhere, config, Category = "Providers", meta=(DisplayName="Preferred ImageTo3D Provider"))
+	FString PreferredImageTo3DProvider = "Local";
+
+	UPROPERTY(EditAnywhere, config, Category = "Providers", meta=(DisplayName="ImageGen Endpoint"))
+	FString ImageGenEndpoint = "";
+
+	UPROPERTY(EditAnywhere, config, Category = "Providers", meta=(DisplayName="ImageGen API Key", PasswordField="true"))
+	FString ImageGenApiKey = "";
+
+	UPROPERTY(EditAnywhere, config, Category = "Providers", meta=(DisplayName="ImageTo3D Endpoint"))
+	FString ImageTo3DEndpoint = "";
+
+	UPROPERTY(EditAnywhere, config, Category = "Providers", meta=(DisplayName="ImageTo3D API Key", PasswordField="true"))
+	FString ImageTo3DApiKey = "";
 
 	// Niagara module script paths for collision event handling
 	UPROPERTY(EditAnywhere, config, Category = "Niagara|Events", meta=(DisplayName="Collision Module Script Path"))

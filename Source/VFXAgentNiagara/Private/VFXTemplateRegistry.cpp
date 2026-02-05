@@ -11,6 +11,7 @@ FVFXTemplateRegistry& FVFXTemplateRegistry::Get()
 
 void FVFXTemplateRegistry::Initialize(const FString& RootPath)
 {
+	UE_LOG(LogVFXAgent, Warning, TEXT("TemplateRegistry disabled: templates are disallowed"));
 	if (!RootPath.IsEmpty())
 	{
 		RootContentPath = RootPath;
@@ -20,28 +21,22 @@ void FVFXTemplateRegistry::Initialize(const FString& RootPath)
 
 void FVFXTemplateRegistry::Refresh()
 {
+	UE_LOG(LogVFXAgent, Warning, TEXT("TemplateRegistry refresh skipped: templates are disallowed"));
 	TagToAssetPath.Reset();
 	AssetPathToTag.Reset();
-	ScanAssets();
+	// Templates are disallowed; do not scan assets.
 }
 
 UNiagaraEmitter* FVFXTemplateRegistry::FindByTag(const FString& Tag) const
 {
-	const FString* FoundPath = TagToAssetPath.Find(Tag.ToLower());
-	if (!FoundPath)
-	{
-		return nullptr;
-	}
-	return FindByPath(*FoundPath);
+	UE_LOG(LogVFXAgent, Warning, TEXT("TemplateRegistry find-by-tag blocked: templates are disallowed"));
+	return nullptr;
 }
 
 UNiagaraEmitter* FVFXTemplateRegistry::FindByPath(const FString& AssetPath) const
 {
-	if (AssetPath.IsEmpty())
-	{
-		return nullptr;
-	}
-	return LoadObject<UNiagaraEmitter>(nullptr, *AssetPath);
+	UE_LOG(LogVFXAgent, Warning, TEXT("TemplateRegistry find-by-path blocked: templates are disallowed"));
+	return nullptr;
 }
 
 void FVFXTemplateRegistry::ScanAssets()

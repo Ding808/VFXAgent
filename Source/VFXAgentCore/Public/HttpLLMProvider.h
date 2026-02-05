@@ -37,6 +37,10 @@ public:
 	void RequestDirectorJsonAsync(const FString& UserPrompt, const FString& OptionalStyleRefs, FOnDirectorJsonComplete OnComplete) const;
 	void RequestDirectorRevisionJsonAsync(const FString& OriginalDirectorJson, const FString& ExecutionReportJson, FOnDirectorJsonComplete OnComplete) const;
 
+	// EffectSpec JSON (strict schema) async request
+	using FOnEffectSpecJsonComplete = TFunction<void(bool /*bSuccess*/, const FString& /*EffectSpecJson*/, const FString& /*Error*/)>;
+	void RequestEffectSpecJsonAsync(const FString& UserPrompt, const FString& OptionalStyleRefs, FOnEffectSpecJsonComplete OnComplete) const;
+
 	// Async variants (recommended for editor UI to avoid blocking the game thread).
 	using FOnRecipeComplete = TFunction<void(const FVFXRecipe& /*Recipe*/, const FString& /*Error*/)>;
 	void GenerateRecipeAsync(const FString& Prompt, FOnRecipeComplete OnComplete);
@@ -72,6 +76,7 @@ private:
 
 	FString BuildSystemPrompt() const;
 	FString BuildDirectorSystemPrompt() const;
+	FString BuildEffectSpecSystemPrompt() const;
 	FString BuildDirectorRevisionPrompt(const FString& OriginalDirectorJson, const FString& ExecutionReportJson) const;
 	FString BuildVisionSystemPrompt() const;
 	FString BuildVisionUserPrompt(const FString& OptionalPrompt) const;

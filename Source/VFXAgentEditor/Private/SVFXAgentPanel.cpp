@@ -24,6 +24,15 @@
 #include "IDesktopPlatform.h"
 #include "Framework/Application/SlateApplication.h"
 #include "Misc/Paths.h"
+#include "Misc/FileHelper.h"
+#include "HAL/PlatformApplicationMisc.h"
+#include "HAL/FileManager.h"
+#include "PipelineLog.h"
+#include "EffectSpecParser.h"
+#include "EffectSpecValidator.h"
+#include "AssetBuildPipeline.h"
+#include "Subsystems/AssetEditorSubsystem.h"
+#include "Editor.h"
 
 #include "Async/Async.h"
 
@@ -214,6 +223,91 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 			]
 		]
 
+		// Effect Spec Section
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		.Padding(10.0f)
+		[
+			SNew(SBorder)
+			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(STextBlock)
+					.Text(FText::FromString("Effect Spec"))
+					.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
+				]
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Generate Spec"))
+						.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
+						.OnClicked(this, &SVFXAgentPanel::OnGenerateSpecClicked)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Validate"))
+						.OnClicked(this, &SVFXAgentPanel::OnValidateSpecClicked)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Build"))
+						.OnClicked(this, &SVFXAgentPanel::OnBuildSpecClicked)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Preview"))
+						.OnClicked(this, &SVFXAgentPanel::OnPreviewClicked)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Revise"))
+						.OnClicked(this, &SVFXAgentPanel::OnReviseSpecClicked)
+					]
+				]
+				+ SVerticalBox::Slot()
+				.FillHeight(1.0f)
+				.Padding(5.0f)
+				[
+					SAssignNew(SpecTextBox, SMultiLineEditableTextBox)
+					.Text(FText::FromString(
+						"{\n"
+						"  \"effect_name\": \"Example\",\n"
+						"  \"layers\": [\n"
+						"    {\"id\": \"L1\", \"name\": \"core\", \"role\": \"core_blast\", \"renderer_type\": \"sprite\", \"spawn\": {\"mode\": \"burst\", \"burst_count\": 40}, \"init\": {\"lifetime\": 1.5, \"size_range\": [10, 30], \"velocity\": {\"x\": 0, \"y\": 0, \"z\": 200}}, \"update\": {\"drag\": 1.0, \"curl_noise_strength\": 5.0}, \"material\": {\"shading\": \"unlit\", \"blend\": \"additive\"}},\n"
+						"    {\"id\": \"L2\", \"name\": \"sparks\", \"role\": \"sparks\", \"renderer_type\": \"sprite\", \"spawn\": {\"mode\": \"burst\", \"burst_count\": 80}, \"init\": {\"lifetime\": 1.0, \"size_range\": [2, 8], \"velocity\": {\"x\": 200, \"y\": 0, \"z\": 100}}, \"update\": {\"drag\": 2.0, \"curl_noise_strength\": 2.0}, \"material\": {\"shading\": \"unlit\", \"blend\": \"additive\"}},\n"
+						"    {\"id\": \"L3\", \"name\": \"trail\", \"role\": \"trail\", \"renderer_type\": \"ribbon\", \"spawn\": {\"mode\": \"rate\", \"rate\": 30}, \"init\": {\"lifetime\": 2.0, \"size_range\": [4, 12], \"velocity\": {\"x\": 0, \"y\": 0, \"z\": 120}}, \"update\": {\"drag\": 0.5, \"curl_noise_strength\": 3.0}, \"material\": {\"shading\": \"unlit\", \"blend\": \"translucent\"}}\n"
+						"  ]\n"
+						"}\n"
+					))
+					.IsReadOnly(false)
+					.AutoWrapText(true)
+				]
+			]
+		]
+
 
 		// Log Section
 		+ SVerticalBox::Slot()
@@ -244,9 +338,65 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 				]
 			]
 		]
+
+		// Pipeline Log Section
+		+ SVerticalBox::Slot()
+		.FillHeight(1.0f)
+		.Padding(10.0f)
+		[
+			SNew(SBorder)
+			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.FillWidth(1.0f)
+					[
+						SNew(STextBlock)
+						.Text(FText::FromString("Pipeline Log"))
+						.Font(FAppStyle::GetFontStyle("DetailsView.CategoryFontStyle"))
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Copy"))
+						.OnClicked(this, &SVFXAgentPanel::OnCopyPipelineLogClicked)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Export"))
+						.OnClicked(this, &SVFXAgentPanel::OnExportPipelineLogClicked)
+					]
+				]
+
+				+ SVerticalBox::Slot()
+				.FillHeight(1.0f)
+				.Padding(5.0f)
+				[
+					SAssignNew(PipelineLogTextBox, SMultiLineEditableTextBox)
+					.Text(FText::FromString("Pipeline log ready. Waiting for updates..."))
+					.IsReadOnly(true)
+					.AutoWrapText(true)
+				]
+			]
+		]
 	];
 
 	LogMessage("VFXAgent Panel initialized");
+}
+
+void SVFXAgentPanel::Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime)
+{
+	DrainPipelineLog();
 }
 
 FReply SVFXAgentPanel::OnGenerateClicked()
@@ -335,6 +485,14 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		(UseDirectorPipelineCheckBox->GetCheckedState() == ECheckBoxState::Checked);
 	if (bUseDirectorPipeline)
 	{
+		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+		if (Settings && Settings->bDisallowTemplates)
+		{
+			LogMessage(TEXT("ERROR: Director pipeline uses templates and is disabled when bDisallowTemplates=true"));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Orchestrator, TEXT("Director pipeline blocked by template policy"));
+			bRequestInFlight = false;
+			return FReply::Handled();
+		}
 		if (!LLMProviderObject || !LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
 		{
 			LogMessage(TEXT("ERROR: Director pipeline requires HttpLLMProvider"));
@@ -344,12 +502,14 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 
 		UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
 		LogMessage(TEXT("Requesting Director JSON (plan + actions) from LLM..."));
+		FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("Generating Director JSON..."), CachedLLMBackend);
 		HttpProvider->RequestDirectorJsonAsync(Prompt, FString(), [this, Prompt, SafeAssetName, SafeOutputPath](bool bSuccess, const FString& DirectorJson, const FString& Error)
 		{
 			if (!bSuccess)
 			{
 				bRequestInFlight = false;
 				LogMessage(FString::Printf(TEXT("WARNING: Director JSON request failed: %s"), *Error));
+				FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::LLM, TEXT("Director JSON failed"), CachedLLMBackend);
 				return;
 			}
 
@@ -360,6 +520,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 			{
 				bRequestInFlight = false;
 				LogMessage(FString::Printf(TEXT("ERROR: Director JSON parse failed: %s"), *ParseError));
+				FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::LLM, TEXT("Director JSON parse failed"), CachedLLMBackend);
 				return;
 			}
 
@@ -370,6 +531,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 			Context.Report = &LastExecutionReport;
 
 			LogMessage(TEXT("Executing Director action list..."));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Orchestrator, TEXT("Executing Director actions..."));
 			Executor.ExecuteActionList(Plan.Actions, Context);
 
 			for (const FString& W : LastExecutionReport.Warnings)
@@ -384,12 +546,14 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 			if (!LastExecutionReport.bSuccess)
 			{
 				LogMessage(TEXT("Director execution failed. Self-refinement is disabled; no retry will be attempted."));
+				FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Orchestrator, TEXT("Director execution failed"));
 				bRequestInFlight = false;
 				return;
 			}
 
 			bRequestInFlight = false;
 			LogMessage(TEXT("Director pipeline completed."));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Orchestrator, TEXT("Director pipeline completed"));
 		});
 
 		return FReply::Handled();
@@ -397,6 +561,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 	
 	// Standard generation
 	LogMessage(TEXT("Requesting recipe from LLM (async)..."));
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("Generating Recipe..."), CachedLLMBackend);
 	
 	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
 	{
@@ -407,6 +572,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 			{
 				bRequestInFlight = false;
 				LogMessage(FString::Printf(TEXT("WARNING: LLM failed: %s"), *Error));
+				FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::LLM, TEXT("Recipe generation failed"), CachedLLMBackend);
 				return;
 			}
 
@@ -457,8 +623,13 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 				LogMessage("Generating Niagara System, please wait...");
 
 				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-				const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
+				const bool bDisallowTemplates = Settings ? Settings->bDisallowTemplates : true;
+				const bool bUseTemplates = !bDisallowTemplates && Settings && Settings->bUseTemplates;
 				const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
+				if (bDisallowTemplates)
+				{
+					FPipelineLog::Get().Push(EPipelineLogLevel::Warning, EPipelineStage::Niagara, TEXT("Template usage blocked"));
+				}
 				FVFXRecipe FinalRecipe = EnhancedRecipe;
 				if (!bUseTemplates)
 				{
@@ -472,10 +643,12 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 				{
 					LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
 					LogMessage(TEXT("VFX generation completed!"));
+					FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Niagara build completed"));
 				}
 				else
 				{
 					LogMessage(TEXT("ERROR: Failed to generate Niagara System - check log for details"));
+					FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Niagara build failed"));
 				}
 			}
 			catch (const std::exception& e)
@@ -495,6 +668,7 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		// Fallback (e.g. mock provider): synchronous call.
 		FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
 		bRequestInFlight = false;
+		FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("Recipe generation completed"), CachedLLMBackend);
 		FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
 		LastRecipe = EnhancedRecipe;
 		LastPrompt = Prompt;
@@ -528,8 +702,13 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		}
 
 		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-		const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
+		const bool bDisallowTemplates = Settings ? Settings->bDisallowTemplates : true;
+		const bool bUseTemplates = !bDisallowTemplates && Settings && Settings->bUseTemplates;
 		const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
+		if (bDisallowTemplates)
+		{
+			FPipelineLog::Get().Push(EPipelineLogLevel::Warning, EPipelineStage::Niagara, TEXT("Template usage blocked"));
+		}
 		FVFXRecipe FinalRecipe = EnhancedRecipe;
 		if (!bUseTemplates)
 		{
@@ -544,10 +723,12 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 		{
 			LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
 			LogMessage(TEXT("VFX generation completed!"));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Niagara build completed"));
 		}
 		else
 		{
 			LogMessage(TEXT("ERROR: Failed to generate Niagara System - check log for details"));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Niagara build failed"));
 		}
 	}
 
@@ -645,6 +826,7 @@ FReply SVFXAgentPanel::OnGenerateFromImageClicked()
 
 	bRequestInFlight = true;
 	LogMessage(TEXT("Requesting recipe from LLM (image+prompt, async)..."));
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("Generating Recipe (image+prompt)..."), CachedLLMBackend);
 
 	if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
 	{
@@ -655,6 +837,7 @@ FReply SVFXAgentPanel::OnGenerateFromImageClicked()
 			{
 				bRequestInFlight = false;
 				LogMessage(FString::Printf(TEXT("WARNING: LLM failed: %s"), *Error));
+				FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::LLM, TEXT("Recipe generation failed"), CachedLLMBackend);
 				return;
 			}
 
@@ -714,8 +897,13 @@ FReply SVFXAgentPanel::OnGenerateFromImageClicked()
 				LogMessage(TEXT("Generating Niagara System, please wait..."));
 
 				const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-				const bool bUseTemplates = Settings ? Settings->bUseTemplates : true;
+				const bool bDisallowTemplates = Settings ? Settings->bDisallowTemplates : true;
+				const bool bUseTemplates = !bDisallowTemplates && Settings && Settings->bUseTemplates;
 				const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
+				if (bDisallowTemplates)
+				{
+					FPipelineLog::Get().Push(EPipelineLogLevel::Warning, EPipelineStage::Niagara, TEXT("Template usage blocked"));
+				}
 				FVFXRecipe FinalRecipe = EnhancedRecipe;
 				if (!bUseTemplates)
 				{
@@ -729,10 +917,12 @@ FReply SVFXAgentPanel::OnGenerateFromImageClicked()
 				{
 					LogMessage(FString::Printf(TEXT("Successfully generated Niagara System: %s"), *SafeAssetName));
 					LogMessage(TEXT("VFX generation completed!"));
+					FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Niagara build completed"));
 				}
 				else
 				{
 					LogMessage(TEXT("ERROR: Failed to generate Niagara System - check log for details"));
+					FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Niagara build failed"));
 				}
 			}
 			catch (const std::exception& e)
@@ -751,6 +941,207 @@ FReply SVFXAgentPanel::OnGenerateFromImageClicked()
 
 	LogMessage(TEXT("ERROR: Image-based generation requires the HTTP LLM provider."));
 	bRequestInFlight = false;
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnGenerateSpecClicked()
+{
+	RefreshLLMSettingsFromConfig();
+	if (bRequestInFlight)
+	{
+		LogMessage(TEXT("NOTE: LLM request already in progress..."));
+		return FReply::Handled();
+	}
+
+	if (!LLMProviderObject || !LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+	{
+		LogMessage(TEXT("ERROR: EffectSpec generation requires HttpLLMProvider"));
+		return FReply::Handled();
+	}
+
+	const FString Prompt = PromptTextBox.IsValid() ? PromptTextBox->GetText().ToString() : FString();
+	UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+	LogMessage(TEXT("Requesting EffectSpec JSON (strict schema) from LLM..."));
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("Generating EffectSpec..."), CachedLLMBackend);
+	bRequestInFlight = true;
+
+	HttpProvider->RequestEffectSpecJsonAsync(Prompt, FString(), [this](bool bSuccess, const FString& SpecJson, const FString& Error)
+	{
+		bRequestInFlight = false;
+		if (!bSuccess)
+		{
+			LogMessage(FString::Printf(TEXT("ERROR: EffectSpec request failed: %s"), *Error));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::LLM, TEXT("EffectSpec request failed"), CachedLLMBackend);
+			return;
+		}
+
+		LastEffectSpecJson = SpecJson;
+		if (SpecTextBox.IsValid())
+		{
+			SpecTextBox->SetText(FText::FromString(SpecJson));
+		}
+		{
+			const FString LogDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("VFXAgent"), TEXT("Logs"));
+			IFileManager::Get().MakeDirectory(*LogDir, true);
+			FFileHelper::SaveStringToFile(SpecJson, *(FPaths::Combine(LogDir, TEXT("effectspec_response.txt"))));
+		}
+		LogMessage(TEXT("EffectSpec JSON received."));
+		FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("EffectSpec received"), CachedLLMBackend);
+	});
+
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnValidateSpecClicked()
+{
+	const FString SpecJson = SpecTextBox.IsValid() ? SpecTextBox->GetText().ToString() : FString();
+	FEffectSpecV1 Spec;
+	FString ParseError;
+	if (!FEffectSpecParser::ParseFromJsonString(SpecJson, Spec, ParseError))
+	{
+		LogMessage(FString::Printf(TEXT("Spec parse failed: %s"), *ParseError));
+		FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Validate, TEXT("Spec parse failed"));
+		return FReply::Handled();
+	}
+	TArray<FEffectSpecValidationError> Errors;
+	if (!FEffectSpecValidator::Validate(Spec, Errors))
+	{
+		const FString Msg = FEffectSpecValidator::FormatErrors(Errors);
+		LogMessage(FString::Printf(TEXT("Spec validation failed:\n%s"), *Msg));
+		FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Validate, TEXT("Spec validation failed"));
+		return FReply::Handled();
+	}
+	LogMessage(TEXT("Spec validation OK."));
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Validate, TEXT("Spec validation OK"));
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnBuildSpecClicked()
+{
+	if (bRequestInFlight)
+	{
+		LogMessage(TEXT("NOTE: Request already in progress..."));
+		return FReply::Handled();
+	}
+
+	const FString SpecJson = SpecTextBox.IsValid() ? SpecTextBox->GetText().ToString() : FString();
+	const FString OutputPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : TEXT("/Game/Generated/VFX");
+	LogMessage(TEXT("Building assets from EffectSpec..."));
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Building from EffectSpec..."));
+	
+	bRequestInFlight = true;
+	AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, SpecJson, OutputPath]()
+	{
+		FEffectSpecV1 Parsed;
+		FString ParseError;
+		TArray<FEffectSpecValidationError> Errors;
+		const bool bParsed = FEffectSpecParser::ParseFromJsonString(SpecJson, Parsed, ParseError);
+		const bool bValid = bParsed && FEffectSpecValidator::Validate(Parsed, Errors);
+
+		AsyncTask(ENamedThreads::GameThread, [this, bParsed, bValid, ParseError, Errors, SpecJson, OutputPath]()
+		{
+			if (!bParsed)
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("Spec parse failed: %s"), *ParseError));
+				return;
+			}
+			if (!bValid)
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("Spec validation failed:\n%s"), *FEffectSpecValidator::FormatErrors(Errors)));
+				return;
+			}
+
+			FAssetBuildResult Result;
+			if (!FAssetBuildPipeline::BuildFromJsonSpec(SpecJson, OutputPath, Result))
+			{
+				LogMessage(TEXT("EffectSpec build failed."));
+				for (const FString& Err : Result.Errors)
+				{
+					LogMessage(FString::Printf(TEXT("ERROR: %s"), *Err));
+				}
+				bRequestInFlight = false;
+				return;
+			}
+
+			LastGeneratedSystemPath = Result.SystemPath;
+			LogMessage(FString::Printf(TEXT("EffectSpec build completed: %s"), *LastGeneratedSystemPath));
+			bRequestInFlight = false;
+		});
+	});
+
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnPreviewClicked()
+{
+	if (LastGeneratedSystemPath.IsEmpty())
+	{
+		LogMessage(TEXT("No generated system to preview."));
+		return FReply::Handled();
+	}
+
+	UNiagaraSystem* System = LoadObject<UNiagaraSystem>(nullptr, *LastGeneratedSystemPath);
+	if (!System)
+	{
+		LogMessage(TEXT("Failed to load generated system for preview."));
+		return FReply::Handled();
+	}
+
+	if (GEditor)
+	{
+		UAssetEditorSubsystem* Subsystem = GEditor->GetEditorSubsystem<UAssetEditorSubsystem>();
+		if (Subsystem)
+		{
+			Subsystem->OpenEditorForAsset(System);
+			LogMessage(TEXT("Opened Niagara System editor for preview."));
+		}
+	}
+
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnReviseSpecClicked()
+{
+	RefreshLLMSettingsFromConfig();
+	if (bRequestInFlight)
+	{
+		LogMessage(TEXT("NOTE: LLM request already in progress..."));
+		return FReply::Handled();
+	}
+
+	if (!LLMProviderObject || !LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+	{
+		LogMessage(TEXT("ERROR: Spec revision requires HttpLLMProvider"));
+		return FReply::Handled();
+	}
+
+	const FString Prompt = PromptTextBox.IsValid() ? PromptTextBox->GetText().ToString() : FString();
+	const FString SpecJson = SpecTextBox.IsValid() ? SpecTextBox->GetText().ToString() : FString();
+	const FString Combined = FString::Printf(TEXT("Revise this EffectSpec JSON to match the new prompt.\nPrompt: %s\n\nEffectSpec JSON:\n%s"), *Prompt, *SpecJson);
+
+	UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("Revising EffectSpec..."), CachedLLMBackend);
+	bRequestInFlight = true;
+	HttpProvider->RequestEffectSpecJsonAsync(Combined, FString(), [this](bool bSuccess, const FString& NewJson, const FString& Error)
+	{
+		bRequestInFlight = false;
+		if (!bSuccess)
+		{
+			LogMessage(FString::Printf(TEXT("ERROR: Spec revision failed: %s"), *Error));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::LLM, TEXT("Spec revision failed"), CachedLLMBackend);
+			return;
+		}
+		LastEffectSpecJson = NewJson;
+		if (SpecTextBox.IsValid())
+		{
+			SpecTextBox->SetText(FText::FromString(NewJson));
+		}
+		LogMessage(TEXT("Spec revision completed."));
+		FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("Spec revision completed"), CachedLLMBackend);
+	});
+
 	return FReply::Handled();
 }
 
@@ -816,6 +1207,83 @@ void SVFXAgentPanel::LogMessage(const FString& Message)
 		LogTextBox->SetText(FText::FromString(NewText));
 		UE_LOG(LogVFXAgent, Log, TEXT("%s"), *Message);
 	}
+}
+
+FReply SVFXAgentPanel::OnCopyPipelineLogClicked()
+{
+	const FString Text = BuildPipelineLogText();
+	FPlatformApplicationMisc::ClipboardCopy(*Text);
+	return FReply::Handled();
+}
+
+FReply SVFXAgentPanel::OnExportPipelineLogClicked()
+{
+	const FString LogDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("VFXAgent"), TEXT("Logs"));
+	IFileManager::Get().MakeDirectory(*LogDir, true);
+	const FString UiLogPath = FPaths::Combine(LogDir, TEXT("ui_log.txt"));
+	const FString Text = BuildPipelineLogText();
+	FFileHelper::SaveStringToFile(Text, *UiLogPath);
+	LogMessage(FString::Printf(TEXT("Pipeline log exported: %s"), *UiLogPath));
+	return FReply::Handled();
+}
+
+void SVFXAgentPanel::DrainPipelineLog()
+{
+	TArray<FPipelineLogEntry> Entries;
+	FPipelineLog::Get().Drain(Entries);
+	if (Entries.Num() == 0)
+	{
+		return;
+	}
+
+	for (const FPipelineLogEntry& Entry : Entries)
+	{
+		const FString Level = Entry.Level == EPipelineLogLevel::Error ? TEXT("Error") :
+			Entry.Level == EPipelineLogLevel::Warning ? TEXT("Warn") : TEXT("Info");
+		const FString Stage =
+			Entry.Stage == EPipelineStage::LLM ? TEXT("LLM") :
+			Entry.Stage == EPipelineStage::ImageGen ? TEXT("ImageGen") :
+			Entry.Stage == EPipelineStage::ImageTo3D ? TEXT("ImageTo3D") :
+			Entry.Stage == EPipelineStage::Import ? TEXT("Import") :
+			Entry.Stage == EPipelineStage::Material ? TEXT("Material") :
+			Entry.Stage == EPipelineStage::Niagara ? TEXT("Niagara") :
+			Entry.Stage == EPipelineStage::Validate ? TEXT("Validate") :
+			Entry.Stage == EPipelineStage::Fallback ? TEXT("Fallback") : TEXT("Orchestrator");
+
+		const FString TimeStr = Entry.Timestamp.ToString(TEXT("%H:%M:%S"));
+		FString Provider = Entry.Provider.IsEmpty() ? TEXT("") : FString::Printf(TEXT("[%s]"), *Entry.Provider);
+		FString Progress;
+		if (Entry.TotalSteps > 0)
+		{
+			Progress = FString::Printf(TEXT("[%d/%d %.0f%%] "), Entry.CurrentStep, Entry.TotalSteps, Entry.Percent * 100.0f);
+		}
+		const FString Line = FString::Printf(TEXT("[%s][%s][%s]%s %s%s"), *TimeStr, *Stage, *Level, *Provider, *Progress, *Entry.Message);
+		PipelineLogLines.Add(Line);
+	}
+
+	while (PipelineLogLines.Num() > PipelineLogMaxLines)
+	{
+		PipelineLogLines.RemoveAt(0);
+	}
+
+	bPipelineLogDirty = true;
+	UpdatePipelineLogText();
+}
+
+FString SVFXAgentPanel::BuildPipelineLogText() const
+{
+	return FString::Join(PipelineLogLines, TEXT("\n"));
+}
+
+void SVFXAgentPanel::UpdatePipelineLogText()
+{
+	if (!bPipelineLogDirty || !PipelineLogTextBox.IsValid())
+	{
+		return;
+	}
+
+	PipelineLogTextBox->SetText(FText::FromString(BuildPipelineLogText()));
+	bPipelineLogDirty = false;
 }
 
 void SVFXAgentPanel::UpdateLastRecipe(const FVFXRecipe& Recipe)

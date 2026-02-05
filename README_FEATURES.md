@@ -198,3 +198,67 @@ This system now enables:
 - ✅ User-controlled optimization intensity
 
 The AI can now work like a real VFX artist: analyzing requirements, creating assets, self-reviewing, and iterating until the effect meets quality standards!
+
+---
+
+## Zero-Template Pipeline (New)
+
+The generator now supports a **zero template** build path:
+- No Niagara emitter/system templates are used.
+- Emitters are created procedurally with a minimal module chain.
+- Template usage can be blocked via settings (`bDisallowTemplates=true`).
+
+### Pipeline Log UI
+- A **Pipeline Log** panel shows real-time steps (LLM, Niagara build, validation, fallback).
+- Supports **Copy** and **Export** (Saved/VFXAgent/Logs/ui_log.txt).
+
+### EffectSpec v1 Workflow
+- Generate a strict JSON EffectSpec with the **Generate Spec** button.
+- Validate with **Validate**.
+- Build assets with **Build** (creates versioned output v001/v002...).
+- Preview the generated Niagara system with **Preview**.
+
+### Local ImageGen / ImageTo3D (Fallback)
+- If no external provider is configured, the pipeline can generate **local placeholder textures** and **OBJ meshes**.
+- Output is saved under Saved/VFXAgent/GeneratedTextures and GeneratedMeshes.
+
+### Provider Preferences
+- You can select providers via settings:
+    - Preferred ImageGen Provider
+    - Preferred ImageTo3D Provider
+- Defaults to "Local" and can be extended with custom providers.
+
+### External Providers (HTTP)
+- Configure endpoints via settings:
+    - ImageGen Endpoint / ImageGen API Key
+    - ImageTo3D Endpoint / ImageTo3D API Key
+
+### External Provider API Contract (HTTP POST)
+- Request (ImageGen):
+    - JSON: { "name": "<tex>", "width": 512, "height": 512, "usage": "Noise" }
+- Request (ImageTo3D):
+    - JSON: { "name": "<mesh>", "format": "obj|fbx|glb", "source_image": "<path>" }
+- Response:
+    - JSON with either `file_path` (absolute path on disk) or `data_base64` (binary encoded)
+
+### HLSL Custom Errors
+- If HLSL compilation fails, the system automatically falls back to a simple material.
+- Compilation errors are written to the Pipeline Log.
+
+### Deterministic Rebuilds
+- The build pipeline writes spec_hash.txt to reuse the same version folder when the EffectSpec is unchanged.
+
+### Dry-Run Build
+- Enable `bDryRun=true` to validate specs without creating assets.
+
+### Renderer Bug Fix Verification
+**Minimal Repro:**
+1. Generate any effect with 3 layers (e.g. "anime energy explosion with trail and sparks").
+2. Build via EffectSpec or standard Generate.
+3. Open the Niagara System and inspect each emitter.
+
+**Expected After Fix:**
+- Each emitter has **exactly one renderer** of the correct type.
+- **No renderer has an empty material** (fallback applied if needed).
+
+If you see a “Template usage blocked” log in the Pipeline Log, the system is correctly enforcing the zero-template rule.

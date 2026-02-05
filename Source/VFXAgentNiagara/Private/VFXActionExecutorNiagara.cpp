@@ -14,6 +14,7 @@
 #include "Misc/Paths.h"
 #include "Misc/PackageName.h"
 #include "VFXAgentLog.h"
+#include "PipelineLog.h"
 
 static UNiagaraSystem* ResolveSystemFromContext(const FVFXAction& Action, FVFXActionContext& Context)
 {
@@ -290,6 +291,24 @@ bool FVFXNiagaraActionExecutor::ExecuteAction(const FVFXAction& Action, FVFXActi
 		if (!System)
 		{
 			ErrorReport(Context.Report, TEXT("AddEmitterFromTemplate: no system"));
+			return false;
+		}
+		bool bDisallowTemplates = true;
+		{
+			const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+			const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+			for (const FString& File : ConfigFiles)
+			{
+				if (GConfig && GConfig->GetBool(Section, TEXT("bDisallowTemplates"), bDisallowTemplates, File))
+				{
+					break;
+				}
+			}
+		}
+		if (bDisallowTemplates)
+		{
+			ErrorReport(Context.Report, TEXT("Template usage blocked"));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Template usage blocked"));
 			return false;
 		}
 		const bool bOk = FNiagaraSpecExecutor::AddEmitterFromTemplate(System, Action.Template, Action.Alias);

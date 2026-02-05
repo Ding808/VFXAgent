@@ -48,6 +48,7 @@ public class VFXAgentEditor : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
+				"ApplicationCore",
 				"SlateCore",
 				"InputCore",
 				"EditorStyle",

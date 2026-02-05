@@ -4,6 +4,7 @@
 
 class UNiagaraEmitter;
 class UNiagaraRendererProperties;
+class UNiagaraMeshRendererProperties;
 class UMaterialInterface;
 
 /**

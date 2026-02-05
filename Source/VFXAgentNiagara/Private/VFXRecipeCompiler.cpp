@@ -1,6 +1,7 @@
 #include "VFXRecipeCompiler.h"
 #include "VFXModuleLibrary.h"
 #include "VFXAgentLog.h"
+#include "Misc/ConfigCacheIni.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
 
@@ -656,6 +657,28 @@ bool FEmitterBuilder::AddEmitter(UNiagaraSystem* System, const FVFXEmitterSpec& 
 	if (!System)
 	{
 		return false;
+	}
+
+	bool bDisallowTemplates = true;
+	{
+		const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+		const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+		for (const FString& File : ConfigFiles)
+		{
+			if (GConfig && GConfig->GetBool(Section, TEXT("bDisallowTemplates"), bDisallowTemplates, File))
+			{
+				break;
+			}
+		}
+	}
+	if (bDisallowTemplates)
+	{
+		const bool bAdded = FNiagaraSpecExecutor::AddBasicEmitterToSystem(System, Spec.Name);
+		if (bAdded)
+		{
+			FNiagaraSpecExecutor::ConfigureEmitter(System, Spec.Name, Spec);
+		}
+		return bAdded;
 	}
 
 	FString TemplatePath = Spec.TemplatePath;

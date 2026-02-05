@@ -5,8 +5,56 @@
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.h"
 #include "NiagaraLightRendererProperties.h"
+#include "NiagaraMeshRendererProperties.h"
 #include "Materials/MaterialInterface.h"
 #include "UObject/UnrealType.h"
+
+static UMaterialInterface* GetMaterialFromStruct(void* StructPtr, UStruct* Struct)
+{
+	if (!StructPtr || !Struct)
+	{
+		return nullptr;
+	}
+
+	for (TFieldIterator<FObjectPropertyBase> It(Struct); It; ++It)
+	{
+		FObjectPropertyBase* Prop = *It;
+		if (!Prop)
+		{
+			continue;
+		}
+		if (Prop->PropertyClass->IsChildOf(UMaterialInterface::StaticClass()) && Prop->GetName().Contains(TEXT("Material")))
+		{
+			return Cast<UMaterialInterface>(Prop->GetObjectPropertyValue_InContainer(StructPtr));
+		}
+	}
+
+	return nullptr;
+}
+
+static bool SetMaterialOnStruct(void* StructPtr, UStruct* Struct, UMaterialInterface* Material)
+{
+	if (!StructPtr || !Struct || !Material)
+	{
+		return false;
+	}
+
+	for (TFieldIterator<FObjectPropertyBase> It(Struct); It; ++It)
+	{
+		FObjectPropertyBase* Prop = *It;
+		if (!Prop)
+		{
+			continue;
+		}
+		if (Prop->PropertyClass->IsChildOf(UMaterialInterface::StaticClass()) && Prop->GetName().Contains(TEXT("Material")))
+		{
+			Prop->SetObjectPropertyValue_InContainer(StructPtr, Material);
+			return true;
+		}
+	}
+
+	return false;
+}
 
 FRendererValidationReport FVFXRendererValidationFixer::ValidateAndFixRenderers(UNiagaraEmitter* Emitter, UMaterialInterface* DefaultMaterial)
 {
@@ -139,6 +187,13 @@ bool FVFXRendererValidationFixer::IsRendererValid(UNiagaraRendererProperties* Re
 		// Ribbon is valid if it has material
 		return true;
 	}
+
+	// Mesh renderers are valid if they have any material assigned
+	if (UNiagaraMeshRendererProperties* MeshRenderer = Cast<UNiagaraMeshRendererProperties>(Renderer))
+	{
+		UMaterialInterface* MeshMat = GetRendererMaterial(Renderer);
+		return (MeshMat != nullptr);
+	}
 	
 	// Light renderers don't need materials
 	if (Cast<UNiagaraLightRendererProperties>(Renderer))
@@ -173,6 +228,29 @@ UMaterialInterface* FVFXRendererValidationFixer::GetRendererMaterial(UNiagaraRen
 	{
 		return Cast<UMaterialInterface>(MaterialProp->GetObjectPropertyValue_InContainer(Renderer));
 	}
+
+	// Try Materials array (mesh renderer)
+	FArrayProperty* MaterialsProp = FindFProperty<FArrayProperty>(Renderer->GetClass(), TEXT("Materials"));
+	if (MaterialsProp)
+	{
+		FScriptArrayHelper Helper(MaterialsProp, MaterialsProp->ContainerPtrToValuePtr<void>(Renderer));
+		if (Helper.Num() > 0)
+		{
+			void* ElemPtr = Helper.GetRawPtr(0);
+			if (FStructProperty* StructProp = CastField<FStructProperty>(MaterialsProp->Inner))
+			{
+				if (UMaterialInterface* Mat = GetMaterialFromStruct(ElemPtr, StructProp->Struct))
+				{
+					return Mat;
+				}
+			}
+			else if (FObjectPropertyBase* ObjProp = CastField<FObjectPropertyBase>(MaterialsProp->Inner))
+			{
+				UObject* Obj = ObjProp->GetObjectPropertyValue(ElemPtr);
+				return Cast<UMaterialInterface>(Obj);
+			}
+		}
+	}
 	
 	return nullptr;
 }
@@ -202,6 +280,30 @@ bool FVFXRendererValidationFixer::SetRendererMaterial(UNiagaraRendererProperties
 	{
 		MaterialProp->SetObjectPropertyValue_InContainer(Renderer, Material);
 		return true;
+	}
+
+	// Try Materials array (mesh renderer)
+	FArrayProperty* MaterialsProp = FindFProperty<FArrayProperty>(Renderer->GetClass(), TEXT("Materials"));
+	if (MaterialsProp)
+	{
+		FScriptArrayHelper Helper(MaterialsProp, MaterialsProp->ContainerPtrToValuePtr<void>(Renderer));
+		if (Helper.Num() == 0)
+		{
+			Helper.AddValue();
+		}
+		void* ElemPtr = Helper.GetRawPtr(0);
+		if (FStructProperty* StructProp = CastField<FStructProperty>(MaterialsProp->Inner))
+		{
+			if (SetMaterialOnStruct(ElemPtr, StructProp->Struct, Material))
+			{
+				return true;
+			}
+		}
+		else if (FObjectPropertyBase* ObjProp = CastField<FObjectPropertyBase>(MaterialsProp->Inner))
+		{
+			ObjProp->SetObjectPropertyValue(ElemPtr, Material);
+			return true;
+		}
 	}
 	
 	return false;

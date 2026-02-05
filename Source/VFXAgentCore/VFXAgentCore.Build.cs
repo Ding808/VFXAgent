@@ -42,7 +42,8 @@ public class VFXAgentCore : ModuleRules
 				"HTTP",
 				"Json",
 				"JsonUtilities",
-				"Sequencer"
+				"Sequencer",
+				"AssetRegistry"
 			}
 			);
 		

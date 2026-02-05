@@ -345,6 +345,7 @@ enum class EVFXRendererType : uint8
 {
 	Sprite UMETA(DisplayName = "Sprite"),
 	Ribbon UMETA(DisplayName = "Ribbon"),
+	Mesh UMETA(DisplayName = "Mesh"),
 	Light UMETA(DisplayName = "Light")
 };
 
