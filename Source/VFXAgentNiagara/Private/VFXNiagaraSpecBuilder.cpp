@@ -2,6 +2,7 @@
 #include "VFXAgentLog.h"
 #include "VFXTemplateSelector.h"
 #include "VFXMotionModuleLibrary.h"
+#include "VFXModuleInserter.h"
 #include "VFXModuleStripper.h"
 #include "VFXRendererValidationFixer.h"
 #include "VFXQualityScorer.h"
@@ -10,6 +11,10 @@
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraScript.h"
+#include "NiagaraSpriteRendererProperties.h"
+#include "NiagaraRibbonRendererProperties.h"
+#include "NiagaraMeshRendererProperties.h"
+#include "NiagaraLightRendererProperties.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Factories/Factory.h"
 #include "Misc/ConfigCacheIni.h"
@@ -358,9 +363,242 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::CreateFromScratch(const FString& Emitte
 	if (!Emitter)
 		return nullptr;
 	
-	// Initialize with minimal required scripts
-	// (This would require setting up spawn/update scripts, etc.)
-	// For now, return the created emitter
+return Emitter;
+}
+
+// ============================================================================
+// V2 BUILDER IMPLEMENTATION
+// ============================================================================
+
+void FVFXNiagaraSpecBuilder::LogBuildActionV2(FNiagaraBuildContextV2& Context, const FString& Action)
+{
+	Context.BuildLog.Add(Action);
+	UE_LOG(LogVFXAgent, Log, TEXT("[BUILD V2] %s"), *Action);
+}
+
+UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpecV2(const FEffectSpecV2& Spec, FNiagaraBuildContextV2& OutContext)
+{
+	OutContext.Spec = Spec;
+	OutContext.bSuccess = false;
+
+	FString SystemName = Spec.EffectName;
+	if (SystemName.IsEmpty()) SystemName = TEXT("VFXGen_V2");
+    
+	UNiagaraSystem* System = NewObject<UNiagaraSystem>(
+		GetTransientPackage(), 
+		*SystemName, 
+		RF_Public | RF_Standalone | RF_Transactional
+	);
+
+	if (!System)
+	{
+		OutContext.ErrorMessage = TEXT("Failed to create Niagara system");
+		return nullptr;
+	}
+
+	LogBuildActionV2(OutContext, FString::Printf(TEXT("Created system: %s"), *SystemName));
+
+	for (const FLayerSpecV2& Layer : Spec.Layers)
+	{
+		UNiagaraEmitter* Emitter = BuildEmitterV2(Layer, OutContext);
+		if (Emitter)
+		{
+			FNiagaraEmitterHandle Handle = System->AddEmitterHandle(*Emitter, FName(*Layer.Name));
+			Handle.SetIsEnabled(true);
+			LogBuildActionV2(OutContext, FString::Printf(TEXT("Added Emitter: %s"), *Layer.Name));
+		}
+	}
+
+	OutContext.bSuccess = true;
+	return System;
+}
+
+UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitterV2(const FLayerSpecV2& Layer, FNiagaraBuildContextV2& Context)
+{
+	UNiagaraEmitter* Emitter = CreateFromScratch(Layer.Name);
+	if (!Emitter) return nullptr;
+
+	ConfigureEmitterMotionV2(Emitter, Layer, Context);
+
+	// ========================================================================
+	// MATERIAL GENERATION
+	// ========================================================================
 	
+	// 1. Prepare Material Recipe
+	FVFXMaterialRecipe MatRecipe;
+	MatRecipe.Name = FString::Printf(TEXT("M_%s_%s"), *Layer.Name, *FGuid::NewGuid().ToString().Left(4)); // Unique name
+	
+	// Map Shading Model
+	MatRecipe.bIsUnlit = (Layer.Material.Shading.ToLower() == TEXT("unlit"));
+	
+	// Map Blend Mode
+	const FString Blend = Layer.Material.Blend.ToLower();
+	if (Blend == TEXT("additive")) MatRecipe.bIsAdditive = true;
+	else if (Blend == TEXT("translucent")) MatRecipe.bIsAdditive = false; // Simplified mapping
+	else if (Blend == TEXT("masked")) MatRecipe.bIsAdditive = false; // Need fuller support in Recipe
+	
+	MatRecipe.BaseColor = Layer.Material.BaseColor;
+	MatRecipe.EmissiveColor = Layer.Material.EmissiveColor;
+	MatRecipe.EmissiveStrength = Layer.Material.EmissiveIntensity;
+	MatRecipe.Opacity = Layer.Material.Opacity;
+
+	// 2. Generate Material Asset
+	const FString MatRootPath = TEXT("/Game/VFXAgent/Generated/Materials");
+	UMaterialGenerator* MatGen = UMaterialGenerator::CreateInstance();
+	UMaterialInstanceConstant* NewMaterial = MatGen->GenerateMaterial(MatRecipe, MatRootPath);
+	
+	if (NewMaterial)
+	{
+		LogBuildActionV2(Context, FString::Printf(TEXT("Generated Material: %s"), *NewMaterial->GetName()));
+	}
+	else
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("Failed to generate material for layer %s"), *Layer.Name);
+	}
+
+	// 3. Create & Assign Renderer
+	UNiagaraRendererProperties* RendererProps = nullptr;
+	const FString RendererType = Layer.RendererType.ToLower();
+
+	if (RendererType.Contains(TEXT("sprite")))
+	{
+		UNiagaraSpriteRendererProperties* SpriteRen = NewObject<UNiagaraSpriteRendererProperties>(Emitter, "SpriteRenderer");
+		if (NewMaterial) SpriteRen->Material = NewMaterial;
+		
+		// Set Alignment based on motion
+		if (Layer.Motion.Verb == EMotionVerbV2::Stream || Layer.Motion.Verb == EMotionVerbV2::Rise)
+		{
+			SpriteRen->Alignment = ENiagaraSpriteAlignment::VelocityAligned;
+		}
+		else
+		{
+			SpriteRen->Alignment = ENiagaraSpriteAlignment::Unaligned;
+		}
+		
+		RendererProps = SpriteRen;
+	}
+	else if (RendererType.Contains(TEXT("ribbon")))
+	{
+		UNiagaraRibbonRendererProperties* RibbonRen = NewObject<UNiagaraRibbonRendererProperties>(Emitter, "RibbonRenderer");
+		if (NewMaterial) RibbonRen->Material = NewMaterial;
+		RendererProps = RibbonRen;
+	}
+	else if (RendererType.Contains(TEXT("mesh")))
+	{
+		UNiagaraMeshRendererProperties* MeshRen = NewObject<UNiagaraMeshRendererProperties>(Emitter, "MeshRenderer");
+		if (NewMaterial) MeshRen->OverrideMaterials.Add(FNiagaraMeshMaterialOverride(NewMaterial));
+		RendererProps = MeshRen;
+	}
+	else if (RendererType.Contains(TEXT("light")))
+	{
+		UNiagaraLightRendererProperties* LightRen = NewObject<UNiagaraLightRendererProperties>(Emitter, "LightRenderer");
+		RendererProps = LightRen;
+	}
+
+	if (RendererProps)
+	{
+		Emitter->AddRenderer(RendererProps);
+		LogBuildActionV2(Context, FString::Printf(TEXT("Added Renderer: %s"), *RendererProps->GetName()));
+	}
+	else
+	{
+		// Default to sprite if unknown
+		UNiagaraSpriteRendererProperties* DefaultRen = NewObject<UNiagaraSpriteRendererProperties>(Emitter, "DefaultSpriteRenderer");
+		if (NewMaterial) DefaultRen->Material = NewMaterial;
+		Emitter->AddRenderer(DefaultRen);
+		LogBuildActionV2(Context, TEXT("Added Default Renderer (Sprite)"));
+	}
+
 	return Emitter;
+}
+
+void FVFXNiagaraSpecBuilder::ConfigureEmitterMotionV2(UNiagaraEmitter* Emitter, const FLayerSpecV2& Layer, FNiagaraBuildContextV2& Context)
+{
+	TArray<FMotionModuleDescriptor> Modules;
+
+	// 1. Initialize
+	FMotionModuleDescriptor InitModule;
+	InitModule.DisplayName = TEXT("Initialize Particle");
+	InitModule.ModulePath = TEXT("/Niagara/Modules/Initialize/InitializeParticle.InitializeParticle"); 
+	InitModule.Phase = EModulePhase::PreSim;
+	InitModule.Priority = 0;
+	InitModule.DefaultParams.Add(TEXT("Lifetime"), Layer.Timing.TotalLifetime);
+	InitModule.DefaultParams.Add(TEXT("SpriteSize"), 50.0f);
+	InitModule.bRequired = true;
+	Modules.Add(InitModule);
+
+	// 2. Spawn Logic
+	FMotionModuleDescriptor SpawnModule;
+	SpawnModule.Phase = EModulePhase::PreSim;
+	SpawnModule.Priority = 2; // After Init
+	SpawnModule.bRequired = true;
+
+	bool bUseBurst = (Layer.Timing.TotalLifetime < 2.0f && !Layer.Timing.bLoop);
+	if (Layer.Motion.Verb == EMotionVerbV2::Explode || Layer.Motion.Verb == EMotionVerbV2::Snap)
+	{
+		bUseBurst = true;
+	}
+    
+	if (bUseBurst)
+	{
+		SpawnModule.DisplayName = TEXT("Spawn Burst Instant");
+		SpawnModule.ModulePath = TEXT("/Niagara/Modules/Emitter/SpawnBurstInstant.SpawnBurstInstant");
+		SpawnModule.DefaultParams.Add(TEXT("SpawnCount"), (float)Layer.MaxParticles); 
+	}
+	else
+	{
+		SpawnModule.DisplayName = TEXT("Spawn Rate");
+		SpawnModule.ModulePath = TEXT("/Niagara/Modules/Emitter/SpawnRate.SpawnRate");
+		SpawnModule.DefaultParams.Add(TEXT("SpawnRate"), (float)Layer.MaxParticles / FMath::Max(0.1f, Layer.Timing.TotalLifetime));
+	}
+	Modules.Add(SpawnModule);
+
+	// 3. Motion & Velocity
+	if (Layer.Motion.Verb == EMotionVerbV2::Explode)
+	{
+		FMotionModuleDescriptor VelModule;
+		VelModule.DisplayName = TEXT("Add Velocity In Cone");
+		VelModule.ModulePath = TEXT("/Niagara/Modules/Velocity/AddVelocityInCone.AddVelocityInCone");
+		VelModule.Phase = EModulePhase::Forces;
+		VelModule.DefaultParams.Add(TEXT("VelocityStrength"), Layer.Motion.Speed);
+		Modules.Add(VelModule);
+	}
+	else if (Layer.Motion.Verb == EMotionVerbV2::Rise || Layer.Motion.Verb == EMotionVerbV2::Fall)
+	{
+		FMotionModuleDescriptor VelModule;
+		VelModule.DisplayName = TEXT("Add Velocity");
+		VelModule.ModulePath = TEXT("/Niagara/Modules/Velocity/AddVelocity.AddVelocity");
+		VelModule.Phase = EModulePhase::Forces;
+		Modules.Add(VelModule);
+	}
+	else if (Layer.Motion.Verb == EMotionVerbV2::Orbit || Layer.Motion.Verb == EMotionVerbV2::Spiral)
+	{
+		FMotionModuleDescriptor VortexModule;
+		VortexModule.DisplayName = TEXT("Vortex Force");
+		VortexModule.ModulePath = TEXT("/Niagara/Modules/Forces/VortexForce.VortexForce");
+		VortexModule.Phase = EModulePhase::Forces;
+		VortexModule.DefaultParams.Add(TEXT("VortexStrength"), Layer.Motion.Speed);
+		Modules.Add(VortexModule);
+	}
+
+	// 4. Drag
+	if (Layer.Motion.DragCoefficient > 0.0f)
+	{
+		FMotionModuleDescriptor DragModule;
+		DragModule.DisplayName = TEXT("Drag");
+		DragModule.ModulePath = TEXT("/Niagara/Modules/Solve/Drag.Drag");
+		DragModule.Phase = EModulePhase::Damping;
+		DragModule.DefaultParams.Add(TEXT("Drag"), Layer.Motion.DragCoefficient);
+		Modules.Add(DragModule); 
+	}
+	
+	// 5. Solver
+	FMotionModuleDescriptor SolverModule;
+	SolverModule.DisplayName = TEXT("Solve Forces and Velocity");
+	SolverModule.ModulePath = TEXT("/Niagara/Modules/Solve/SolveForcesAndVelocity.SolveForcesAndVelocity");
+	SolverModule.Phase = EModulePhase::Integrate;
+	SolverModule.bRequired = true;
+	Modules.Add(SolverModule);
+
+	FVFXModuleInserter::InsertModules(Emitter, Modules, TEXT("V2_Builder"));
 }

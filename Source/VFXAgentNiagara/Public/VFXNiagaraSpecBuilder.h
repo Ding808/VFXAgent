@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "VFXRecipe.h"
+#include "EffectSpecV2.h"
 #include "VFXTemplateSelector.h"
 #include "VFXMotionModuleLibrary.h"
 
@@ -31,6 +32,14 @@ struct FNiagaraBuildContext
 	FString ErrorMessage;
 };
 
+struct FNiagaraBuildContextV2
+{
+	FEffectSpecV2 Spec;
+	TArray<FString> BuildLog;
+	bool bSuccess = false;
+	FString ErrorMessage;
+};
+
 class VFXAGENTNIAGARA_API FVFXNiagaraSpecBuilder
 {
 public:
@@ -41,6 +50,11 @@ public:
 	 * @return Generated Niagara system or nullptr on failure
 	 */
 	static UNiagaraSystem* BuildFromSpec(const FVFXEffectSpec& Spec, FNiagaraBuildContext& OutContext);
+
+	/**
+	 * Build a Niagara system from V2 Spec (LLM Native)
+	 */
+	static UNiagaraSystem* BuildFromSpecV2(const FEffectSpecV2& Spec, FNiagaraBuildContextV2& OutContext);
 	
 	/**
 	 * Build a single emitter with constraint enforcement
@@ -81,6 +95,17 @@ public:
 
 private:
 	static void LogBuildAction(FNiagaraBuildContext& Context, const FString& Action);
+	static void LogBuildActionV2(FNiagaraBuildContextV2& Context, const FString& Action);
+
 	static UNiagaraEmitter* CreateFromTemplate(const FString& TemplatePath, const FString& EmitterName);
 	static UNiagaraEmitter* CreateFromScratch(const FString& EmitterName);
+
+	static UNiagaraEmitter* BuildEmitterV2(
+		const FLayerSpecV2& Layer,
+		FNiagaraBuildContextV2& Context);
+
+	static void ConfigureEmitterMotionV2(
+		UNiagaraEmitter* Emitter,
+		const FLayerSpecV2& Layer,
+		FNiagaraBuildContextV2& Context);
 };
