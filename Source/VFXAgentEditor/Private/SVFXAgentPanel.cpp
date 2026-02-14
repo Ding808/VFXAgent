@@ -31,6 +31,11 @@
 #include "EffectSpecParser.h"
 #include "EffectSpecValidator.h"
 #include "AssetBuildPipeline.h"
+#include "VFXMultiCandidatePipeline.h"
+#include "EffectSpecV2Parser.h"
+#include "EffectSpecV2Validator.h"
+#include "BehaviorArchetypeLibrary.h"
+#include "AssetBuildPipelineV2.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "Editor.h"
 
@@ -287,6 +292,43 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
 						.OnClicked(this, &SVFXAgentPanel::OnReviseSpecClicked)
 					]
 				]
+
+				// V2 Pipeline Buttons
+				+ SVerticalBox::Slot()
+				.AutoHeight()
+				.Padding(5.0f)
+				[
+					SNew(SHorizontalBox)
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Generate V2 Spec"))
+						.ToolTipText(FText::FromString("Multi-candidate pipeline with scoring & revision"))
+						.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
+						.OnClicked(this, &SVFXAgentPanel::OnGenerateV2SpecClicked)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Validate V2"))
+						.ToolTipText(FText::FromString("Validate the spec in the editor as EffectSpec v2"))
+						.OnClicked(this, &SVFXAgentPanel::OnValidateV2SpecClicked)
+					]
+					+ SHorizontalBox::Slot()
+					.AutoWidth()
+					.Padding(4.0f,0.0f)
+					[
+						SNew(SButton)
+						.Text(FText::FromString("Build V2"))
+						.ToolTipText(FText::FromString("Build Niagara system from EffectSpec v2"))
+						.IsEnabled_Lambda([this]() { return !bRequestInFlight; })
+						.OnClicked(this, &SVFXAgentPanel::OnBuildV2SpecClicked)
+					]
+				]
 				+ SVerticalBox::Slot()
 				.FillHeight(1.0f)
 				.Padding(5.0f)
@@ -481,18 +523,20 @@ FReply SVFXAgentPanel::OnGenerateClicked()
 
 	bRequestInFlight = true;
 
-	const bool bUseDirectorPipeline = UseDirectorPipelineCheckBox.IsValid() &&
+	const bool bDirectorCheckboxOn = UseDirectorPipelineCheckBox.IsValid() &&
 		(UseDirectorPipelineCheckBox->GetCheckedState() == ECheckBoxState::Checked);
+
+	// Director pipeline requires templates; auto-skip when bDisallowTemplates=true.
+	const UVFXAgentSettings* DirSettings = GetDefault<UVFXAgentSettings>();
+	const bool bUseDirectorPipeline = bDirectorCheckboxOn && !(DirSettings && DirSettings->bDisallowTemplates);
+	if (bDirectorCheckboxOn && !bUseDirectorPipeline)
+	{
+		LogMessage(TEXT("NOTE: Director pipeline requires templates but bDisallowTemplates=true. Using standard recipe pipeline instead."));
+		FPipelineLog::Get().Push(EPipelineLogLevel::Warning, EPipelineStage::Orchestrator, TEXT("Director pipeline skipped (template policy), using recipe pipeline"));
+	}
+
 	if (bUseDirectorPipeline)
 	{
-		const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-		if (Settings && Settings->bDisallowTemplates)
-		{
-			LogMessage(TEXT("ERROR: Director pipeline uses templates and is disabled when bDisallowTemplates=true"));
-			FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Orchestrator, TEXT("Director pipeline blocked by template policy"));
-			bRequestInFlight = false;
-			return FReply::Handled();
-		}
 		if (!LLMProviderObject || !LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
 		{
 			LogMessage(TEXT("ERROR: Director pipeline requires HttpLLMProvider"));
@@ -1324,7 +1368,19 @@ void SVFXAgentPanel::RefreshLLMSettingsFromConfig()
 
 		if (ProviderObj)
 		{
-			const EVFXAgentLLMBackend Backend = bUseOllama ? EVFXAgentLLMBackend::OllamaGenerate : EVFXAgentLLMBackend::OpenAIChatCompletions;
+			EVFXAgentLLMBackend Backend;
+			if (bUseOllama)
+			{
+				Backend = EVFXAgentLLMBackend::OllamaGenerate;
+			}
+			else if (CachedLLMEndpoint.Contains(TEXT("/v1/responses")))
+			{
+				Backend = EVFXAgentLLMBackend::OpenAIResponses;
+			}
+			else
+			{
+				Backend = EVFXAgentLLMBackend::OpenAIChatCompletions;
+			}
 			ProviderObj->Configure(
 				Backend,
 				CachedLLMEndpoint,
@@ -1347,6 +1403,246 @@ void SVFXAgentPanel::RefreshLLMSettingsFromConfig()
 			}
 		}
 	}
+}
+
+// ============================================================================
+// V2 Pipeline: Generate V2 Spec (multi-candidate)
+// ============================================================================
+
+FReply SVFXAgentPanel::OnGenerateV2SpecClicked()
+{
+	RefreshLLMSettingsFromConfig();
+	if (bRequestInFlight)
+	{
+		LogMessage(TEXT("NOTE: LLM request already in progress..."));
+		return FReply::Handled();
+	}
+
+	if (!LLMProviderObject || !LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+	{
+		LogMessage(TEXT("ERROR: V2 pipeline requires HttpLLMProvider"));
+		return FReply::Handled();
+	}
+
+	const FString Prompt = PromptTextBox.IsValid() ? PromptTextBox->GetText().ToString() : FString();
+	if (Prompt.IsEmpty())
+	{
+		LogMessage(TEXT("ERROR: Please enter a prompt."));
+		return FReply::Handled();
+	}
+
+	UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+	const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
+
+	// Build config from settings
+	FMultiCandidateConfig Config;
+	Config.NumCandidates = Settings ? Settings->V2NumCandidates : 3;
+	Config.TargetScore = Settings ? Settings->V2TargetScore : 0.85f;
+	Config.MinAcceptScore = Settings ? Settings->V2MinAcceptScore : 0.6f;
+	Config.MaxRevisionPasses = Settings ? Settings->V2MaxRevisionPasses : 2;
+
+	EVFXBehaviorArchetype InferredArchetype = FBehaviorArchetypeLibrary::InferFromPrompt(Prompt);
+	const FBehaviorArchetypeDefinition& ArchDef = FBehaviorArchetypeLibrary::GetDefinition(InferredArchetype);
+
+	LogMessage(FString::Printf(TEXT("Starting V2 multi-candidate pipeline...")));
+	LogMessage(FString::Printf(TEXT("  Archetype: %s"), *ArchDef.DisplayName));
+	LogMessage(FString::Printf(TEXT("  Candidates: %d, Target Score: %.2f, Max Revisions: %d"),
+		Config.NumCandidates, Config.TargetScore, Config.MaxRevisionPasses));
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Orchestrator,
+		FString::Printf(TEXT("V2 pipeline: archetype=%s, candidates=%d"), *ArchDef.DisplayName, Config.NumCandidates));
+
+	bRequestInFlight = true;
+
+	FVFXMultiCandidatePipeline::RunAsync(HttpProvider, Prompt, Config,
+		[this](const FMultiCandidatePipelineResult& Result)
+		{
+			bRequestInFlight = false;
+			LastV2Result = Result;
+
+			if (!Result.bSuccess)
+			{
+				LogMessage(TEXT("V2 pipeline FAILED. No viable candidate."));
+				FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Orchestrator, TEXT("V2 pipeline failed"));
+				for (const FString& Line : Result.PipelineLog)
+				{
+					LogMessage(FString::Printf(TEXT("  [V2] %s"), *Line));
+				}
+				return;
+			}
+
+			// Display results
+			DisplayV2CandidateResults(Result);
+
+			// Store the selected spec JSON in the editor
+			LastEffectSpecV2Json = Result.SelectedCandidate.RawJson;
+			if (SpecTextBox.IsValid())
+			{
+				SpecTextBox->SetText(FText::FromString(Result.SelectedCandidate.RawJson));
+			}
+
+			// Save to disk
+			const FString LogDir = FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("VFXAgent"), TEXT("Logs"));
+			IFileManager::Get().MakeDirectory(*LogDir, true);
+			FFileHelper::SaveStringToFile(Result.SelectedCandidate.RawJson, *FPaths::Combine(LogDir, TEXT("effectspec_v2_selected.json")));
+
+			// Save all candidates
+			for (int32 i = 0; i < Result.AllCandidates.Num(); ++i)
+			{
+				FFileHelper::SaveStringToFile(
+					Result.AllCandidates[i].RawJson,
+					*FPaths::Combine(LogDir, FString::Printf(TEXT("effectspec_v2_candidate_%d.json"), i)));
+			}
+
+			LogMessage(FString::Printf(TEXT("V2 pipeline completed. Selected candidate #%d, score=%.2f, LLM calls=%d"),
+				Result.SelectedIndex, Result.SelectedCandidate.Score, Result.TotalLLMCalls));
+			FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Orchestrator,
+				FString::Printf(TEXT("V2 pipeline done: score=%.2f, calls=%d"), Result.SelectedCandidate.Score, Result.TotalLLMCalls));
+		});
+
+	return FReply::Handled();
+}
+
+void SVFXAgentPanel::DisplayV2CandidateResults(const FMultiCandidatePipelineResult& Result)
+{
+	LogMessage(TEXT("=== V2 Pipeline Results ==="));
+	LogMessage(FString::Printf(TEXT("Total Candidates: %d, LLM Calls: %d"), Result.AllCandidates.Num(), Result.TotalLLMCalls));
+
+	for (int32 i = 0; i < Result.AllCandidates.Num(); ++i)
+	{
+		const FVFXCandidate& C = Result.AllCandidates[i];
+		const FString Marker = (i == Result.SelectedIndex) ? TEXT(" ★ SELECTED") : TEXT("");
+		LogMessage(FString::Printf(TEXT("  Candidate #%d: valid=%s, score=%.2f%s"),
+			i, C.bValid ? TEXT("YES") : TEXT("NO"), C.Score, *Marker));
+		for (const FString& S : C.Strengths)
+		{
+			LogMessage(FString::Printf(TEXT("    + %s"), *S));
+		}
+		for (const FString& I : C.Issues)
+		{
+			LogMessage(FString::Printf(TEXT("    - %s"), *I));
+		}
+	}
+
+	// Pipeline log
+	for (const FString& Line : Result.PipelineLog)
+	{
+		LogMessage(FString::Printf(TEXT("  [V2] %s"), *Line));
+	}
+}
+
+// ============================================================================
+// V2 Pipeline: Validate V2 Spec
+// ============================================================================
+
+FReply SVFXAgentPanel::OnValidateV2SpecClicked()
+{
+	const FString SpecJson = SpecTextBox.IsValid() ? SpecTextBox->GetText().ToString() : FString();
+	FEffectSpecV2 Spec;
+	FString ParseError;
+	if (!FEffectSpecV2Parser::ParseFromJson(SpecJson, Spec, ParseError))
+	{
+		LogMessage(FString::Printf(TEXT("V2 Spec parse failed: %s"), *ParseError));
+		FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Validate, TEXT("V2 spec parse failed"));
+		return FReply::Handled();
+	}
+
+	TArray<FString> Errors, Warnings;
+	FEffectSpecV2Validator::Validate(Spec, Errors, Warnings);
+
+	if (Errors.Num() > 0)
+	{
+		LogMessage(FString::Printf(TEXT("V2 Spec validation FAILED (%d errors, %d warnings):"), Errors.Num(), Warnings.Num()));
+		for (const FString& E : Errors) { LogMessage(FString::Printf(TEXT("  ERROR: %s"), *E)); }
+		for (const FString& W : Warnings) { LogMessage(FString::Printf(TEXT("  WARN: %s"), *W)); }
+		FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Validate, TEXT("V2 spec validation failed"));
+		return FReply::Handled();
+	}
+
+	// Score it
+	TArray<FString> Strengths, Issues;
+	float Score = FVFXSpecScorer::Score(Spec, Strengths, Issues);
+	LogMessage(FString::Printf(TEXT("V2 Spec validation OK. Score: %.2f"), Score));
+	LogMessage(FString::Printf(TEXT("  Layers: %d, Events: %d, Archetype: %s"),
+		Spec.Layers.Num(), Spec.Events.Num(), *Spec.EffectName));
+	for (const FString& S : Strengths) { LogMessage(FString::Printf(TEXT("  + %s"), *S)); }
+	for (const FString& I : Issues) { LogMessage(FString::Printf(TEXT("  - %s"), *I)); }
+	if (Warnings.Num() > 0)
+	{
+		for (const FString& W : Warnings) { LogMessage(FString::Printf(TEXT("  WARN: %s"), *W)); }
+	}
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Validate,
+		FString::Printf(TEXT("V2 spec OK, score=%.2f"), Score));
+	return FReply::Handled();
+}
+
+// ============================================================================
+// V2 Pipeline: Build V2 Spec
+// ============================================================================
+
+FReply SVFXAgentPanel::OnBuildV2SpecClicked()
+{
+	if (bRequestInFlight)
+	{
+		LogMessage(TEXT("NOTE: Request already in progress..."));
+		return FReply::Handled();
+	}
+
+	const FString SpecJson = SpecTextBox.IsValid() ? SpecTextBox->GetText().ToString() : FString();
+	const FString OutputPath = OutputPathTextBox.IsValid() ? OutputPathTextBox->GetText().ToString() : TEXT("/Game/Generated/VFX");
+	LogMessage(TEXT("Building Niagara system from V2 EffectSpec..."));
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("V2 Build starting..."));
+
+	bRequestInFlight = true;
+	AsyncTask(ENamedThreads::AnyBackgroundThreadNormalTask, [this, SpecJson, OutputPath]()
+	{
+		FEffectSpecV2 Parsed;
+		FString ParseError;
+		const bool bParsed = FEffectSpecV2Parser::ParseFromJson(SpecJson, Parsed, ParseError);
+
+		TArray<FString> Errors, Warnings;
+		const bool bValid = bParsed && FEffectSpecV2Validator::Validate(Parsed, Errors, Warnings);
+
+		AsyncTask(ENamedThreads::GameThread, [this, bParsed, bValid, ParseError, Errors, Warnings, SpecJson, OutputPath, Parsed]()
+		{
+			if (!bParsed)
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("V2 Spec parse failed: %s"), *ParseError));
+				return;
+			}
+			if (!bValid)
+			{
+				bRequestInFlight = false;
+				LogMessage(FString::Printf(TEXT("V2 Spec validation failed:\n%s"),
+					*FEffectSpecV2Validator::FormatReport(Errors, Warnings)));
+				return;
+			}
+
+			FAssetBuildResult Result;
+			if (!FAssetBuildPipelineV2::BuildFromV2Spec(Parsed, OutputPath, Result))
+			{
+				LogMessage(TEXT("V2 build failed."));
+				for (const FString& Err : Result.Errors)
+				{
+					LogMessage(FString::Printf(TEXT("  ERROR: %s"), *Err));
+				}
+				bRequestInFlight = false;
+				return;
+			}
+
+			LastGeneratedSystemPath = Result.SystemPath;
+			LogMessage(FString::Printf(TEXT("V2 Build completed: %s"), *LastGeneratedSystemPath));
+			for (const FString& W : Result.Warnings)
+			{
+				LogMessage(FString::Printf(TEXT("  WARN: %s"), *W));
+			}
+			FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara,
+				FString::Printf(TEXT("V2 Build done: %s"), *LastGeneratedSystemPath));
+			bRequestInFlight = false;
+		});
+	});
+
+	return FReply::Handled();
 }
 
 #undef LOCTEXT_NAMESPACE

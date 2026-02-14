@@ -1,0 +1,36 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.VFXAgentNiagara.cpp.obj": [
+			"BasicAssetGenService.gen.cpp.obj",
+			"MaterialGenerator.gen.cpp.obj",
+			"NiagaraSystemGenerator.gen.cpp.obj",
+			"VFXAgentNiagara.init.gen.cpp.obj",
+			"VFXIterativeOptimizer.gen.cpp.obj",
+			"VFXRecipeCompiler.gen.cpp.obj",
+			"PerModuleInline.gen.cpp.obj",
+			"AssetBuildPipeline.cpp.obj",
+			"AssetBuildPipelineV2.cpp.obj",
+			"BasicAssetGenService.cpp.obj",
+			"LocalModelServices.cpp.obj",
+			"MaterialCustomBuilder.cpp.obj",
+			"MaterialGenerator.cpp.obj",
+			"NiagaraSpecExecutor.cpp.obj",
+			"NiagaraSystemGenerator.cpp.obj",
+			"NiagaraSystemGenerator_Old.cpp.obj",
+			"VFXActionExecutorNiagara.cpp.obj",
+			"VFXAgentNiagaraModule.cpp.obj",
+			"VFXIterativeOptimizer.cpp.obj",
+			"VFXModuleInserter.cpp.obj",
+			"VFXModuleLibrary.cpp.obj",
+			"VFXModuleStripper.cpp.obj",
+			"VFXMotionModuleLibrary.cpp.obj",
+			"VFXNiagaraSpecBuilder.cpp.obj",
+			"VFXQualityScorer.cpp.obj",
+			"VFXRecipeCompiler.cpp.obj",
+			"VFXRendererValidationFixer.cpp.obj",
+			"VFXTemplateRegistry.cpp.obj",
+			"VFXTemplateSelector.cpp.obj"
+		]
+	}
+}

@@ -9,6 +9,7 @@ enum class EVFXAgentLLMBackend : uint8
 {
 	Mock UMETA(DisplayName = "Mock"),
 	OpenAIChatCompletions UMETA(DisplayName = "OpenAI Chat Completions"),
+	OpenAIResponses UMETA(DisplayName = "OpenAI Responses API"),
 	OllamaGenerate UMETA(DisplayName = "Ollama /api/generate"),
 };
 
@@ -58,6 +59,12 @@ public:
 		const FString& ReferenceImagePath,
 		const FString& OriginalPrompt) override;
 
+	/**
+	 * Send a request with a custom system prompt, returning the raw JSON text.
+	 * Used by the V2 multi-candidate pipeline to inject the VFX Grammar/Style Bible.
+	 */
+	void RequestDirectorJsonInternalAsync(const FString& UserPrompt, const FString& SystemPrompt, FOnDirectorJsonComplete OnComplete) const;
+
 private:
 	UPROPERTY(EditAnywhere, Category = "VFXAgent|LLM")
 	EVFXAgentLLMBackend Backend = EVFXAgentLLMBackend::OpenAIChatCompletions;
@@ -85,7 +92,6 @@ private:
 	bool TryRequestRecipeJson(const FString& UserPrompt, FString& OutRecipeJson, FString& OutError) const;
 	using FOnRecipeJsonComplete = TFunction<void(bool /*bSuccess*/, const FString& /*RecipeJson*/, const FString& /*Error*/)>;
 	void RequestRecipeJsonAsync(const FString& UserPrompt, FOnRecipeJsonComplete OnComplete) const;
-	void RequestDirectorJsonInternalAsync(const FString& UserPrompt, const FString& SystemPrompt, FOnDirectorJsonComplete OnComplete) const;
 	void RequestRecipeJsonWithImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const;
 	void RequestRecipeJsonWithImageDataAsync(const FString& ImageDataOrBase64, const FString& OptionalPrompt, FOnRecipeJsonComplete OnComplete) const;
 	void RequestImageAnalysisAsync(const FString& ImagePath, TFunction<void(bool, const FString&, const FString&)> OnComplete) const;

@@ -1,0 +1,35 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\private\\httpllmprovider.cpp",
+        "ProvidedModule": "",
+        "PCH": "f:\\tst\\testing\\intermediate\\build\\win64\\x64\\testingeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "Includes": [
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentcore\\definitions.vfxagentcore.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\httpllmprovider.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\illmprovider.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxrecipe.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\unrealeditor\\inc\\vfxagentcore\\uht\\vfxrecipe.generated.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\unrealeditor\\inc\\vfxagentcore\\uht\\httpllmprovider.generated.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxagentlog.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\jsonutilities\\public\\jsonobjectconverter.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\jsonutilities\\public\\jsonobjectwrapper.h",
+            "f:\\ue_5.5\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\jsonutilities\\uht\\jsonobjectwrapper.generated.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\assetregistry\\public\\assetregistry\\assetregistrymodule.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\assetregistry\\public\\assetregistry\\iassetregistry.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\coreuobject\\public\\misc\\assetregistryinterface.h",
+            "f:\\ue_5.5\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\assetregistry\\uht\\iassetregistry.generated.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\engine\\public\\materials\\materialinstanceconstant.h",
+            "f:\\ue_5.5\\engine\\intermediate\\build\\win64\\unrealeditor\\inc\\engine\\uht\\materialinstanceconstant.generated.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\online\\http\\public\\httpmodule.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\online\\http\\public\\interfaces\\ihttprequest.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\online\\http\\public\\interfaces\\ihttpbase.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\online\\http\\public\\httpmanager.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\online\\http\\public\\httppackage.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\core\\public\\misc\\urlrequestfilter.h",
+            "f:\\ue_5.5\\engine\\source\\runtime\\online\\http\\public\\interfaces\\ihttpresponse.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

@@ -6,6 +6,7 @@
 #include "Types/SlateEnums.h"
 #include "VFXRecipe.h"
 #include "VFXDirectorTypes.h"
+#include "VFXMultiCandidatePipeline.h"
 
 class ILLMProvider;
 
@@ -36,6 +37,11 @@ private:
 	FReply OnCopyPipelineLogClicked();
 	FReply OnExportPipelineLogClicked();
 
+	// V2 pipeline callbacks
+	FReply OnGenerateV2SpecClicked();
+	FReply OnValidateV2SpecClicked();
+	FReply OnBuildV2SpecClicked();
+
 	// Helper functions
 	void LogMessage(const FString& Message);
 	void UpdateLastRecipe(const FVFXRecipe& Recipe);
@@ -44,6 +50,7 @@ private:
 	void DrainPipelineLog();
 	void UpdatePipelineLogText();
 	FString BuildPipelineLogText() const;
+	void DisplayV2CandidateResults(const FMultiCandidatePipelineResult& Result);
 
 	// UI elements
 	TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;
@@ -62,6 +69,10 @@ private:
 	FString LastEffectSpecJson;
 	FString LastGeneratedSystemPath;
 	FVFXExecutionReport LastExecutionReport;
+
+	// V2 pipeline data
+	FMultiCandidatePipelineResult LastV2Result;
+	FString LastEffectSpecV2Json;
 
 	// LLM Provider
 	UObject* LLMProviderObject = nullptr;

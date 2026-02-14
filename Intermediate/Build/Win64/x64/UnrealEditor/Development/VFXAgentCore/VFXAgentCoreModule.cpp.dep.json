@@ -1,0 +1,15 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\private\\vfxagentcoremodule.cpp",
+        "ProvidedModule": "",
+        "PCH": "f:\\tst\\testing\\intermediate\\build\\win64\\x64\\testingeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "Includes": [
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentcore\\definitions.vfxagentcore.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxagentcoremodule.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxagentlog.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

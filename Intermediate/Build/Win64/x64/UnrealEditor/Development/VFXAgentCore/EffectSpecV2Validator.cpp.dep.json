@@ -1,0 +1,17 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\private\\effectspecv2validator.cpp",
+        "ProvidedModule": "",
+        "PCH": "f:\\tst\\testing\\intermediate\\build\\win64\\x64\\testingeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "Includes": [
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentcore\\definitions.vfxagentcore.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\effectspecv2validator.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\effectspecv2.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\unrealeditor\\inc\\vfxagentcore\\uht\\effectspecv2.generated.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\behaviorarchetypelibrary.h"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

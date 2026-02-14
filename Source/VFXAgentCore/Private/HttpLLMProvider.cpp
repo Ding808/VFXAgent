@@ -62,6 +62,78 @@ static bool IsPlaceholderApiKey(const FString& InKey)
 	return Key.IsEmpty() || Key.Equals(TEXT("set"), ESearchCase::IgnoreCase) || Key.Equals(TEXT("<set>"), ESearchCase::IgnoreCase);
 }
 
+/** Build a detailed error string from a failed HTTP request/response. */
+static FString BuildHttpFailureMessage(const FString& Tag, FHttpRequestPtr Request, FHttpResponsePtr Response)
+{
+	const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
+	const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
+	const int32 RespCode = Response.IsValid() ? Response->GetResponseCode() : 0;
+	const FString RespBody = Response.IsValid() ? Response->GetContentAsString().Left(500) : TEXT("<no response>");
+	UE_LOG(LogVFXAgent, Error, TEXT("%s HTTP failed. Status=%s URL=%s Code=%d Body=%s"), *Tag, *StatusStr, *UrlStr, RespCode, *RespBody);
+	return FString::Printf(TEXT("HTTP request failed (status=%s). URL=%s"), *StatusStr, *UrlStr);
+}
+
+/** Returns true if the effective backend should use the OpenAI Responses API format. */
+static bool IsResponsesAPI(EVFXAgentLLMBackend Backend, const FString& Endpoint)
+{
+	if (Backend == EVFXAgentLLMBackend::OpenAIResponses)
+	{
+		return true;
+	}
+	// Auto-detect from endpoint URL when the user sets backend to OpenAIChatCompletions
+	// but the endpoint actually points at the Responses API.
+	if (Backend == EVFXAgentLLMBackend::OpenAIChatCompletions)
+	{
+		return Endpoint.Contains(TEXT("/v1/responses"));
+	}
+	return false;
+}
+
+/** Try to extract the text content from an OpenAI Responses API response object.
+ *  The Responses API returns: { "output": [ { "type":"message", "content": [ { "type":"output_text", "text":"..." } ] } ] }
+ */
+static bool TryExtractResponsesAPIContent(const TSharedPtr<FJsonObject>& Root, FString& OutContent, FString& OutError)
+{
+	const TArray<TSharedPtr<FJsonValue>>* OutputArray = nullptr;
+	if (!Root->TryGetArrayField(TEXT("output"), OutputArray) || !OutputArray || OutputArray->Num() == 0)
+	{
+		OutError = TEXT("Responses API response missing 'output' array");
+		return false;
+	}
+
+	for (const TSharedPtr<FJsonValue>& OutputItem : *OutputArray)
+	{
+		const TSharedPtr<FJsonObject> ItemObj = OutputItem->AsObject();
+		if (!ItemObj.IsValid()) continue;
+
+		FString ItemType;
+		ItemObj->TryGetStringField(TEXT("type"), ItemType);
+		if (ItemType != TEXT("message")) continue;
+
+		const TArray<TSharedPtr<FJsonValue>>* ContentArray = nullptr;
+		if (!ItemObj->TryGetArrayField(TEXT("content"), ContentArray) || !ContentArray) continue;
+
+		for (const TSharedPtr<FJsonValue>& ContentItem : *ContentArray)
+		{
+			const TSharedPtr<FJsonObject> ContentObj = ContentItem->AsObject();
+			if (!ContentObj.IsValid()) continue;
+
+			FString ContentType;
+			ContentObj->TryGetStringField(TEXT("type"), ContentType);
+			if (ContentType == TEXT("output_text"))
+			{
+				if (ContentObj->TryGetStringField(TEXT("text"), OutContent))
+				{
+					return true;
+				}
+			}
+		}
+	}
+
+	OutError = TEXT("Responses API response has no output_text content");
+	return false;
+}
+
 #if WITH_EDITOR
 static TArray<FString> GetMaterialLibraryPathsFromConfig()
 {
@@ -462,12 +534,14 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 		return;
 	}
 
-	const bool bOpenAIBackend = (Backend == EVFXAgentLLMBackend::OpenAIChatCompletions);
+	const bool bOpenAIBackend = (Backend == EVFXAgentLLMBackend::OpenAIChatCompletions || Backend == EVFXAgentLLMBackend::OpenAIResponses);
 	if (bOpenAIBackend && IsPlaceholderApiKey(ApiKey))
 	{
 		OnComplete(false, FString(), TEXT("OpenAI API key is missing or placeholder"));
 		return;
 	}
+
+	const bool bUseResponsesAPI = IsResponsesAPI(Backend, EffectiveEndpoint);
 
 	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
 	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
@@ -480,6 +554,26 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("llama2") : Model);
 		BodyRef->SetStringField(TEXT("prompt"), BuildSystemPrompt() + TEXT("\n\nUSER_PROMPT:\n") + UserPrompt);
 		BodyRef->SetBoolField(TEXT("stream"), false);
+	}
+	else if (bUseResponsesAPI)
+	{
+		// OpenAI Responses API format (/v1/responses).
+		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
+		BodyRef->SetStringField(TEXT("instructions"), BuildSystemPrompt());
+		// Responses API requires the word "json" in the input when text.format.type=json_object.
+		BodyRef->SetStringField(TEXT("input"), UserPrompt + TEXT("\nRespond with JSON."));
+
+		// Responses API uses text.format instead of response_format.
+		TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
+		TSharedPtr<FJsonObject> FormatObj = MakeShared<FJsonObject>();
+		FormatObj->SetStringField(TEXT("type"), TEXT("json_object"));
+		TextObj->SetObjectField(TEXT("format"), FormatObj);
+		BodyRef->SetObjectField(TEXT("text"), TextObj);
+
+		if (!ApiKey.IsEmpty())
+		{
+			ExtraHeaders.Add(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
+		}
 	}
 	else
 	{
@@ -535,17 +629,16 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 	Req->SetTimeout(TimeoutSeconds);
 
 	const EVFXAgentLLMBackend EffectiveBackend = Backend;
+	const bool bResponsesAPI = bUseResponsesAPI;
 	Req->OnProcessRequestComplete().BindLambda([
 		OnComplete,
-		EffectiveBackend
+		EffectiveBackend,
+		bResponsesAPI
 	](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
 	{
 		if (!bSucceeded || !Response.IsValid())
 		{
-			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
-			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
-			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
-			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
+			OnComplete(false, FString(), BuildHttpFailureMessage(TEXT("RequestRecipeJson"), Request, Response));
 			return;
 		}
 
@@ -575,6 +668,19 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 				return;
 			}
 			OutRecipeJson = Resp;
+			OnComplete(true, OutRecipeJson, FString());
+			return;
+		}
+
+		// Responses API: output[].content[].text
+		if (bResponsesAPI)
+		{
+			FString ExtractError;
+			if (!TryExtractResponsesAPIContent(Root, OutRecipeJson, ExtractError))
+			{
+				OnComplete(false, FString(), ExtractError);
+				return;
+			}
 			OnComplete(true, OutRecipeJson, FString());
 			return;
 		}
@@ -612,6 +718,9 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 		OnComplete(true, OutRecipeJson, FString());
 	});
 
+	UE_LOG(LogVFXAgent, Log, TEXT("RequestRecipeJsonAsync: Sending POST to %s (model=%s, bodyLen=%d, timeout=%.1fs)"),
+		*EffectiveEndpoint, *Model, BodyText.Len(), TimeoutSeconds);
+
 	if (!Req->ProcessRequest())
 	{
 		OnComplete(false, FString(), TEXT("Failed to start HTTP request"));
@@ -634,12 +743,14 @@ void UHttpLLMProvider::RequestDirectorJsonInternalAsync(const FString& UserPromp
 		return;
 	}
 
-	const bool bOpenAIBackend = (Backend == EVFXAgentLLMBackend::OpenAIChatCompletions);
+	const bool bOpenAIBackend = (Backend == EVFXAgentLLMBackend::OpenAIChatCompletions || Backend == EVFXAgentLLMBackend::OpenAIResponses);
 	if (bOpenAIBackend && IsPlaceholderApiKey(ApiKey))
 	{
 		OnComplete(false, FString(), TEXT("OpenAI API key is missing or placeholder"));
 		return;
 	}
+
+	const bool bUseResponsesAPI = IsResponsesAPI(Backend, EffectiveEndpoint);
 
 	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
 	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
@@ -652,6 +763,25 @@ void UHttpLLMProvider::RequestDirectorJsonInternalAsync(const FString& UserPromp
 		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("llama2") : Model);
 		BodyRef->SetStringField(TEXT("prompt"), SystemPrompt + TEXT("\n\nUSER_PROMPT:\n") + UserPrompt);
 		BodyRef->SetBoolField(TEXT("stream"), false);
+	}
+	else if (bUseResponsesAPI)
+	{
+		// OpenAI Responses API format (/v1/responses).
+		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
+		BodyRef->SetStringField(TEXT("instructions"), SystemPrompt);
+		// Responses API requires the word "json" in the input when text.format.type=json_object.
+		BodyRef->SetStringField(TEXT("input"), UserPrompt + TEXT("\nRespond with JSON."));
+
+		TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
+		TSharedPtr<FJsonObject> FormatObj = MakeShared<FJsonObject>();
+		FormatObj->SetStringField(TEXT("type"), TEXT("json_object"));
+		TextObj->SetObjectField(TEXT("format"), FormatObj);
+		BodyRef->SetObjectField(TEXT("text"), TextObj);
+
+		if (!ApiKey.IsEmpty())
+		{
+			ExtraHeaders.Add(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
+		}
 	}
 	else
 	{
@@ -705,17 +835,16 @@ void UHttpLLMProvider::RequestDirectorJsonInternalAsync(const FString& UserPromp
 	Req->SetTimeout(TimeoutSeconds);
 
 	const EVFXAgentLLMBackend EffectiveBackend = Backend;
+	const bool bResponsesAPI = bUseResponsesAPI;
 	Req->OnProcessRequestComplete().BindLambda([
 		OnComplete,
-		EffectiveBackend
+		EffectiveBackend,
+		bResponsesAPI
 	](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
 	{
 		if (!bSucceeded || !Response.IsValid())
 		{
-			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
-			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
-			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
-			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
+			OnComplete(false, FString(), BuildHttpFailureMessage(TEXT("RequestDirectorJson"), Request, Response));
 			return;
 		}
 
@@ -745,6 +874,19 @@ void UHttpLLMProvider::RequestDirectorJsonInternalAsync(const FString& UserPromp
 				return;
 			}
 			OutJson = Resp;
+			OnComplete(true, OutJson, FString());
+			return;
+		}
+
+		// Responses API: output[].content[].text
+		if (bResponsesAPI)
+		{
+			FString ExtractError;
+			if (!TryExtractResponsesAPIContent(Root, OutJson, ExtractError))
+			{
+				OnComplete(false, FString(), ExtractError);
+				return;
+			}
 			OnComplete(true, OutJson, FString());
 			return;
 		}
@@ -1050,7 +1192,7 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 		return;
 	}
 
-	if (Backend != EVFXAgentLLMBackend::OpenAIChatCompletions)
+	if (Backend != EVFXAgentLLMBackend::OpenAIChatCompletions && Backend != EVFXAgentLLMBackend::OpenAIResponses)
 	{
 		OnComplete(false, FString(), TEXT("Image analysis is only supported on OpenAI-compatible chat completions backend."));
 		return;
@@ -1069,6 +1211,8 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 		return;
 	}
 
+	const bool bUseResponsesAPI = IsResponsesAPI(Backend, EffectiveEndpoint);
+
 	TArray<uint8> ImageBytes;
 	if (!FFileHelper::LoadFileToArray(ImageBytes, *ImageFilePath))
 	{
@@ -1083,45 +1227,82 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
 	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
 	BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
-	BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-	BodyRef->SetNumberField(TEXT("max_tokens"), 16384);  // Keep within typical provider limits
 
-	TArray<TSharedPtr<FJsonValue>> Messages;
+	if (bUseResponsesAPI)
 	{
-		TSharedPtr<FJsonObject> Sys = MakeShared<FJsonObject>();
-		Sys->SetStringField(TEXT("role"), TEXT("system"));
-		Sys->SetStringField(TEXT("content"), BuildSystemPrompt());
-		Messages.Add(MakeShared<FJsonValueObject>(Sys));
-	}
-	{
-		TSharedPtr<FJsonObject> User = MakeShared<FJsonObject>();
-		User->SetStringField(TEXT("role"), TEXT("user"));
+		// OpenAI Responses API format with image input.
+		BodyRef->SetStringField(TEXT("instructions"), BuildSystemPrompt());
 
-		TArray<TSharedPtr<FJsonValue>> Content;
+		TArray<TSharedPtr<FJsonValue>> InputArray;
 		{
-			TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
-			TextObj->SetStringField(TEXT("type"), TEXT("text"));
-			TextObj->SetStringField(TEXT("text"), BuildVisionUserPrompt(OptionalPrompt));
-			Content.Add(MakeShared<FJsonValueObject>(TextObj));
+			TSharedPtr<FJsonObject> TextInput = MakeShared<FJsonObject>();
+			TextInput->SetStringField(TEXT("type"), TEXT("message"));
+			TextInput->SetStringField(TEXT("role"), TEXT("user"));
+			TArray<TSharedPtr<FJsonValue>> ContentArr;
+			{
+				TSharedPtr<FJsonObject> TextPart = MakeShared<FJsonObject>();
+				TextPart->SetStringField(TEXT("type"), TEXT("input_text"));
+				TextPart->SetStringField(TEXT("text"), BuildVisionUserPrompt(OptionalPrompt));
+				ContentArr.Add(MakeShared<FJsonValueObject>(TextPart));
+			}
+			{
+				TSharedPtr<FJsonObject> ImagePart = MakeShared<FJsonObject>();
+				ImagePart->SetStringField(TEXT("type"), TEXT("input_image"));
+				ImagePart->SetStringField(TEXT("image_url"), DataUrl);
+				ContentArr.Add(MakeShared<FJsonValueObject>(ImagePart));
+			}
+			TextInput->SetArrayField(TEXT("content"), ContentArr);
+			InputArray.Add(MakeShared<FJsonValueObject>(TextInput));
+		}
+		BodyRef->SetArrayField(TEXT("input"), InputArray);
+
+		TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
+		TSharedPtr<FJsonObject> FormatObj = MakeShared<FJsonObject>();
+		FormatObj->SetStringField(TEXT("type"), TEXT("json_object"));
+		TextObj->SetObjectField(TEXT("format"), FormatObj);
+		BodyRef->SetObjectField(TEXT("text"), TextObj);
+	}
+	else
+	{
+		BodyRef->SetNumberField(TEXT("temperature"), 0.2);
+		BodyRef->SetNumberField(TEXT("max_tokens"), 16384);
+
+		TArray<TSharedPtr<FJsonValue>> Messages;
+		{
+			TSharedPtr<FJsonObject> Sys = MakeShared<FJsonObject>();
+			Sys->SetStringField(TEXT("role"), TEXT("system"));
+			Sys->SetStringField(TEXT("content"), BuildSystemPrompt());
+			Messages.Add(MakeShared<FJsonValueObject>(Sys));
 		}
 		{
-			TSharedPtr<FJsonObject> ImageUrlObj = MakeShared<FJsonObject>();
-			ImageUrlObj->SetStringField(TEXT("type"), TEXT("image_url"));
-			TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
-			ImageUrl->SetStringField(TEXT("url"), DataUrl);
-			ImageUrlObj->SetObjectField(TEXT("image_url"), ImageUrl);
-			Content.Add(MakeShared<FJsonValueObject>(ImageUrlObj));
+			TSharedPtr<FJsonObject> User = MakeShared<FJsonObject>();
+			User->SetStringField(TEXT("role"), TEXT("user"));
+
+			TArray<TSharedPtr<FJsonValue>> Content;
+			{
+				TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
+				TextObj->SetStringField(TEXT("type"), TEXT("text"));
+				TextObj->SetStringField(TEXT("text"), BuildVisionUserPrompt(OptionalPrompt));
+				Content.Add(MakeShared<FJsonValueObject>(TextObj));
+			}
+			{
+				TSharedPtr<FJsonObject> ImageUrlObj = MakeShared<FJsonObject>();
+				ImageUrlObj->SetStringField(TEXT("type"), TEXT("image_url"));
+				TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
+				ImageUrl->SetStringField(TEXT("url"), DataUrl);
+				ImageUrlObj->SetObjectField(TEXT("image_url"), ImageUrl);
+				Content.Add(MakeShared<FJsonValueObject>(ImageUrlObj));
+			}
+
+			User->SetArrayField(TEXT("content"), Content);
+			Messages.Add(MakeShared<FJsonValueObject>(User));
 		}
+		BodyRef->SetArrayField(TEXT("messages"), Messages);
 
-		User->SetArrayField(TEXT("content"), Content);
-		Messages.Add(MakeShared<FJsonValueObject>(User));
+		TSharedPtr<FJsonObject> ResponseFormat = MakeShared<FJsonObject>();
+		ResponseFormat->SetStringField(TEXT("type"), TEXT("json_object"));
+		BodyRef->SetObjectField(TEXT("response_format"), ResponseFormat);
 	}
-	BodyRef->SetArrayField(TEXT("messages"), Messages);
-
-	// Best-effort strict JSON response (supported by many OpenAI-compatible endpoints).
-	TSharedPtr<FJsonObject> ResponseFormat = MakeShared<FJsonObject>();
-	ResponseFormat->SetStringField(TEXT("type"), TEXT("json_object"));
-	BodyRef->SetObjectField(TEXT("response_format"), ResponseFormat);
 
 	FString BodyText;
 	{
@@ -1143,17 +1324,16 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 	Req->SetContentAsString(BodyText);
 	Req->SetTimeout(FMath::Max(TimeoutSeconds, 120.0f));
 
+	const bool bResponsesAPI = bUseResponsesAPI;
 	Req->OnProcessRequestComplete().BindLambda([
 		this,
-		OnComplete
+		OnComplete,
+		bResponsesAPI
 	](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
 	{
 		if (!bSucceeded || !Response.IsValid())
 		{
-			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
-			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
-			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
-			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
+			OnComplete(false, FString(), BuildHttpFailureMessage(TEXT("RequestRecipeJsonWithImage"), Request, Response));
 			return;
 		}
 
@@ -1170,6 +1350,21 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 		if (!ParseJsonObject(ResponseText, Root, JsonError))
 		{
 			OnComplete(false, FString(), FString::Printf(TEXT("LLM response is not JSON: %s"), *ResponseText.Left(200)));
+			return;
+		}
+
+		// Responses API: output[].content[].text
+		if (bResponsesAPI)
+		{
+			FString Content;
+			FString ExtractError;
+			if (!TryExtractResponsesAPIContent(Root, Content, ExtractError))
+			{
+				OnComplete(false, FString(), ExtractError);
+				return;
+			}
+			LastRawRecipeJson = Content;
+			OnComplete(true, Content, FString());
 			return;
 		}
 
@@ -1222,7 +1417,7 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageD
 		return;
 	}
 
-	if (Backend != EVFXAgentLLMBackend::OpenAIChatCompletions)
+	if (Backend != EVFXAgentLLMBackend::OpenAIChatCompletions && Backend != EVFXAgentLLMBackend::OpenAIResponses)
 	{
 		OnComplete(false, FString(), TEXT("Image analysis is only supported on OpenAI-compatible chat completions backend."));
 		return;
@@ -1247,50 +1442,88 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageD
 		return;
 	}
 
+	const bool bUseResponsesAPI = IsResponsesAPI(Backend, EffectiveEndpoint);
 	const FString DataUrl = NormalizeImageDataToDataUrl(ImageDataOrBase64, TEXT("image/png"));
 
 	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
 	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
 	BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
-	BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-	BodyRef->SetNumberField(TEXT("max_tokens"), 4096);  // Keep within typical provider limits
 
-	TArray<TSharedPtr<FJsonValue>> Messages;
+	if (bUseResponsesAPI)
 	{
-		TSharedPtr<FJsonObject> Sys = MakeShared<FJsonObject>();
-		Sys->SetStringField(TEXT("role"), TEXT("system"));
-		Sys->SetStringField(TEXT("content"), BuildSystemPrompt());
-		Messages.Add(MakeShared<FJsonValueObject>(Sys));
-	}
-	{
-		TSharedPtr<FJsonObject> User = MakeShared<FJsonObject>();
-		User->SetStringField(TEXT("role"), TEXT("user"));
+		// OpenAI Responses API format with image input.
+		BodyRef->SetStringField(TEXT("instructions"), BuildSystemPrompt());
 
-		TArray<TSharedPtr<FJsonValue>> Content;
+		TArray<TSharedPtr<FJsonValue>> InputArray;
 		{
-			TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
-			TextObj->SetStringField(TEXT("type"), TEXT("text"));
-			TextObj->SetStringField(TEXT("text"), BuildVisionUserPrompt(OptionalPrompt));
-			Content.Add(MakeShared<FJsonValueObject>(TextObj));
+			TSharedPtr<FJsonObject> MsgInput = MakeShared<FJsonObject>();
+			MsgInput->SetStringField(TEXT("type"), TEXT("message"));
+			MsgInput->SetStringField(TEXT("role"), TEXT("user"));
+			TArray<TSharedPtr<FJsonValue>> ContentArr;
+			{
+				TSharedPtr<FJsonObject> TextPart = MakeShared<FJsonObject>();
+				TextPart->SetStringField(TEXT("type"), TEXT("input_text"));
+				TextPart->SetStringField(TEXT("text"), BuildVisionUserPrompt(OptionalPrompt));
+				ContentArr.Add(MakeShared<FJsonValueObject>(TextPart));
+			}
+			{
+				TSharedPtr<FJsonObject> ImagePart = MakeShared<FJsonObject>();
+				ImagePart->SetStringField(TEXT("type"), TEXT("input_image"));
+				ImagePart->SetStringField(TEXT("image_url"), DataUrl);
+				ContentArr.Add(MakeShared<FJsonValueObject>(ImagePart));
+			}
+			MsgInput->SetArrayField(TEXT("content"), ContentArr);
+			InputArray.Add(MakeShared<FJsonValueObject>(MsgInput));
+		}
+		BodyRef->SetArrayField(TEXT("input"), InputArray);
+
+		TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
+		TSharedPtr<FJsonObject> FormatObj = MakeShared<FJsonObject>();
+		FormatObj->SetStringField(TEXT("type"), TEXT("json_object"));
+		TextObj->SetObjectField(TEXT("format"), FormatObj);
+		BodyRef->SetObjectField(TEXT("text"), TextObj);
+	}
+	else
+	{
+		BodyRef->SetNumberField(TEXT("temperature"), 0.2);
+		BodyRef->SetNumberField(TEXT("max_tokens"), 4096);
+
+		TArray<TSharedPtr<FJsonValue>> Messages;
+		{
+			TSharedPtr<FJsonObject> Sys = MakeShared<FJsonObject>();
+			Sys->SetStringField(TEXT("role"), TEXT("system"));
+			Sys->SetStringField(TEXT("content"), BuildSystemPrompt());
+			Messages.Add(MakeShared<FJsonValueObject>(Sys));
 		}
 		{
-			TSharedPtr<FJsonObject> ImageUrlObj = MakeShared<FJsonObject>();
-			ImageUrlObj->SetStringField(TEXT("type"), TEXT("image_url"));
-			TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
-			ImageUrl->SetStringField(TEXT("url"), DataUrl);
-			ImageUrlObj->SetObjectField(TEXT("image_url"), ImageUrl);
-			Content.Add(MakeShared<FJsonValueObject>(ImageUrlObj));
+			TSharedPtr<FJsonObject> User = MakeShared<FJsonObject>();
+			User->SetStringField(TEXT("role"), TEXT("user"));
+
+			TArray<TSharedPtr<FJsonValue>> Content;
+			{
+				TSharedPtr<FJsonObject> TextObj = MakeShared<FJsonObject>();
+				TextObj->SetStringField(TEXT("type"), TEXT("text"));
+				TextObj->SetStringField(TEXT("text"), BuildVisionUserPrompt(OptionalPrompt));
+				Content.Add(MakeShared<FJsonValueObject>(TextObj));
+			}
+			{
+				TSharedPtr<FJsonObject> ImageUrlObj = MakeShared<FJsonObject>();
+				ImageUrlObj->SetStringField(TEXT("type"), TEXT("image_url"));
+				TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
+				ImageUrl->SetStringField(TEXT("url"), DataUrl);
+				ImageUrlObj->SetObjectField(TEXT("image_url"), ImageUrl);
+				Content.Add(MakeShared<FJsonValueObject>(ImageUrlObj));
+			}
+
+			User->SetArrayField(TEXT("content"), Content);
+			Messages.Add(MakeShared<FJsonValueObject>(User));
 		}
+		BodyRef->SetArrayField(TEXT("messages"), Messages);
 
-		User->SetArrayField(TEXT("content"), Content);
-		Messages.Add(MakeShared<FJsonValueObject>(User));
+		TSharedPtr<FJsonObject> ResponseFormat = MakeShared<FJsonObject>();
+		ResponseFormat->SetStringField(TEXT("type"), TEXT("json_object"));
+		BodyRef->SetObjectField(TEXT("response_format"), ResponseFormat);
 	}
-	BodyRef->SetArrayField(TEXT("messages"), Messages);
-
-	// Best-effort strict JSON response (supported by many OpenAI-compatible endpoints).
-	TSharedPtr<FJsonObject> ResponseFormat = MakeShared<FJsonObject>();
-	ResponseFormat->SetStringField(TEXT("type"), TEXT("json_object"));
-	BodyRef->SetObjectField(TEXT("response_format"), ResponseFormat);
 
 	FString BodyText;
 	{
@@ -1312,17 +1545,16 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageD
 	Req->SetContentAsString(BodyText);
 	Req->SetTimeout(FMath::Max(TimeoutSeconds, 120.0f));
 
+	const bool bResponsesAPI = bUseResponsesAPI;
 	Req->OnProcessRequestComplete().BindLambda([
 		this,
-		OnComplete
+		OnComplete,
+		bResponsesAPI
 	](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
 	{
 		if (!bSucceeded || !Response.IsValid())
 		{
-			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
-			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
-			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
-			OnComplete(false, FString(), FString::Printf(TEXT("HTTP request failed (status=%s)"), *StatusStr));
+			OnComplete(false, FString(), BuildHttpFailureMessage(TEXT("RequestRecipeJsonWithImageData"), Request, Response));
 			return;
 		}
 
@@ -1339,6 +1571,21 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageD
 		if (!ParseJsonObject(ResponseText, Root, JsonError))
 		{
 			OnComplete(false, FString(), FString::Printf(TEXT("LLM response is not JSON: %s"), *ResponseText.Left(200)));
+			return;
+		}
+
+		// Responses API: output[].content[].text
+		if (bResponsesAPI)
+		{
+			FString Content;
+			FString ExtractError;
+			if (!TryExtractResponsesAPIContent(Root, Content, ExtractError))
+			{
+				OnComplete(false, FString(), ExtractError);
+				return;
+			}
+			LastRawRecipeJson = Content;
+			OnComplete(true, Content, FString());
 			return;
 		}
 
@@ -1705,37 +1952,72 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 		return;
 	}
 
-	// Build vision request (OpenAI GPT-4 Vision format)
+	// Build vision request
+	const bool bUseResponsesAPI = IsResponsesAPI(Backend, EffectiveEndpoint);
 	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
 	BodyObj->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o") : Model);
-	BodyObj->SetNumberField(TEXT("max_tokens"), 4096);
 
-	TArray<TSharedPtr<FJsonValue>> Messages;
-	
-	// User message with image
-	TSharedPtr<FJsonObject> UserMsg = MakeShared<FJsonObject>();
-	UserMsg->SetStringField(TEXT("role"), TEXT("user"));
+	const FString ImageDataUrl = FString::Printf(TEXT("data:%s;base64,%s"), *MimeType, *ImageBase64);
 
-	TArray<TSharedPtr<FJsonValue>> ContentArray;
-	
-	// Text part
-	TSharedPtr<FJsonObject> TextPart = MakeShared<FJsonObject>();
-	TextPart->SetStringField(TEXT("type"), TEXT("text"));
-	TextPart->SetStringField(TEXT("text"), BuildImageAnalysisPrompt());
-	ContentArray.Add(MakeShared<FJsonValueObject>(TextPart));
+	if (bUseResponsesAPI)
+	{
+		// OpenAI Responses API format with image input.
+		BodyObj->SetStringField(TEXT("instructions"), BuildImageAnalysisPrompt());
 
-	// Image part
-	TSharedPtr<FJsonObject> ImagePart = MakeShared<FJsonObject>();
-	ImagePart->SetStringField(TEXT("type"), TEXT("image_url"));
-	TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
-	ImageUrl->SetStringField(TEXT("url"), FString::Printf(TEXT("data:%s;base64,%s"), *MimeType, *ImageBase64));
-	ImagePart->SetObjectField(TEXT("image_url"), ImageUrl);
-	ContentArray.Add(MakeShared<FJsonValueObject>(ImagePart));
+		TArray<TSharedPtr<FJsonValue>> InputArray;
+		{
+			TSharedPtr<FJsonObject> MsgInput = MakeShared<FJsonObject>();
+			MsgInput->SetStringField(TEXT("type"), TEXT("message"));
+			MsgInput->SetStringField(TEXT("role"), TEXT("user"));
+			TArray<TSharedPtr<FJsonValue>> ContentArr;
+			{
+				TSharedPtr<FJsonObject> TextInput = MakeShared<FJsonObject>();
+				TextInput->SetStringField(TEXT("type"), TEXT("input_text"));
+				TextInput->SetStringField(TEXT("text"), TEXT("Please analyze this image."));
+				ContentArr.Add(MakeShared<FJsonValueObject>(TextInput));
+			}
+			{
+				TSharedPtr<FJsonObject> ImgInput = MakeShared<FJsonObject>();
+				ImgInput->SetStringField(TEXT("type"), TEXT("input_image"));
+				ImgInput->SetStringField(TEXT("image_url"), ImageDataUrl);
+				ContentArr.Add(MakeShared<FJsonValueObject>(ImgInput));
+			}
+			MsgInput->SetArrayField(TEXT("content"), ContentArr);
+			InputArray.Add(MakeShared<FJsonValueObject>(MsgInput));
+		}
+		BodyObj->SetArrayField(TEXT("input"), InputArray);
+	}
+	else
+	{
+		BodyObj->SetNumberField(TEXT("max_tokens"), 4096);
 
-	UserMsg->SetArrayField(TEXT("content"), ContentArray);
-	Messages.Add(MakeShared<FJsonValueObject>(UserMsg));
+		TArray<TSharedPtr<FJsonValue>> Messages;
 
-	BodyObj->SetArrayField(TEXT("messages"), Messages);
+		// User message with image
+		TSharedPtr<FJsonObject> UserMsg = MakeShared<FJsonObject>();
+		UserMsg->SetStringField(TEXT("role"), TEXT("user"));
+
+		TArray<TSharedPtr<FJsonValue>> ContentArray;
+
+		// Text part
+		TSharedPtr<FJsonObject> TextPart = MakeShared<FJsonObject>();
+		TextPart->SetStringField(TEXT("type"), TEXT("text"));
+		TextPart->SetStringField(TEXT("text"), BuildImageAnalysisPrompt());
+		ContentArray.Add(MakeShared<FJsonValueObject>(TextPart));
+
+		// Image part
+		TSharedPtr<FJsonObject> ImagePart = MakeShared<FJsonObject>();
+		ImagePart->SetStringField(TEXT("type"), TEXT("image_url"));
+		TSharedPtr<FJsonObject> ImageUrl = MakeShared<FJsonObject>();
+		ImageUrl->SetStringField(TEXT("url"), ImageDataUrl);
+		ImagePart->SetObjectField(TEXT("image_url"), ImageUrl);
+		ContentArray.Add(MakeShared<FJsonValueObject>(ImagePart));
+
+		UserMsg->SetArrayField(TEXT("content"), ContentArray);
+		Messages.Add(MakeShared<FJsonValueObject>(UserMsg));
+
+		BodyObj->SetArrayField(TEXT("messages"), Messages);
+	}
 
 	FString BodyText;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyText);
@@ -1754,17 +2036,15 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 	Req->SetContentAsString(BodyText);
 	Req->SetTimeout(FMath::Max(TimeoutSeconds, 120.0f));
 
-	Req->OnProcessRequestComplete().BindLambda([OnComplete](
+	const bool bResponsesAPI = bUseResponsesAPI;
+	Req->OnProcessRequestComplete().BindLambda([OnComplete, bResponsesAPI](
 		FHttpRequestPtr Request,
 		FHttpResponsePtr Response,
 		bool bSucceeded)
 	{
 		if (!bSucceeded || !Response.IsValid())
 		{
-			const FString StatusStr = Request.IsValid() ? HttpRequestStatusToString(Request->GetStatus()) : TEXT("<null>");
-			const FString UrlStr = Request.IsValid() ? Request->GetURL() : TEXT("<null>");
-			UE_LOG(LogVFXAgent, Error, TEXT("HTTP request failed. Status=%s URL=%s"), *StatusStr, *UrlStr);
-			OnComplete(false, FString(), TEXT("HTTP request failed"));
+			OnComplete(false, FString(), BuildHttpFailureMessage(TEXT("RequestImageAnalysis"), Request, Response));
 			return;
 		}
 
@@ -1781,6 +2061,20 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 		if (!ParseJsonObject(Response->GetContentAsString(), Root, JsonError))
 		{
 			OnComplete(false, FString(), TEXT("Failed to parse response"));
+			return;
+		}
+
+		// Responses API: output[].content[].text
+		if (bResponsesAPI)
+		{
+			FString Content;
+			FString ExtractError;
+			if (!TryExtractResponsesAPIContent(Root, Content, ExtractError))
+			{
+				OnComplete(false, FString(), ExtractError);
+				return;
+			}
+			OnComplete(true, Content, FString());
 			return;
 		}
 

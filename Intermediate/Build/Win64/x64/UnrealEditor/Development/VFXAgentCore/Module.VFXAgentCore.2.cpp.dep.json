@@ -1,0 +1,18 @@
+{
+    "Version": "1.2",
+    "Data": {
+        "Source": "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentcore\\module.vfxagentcore.2.cpp",
+        "ProvidedModule": "",
+        "PCH": "f:\\tst\\testing\\intermediate\\build\\win64\\x64\\testingeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "Includes": [
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentcore\\definitions.vfxagentcore.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\unrealeditor\\inc\\vfxagentcore\\uht\\vfxrecipe.gen.cpp",
+            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxrecipe.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\unrealeditor\\inc\\vfxagentcore\\uht\\vfxrecipe.generated.h",
+            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentcore\\permoduleinline.gen.cpp",
+            "f:\\ue_5.5\\engine\\source\\runtime\\core\\public\\hal\\permoduleinline.inl"
+        ],
+        "ImportedModules": [],
+        "ImportedHeaderUnits": []
+    }
+}

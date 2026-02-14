@@ -24,7 +24,7 @@ public:
 	FString LLMBackend = "OpenAI"; // Mock | OpenAI | Ollama | ChatGPT
 
 	UPROPERTY(EditAnywhere, config, Category = "LLM", meta=(DisplayName="LLM Timeout Seconds", ClampMin="1.0"))
-	float LLMTimeoutSeconds = 60.0f;
+	float LLMTimeoutSeconds = 120.0f;
 
 	UPROPERTY(EditAnywhere, config, Category = "Generation")
 	FString DefaultOutputPath = "/Game/VFXAgent/Generated";
@@ -160,6 +160,30 @@ public:
 	// Format: "match=<text>;mode=contains|exact|regex;phase=Forces|CollisionDetect|EventWrite|Curves|RenderPrep;priority=0;before=@Anchor;after=@Anchor"
 	UPROPERTY(EditAnywhere, config, Category = "Niagara|Sorting", meta=(DisplayName="Module Sort Rules"))
 	TArray<FString> ModuleSortRules;
+
+	// =====================================================================
+	// V2 Pipeline Settings
+	// =====================================================================
+
+	/** Enable the V2 multi-candidate pipeline (EffectSpec v2 + scoring + revision). */
+	UPROPERTY(EditAnywhere, config, Category = "V2 Pipeline", meta=(DisplayName="Use V2 Pipeline"))
+	bool bUseV2Pipeline = true;
+
+	/** Number of candidate specs to generate in parallel. */
+	UPROPERTY(EditAnywhere, config, Category = "V2 Pipeline", meta=(DisplayName="Candidate Count", ClampMin="1", ClampMax="10"))
+	int32 V2NumCandidates = 3;
+
+	/** Target quality score (0-1). If best candidate scores below this, a revision pass runs. */
+	UPROPERTY(EditAnywhere, config, Category = "V2 Pipeline", meta=(DisplayName="Target Score", ClampMin="0.0", ClampMax="1.0"))
+	float V2TargetScore = 0.85f;
+
+	/** Minimum acceptable score. Candidates below this threshold are rejected. */
+	UPROPERTY(EditAnywhere, config, Category = "V2 Pipeline", meta=(DisplayName="Minimum Accept Score", ClampMin="0.0", ClampMax="1.0"))
+	float V2MinAcceptScore = 0.6f;
+
+	/** Maximum number of revision passes per pipeline run. */
+	UPROPERTY(EditAnywhere, config, Category = "V2 Pipeline", meta=(DisplayName="Max Revision Passes", ClampMin="0", ClampMax="5"))
+	int32 V2MaxRevisionPasses = 2;
 
 	virtual FName GetCategoryName() const override { return FName(TEXT("VFXAgent")); }
 	virtual FText GetSectionText() const override { return FText::FromString(TEXT("VFX Agent Settings")); }

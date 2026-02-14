@@ -1,0 +1,23 @@
+{
+	"RemapUnityFiles": 
+	{
+		"Module.VFXAgentCore.1.cpp.obj": [
+			"EffectSpecV1.gen.cpp.obj",
+			"EffectSpecV2.gen.cpp.obj",
+			"HttpLLMProvider.gen.cpp.obj",
+			"VFXAgentCore.init.gen.cpp.obj",
+			"VFXDirectorTypes.gen.cpp.obj"
+		],
+		"Module.VFXAgentCore.2.cpp.obj": [
+			"VFXRecipe.gen.cpp.obj",
+			"PerModuleInline.gen.cpp.obj",
+			"BehaviorArchetypeLibrary.cpp.obj",
+			"EffectSpecParser.cpp.obj",
+			"EffectSpecV2Parser.cpp.obj",
+			"EffectSpecV2Validator.cpp.obj",
+			"EffectSpecValidator.cpp.obj",
+			"HttpLLMProvider.cpp.obj",
+			"ModelServices.cpp.obj"
+		]
+	}
+}

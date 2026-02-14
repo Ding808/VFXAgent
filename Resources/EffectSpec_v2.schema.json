@@ -1,0 +1,211 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "EffectSpec v2",
+  "description": "VFX Agent EffectSpec v2 — layered VFX with timing envelopes, motion language, material skeleton, archetype constraints, and event bindings.",
+  "type": "object",
+  "required": ["effect_name", "archetype", "layers"],
+  "properties": {
+    "effect_name": { "type": "string" },
+    "archetype": {
+      "type": "string",
+      "enum": ["explosion", "magic", "electric", "teleport", "fire", "smoke", "water", "custom"]
+    },
+    "archetype_variant": { "type": "string" },
+    "description": { "type": "string" },
+    "global_style": { "$ref": "#/definitions/global_style" },
+    "layers": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "$ref": "#/definitions/layer" }
+    },
+    "events": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/event_binding" }
+    },
+    "requirements": { "$ref": "#/definitions/requirements" },
+    "camera_readability": { "$ref": "#/definitions/camera_readability" }
+  },
+  "definitions": {
+    "global_style": {
+      "type": "object",
+      "properties": {
+        "palette": { "type": "string" },
+        "primary_color": { "$ref": "#/definitions/color_array" },
+        "secondary_color": { "$ref": "#/definitions/color_array" },
+        "accent_color": { "$ref": "#/definitions/color_array" },
+        "realism_to_stylized": { "type": "number", "minimum": 0, "maximum": 1 },
+        "brightness": { "type": "number" },
+        "saturation": { "type": "number" },
+        "mood": { "type": "string" }
+      }
+    },
+    "layer": {
+      "type": "object",
+      "required": ["id", "name", "role", "renderer_type", "spawn", "init", "material"],
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "role": {
+          "type": "string",
+          "enum": ["core_blast", "secondary_fill", "sparks", "trail", "smoke", "glow", "distortion", "ground", "custom"]
+        },
+        "renderer_type": {
+          "type": "string",
+          "enum": ["sprite", "ribbon", "mesh", "light"]
+        },
+        "sort_order": { "type": "integer" },
+        "max_particles": { "type": "integer" },
+        "timing": { "$ref": "#/definitions/timing_envelope" },
+        "spawn": { "$ref": "#/definitions/spawn" },
+        "init": { "$ref": "#/definitions/init" },
+        "update": { "$ref": "#/definitions/update" },
+        "motion": { "$ref": "#/definitions/motion" },
+        "material": { "$ref": "#/definitions/material" }
+      }
+    },
+    "timing_envelope": {
+      "type": "object",
+      "properties": {
+        "delay": { "type": "number", "minimum": 0 },
+        "attack": { "type": "number", "minimum": 0 },
+        "sustain": { "type": "number", "minimum": 0 },
+        "decay": { "type": "number", "minimum": 0 },
+        "lifetime": { "type": "number", "minimum": 0 },
+        "loop": { "type": "boolean" }
+      }
+    },
+    "spawn": {
+      "type": "object",
+      "properties": {
+        "mode": { "type": "string", "enum": ["burst", "rate", "event"] },
+        "rate": { "type": "number", "minimum": 0 },
+        "burst_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "init": {
+      "type": "object",
+      "properties": {
+        "lifetime": { "type": "number", "minimum": 0 },
+        "lifetime_variation": { "type": "number", "minimum": 0, "maximum": 1 },
+        "size_range": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        },
+        "velocity": { "$ref": "#/definitions/vector3" }
+      }
+    },
+    "update": {
+      "type": "object",
+      "properties": {
+        "drag": { "type": "number", "minimum": 0 },
+        "curl_noise_strength": { "type": "number", "minimum": 0 },
+        "color_over_life": { "type": "string" },
+        "alpha_over_life": { "type": "string" },
+        "size_over_life": { "type": "string" }
+      }
+    },
+    "motion": {
+      "type": "object",
+      "properties": {
+        "verb": {
+          "type": "string",
+          "enum": ["explode", "implode", "rise", "fall", "orbit", "spiral", "drift", "snap", "pulse", "stream", "flutter", "static"]
+        },
+        "axis": { "$ref": "#/definitions/vector3" },
+        "speed": { "type": "number", "minimum": 0 },
+        "speed_variation": { "type": "number", "minimum": 0, "maximum": 1 },
+        "curl_noise_intensity": { "type": "number", "minimum": 0 },
+        "drag": { "type": "number", "minimum": 0 }
+      }
+    },
+    "material": {
+      "type": "object",
+      "required": ["shading", "blend"],
+      "properties": {
+        "shading": { "type": "string", "enum": ["unlit", "lit"] },
+        "blend": { "type": "string", "enum": ["additive", "translucent", "masked", "opaque"] },
+        "base_color": { "$ref": "#/definitions/color_array" },
+        "emissive_color": { "$ref": "#/definitions/color_array" },
+        "emissive_intensity": { "type": "number" },
+        "opacity": { "type": "number", "minimum": 0, "maximum": 1 },
+        "features": { "$ref": "#/definitions/material_features" },
+        "custom_hlsl": { "type": "boolean" },
+        "hlsl_code": { "type": "string" },
+        "hlsl_contract": { "type": "string" }
+      }
+    },
+    "material_features": {
+      "type": "object",
+      "properties": {
+        "fresnel": { "type": "boolean" },
+        "fresnel_exponent": { "type": "number" },
+        "depth_fade": { "type": "boolean" },
+        "depth_fade_distance": { "type": "number" },
+        "uv_distortion": { "type": "boolean" },
+        "distortion_strength": { "type": "number" },
+        "noise_mask": { "type": "boolean" },
+        "noise_tiling": { "type": "number" },
+        "noise_contrast": { "type": "number" },
+        "erode_mask": { "type": "boolean" },
+        "erode_threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+        "pan_uv": { "type": "boolean" },
+        "pan_speed": {
+          "type": "array",
+          "items": { "type": "number" },
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "event_binding": {
+      "type": "object",
+      "required": ["source", "target", "type"],
+      "properties": {
+        "source": { "type": "string" },
+        "target": { "type": "string" },
+        "type": {
+          "type": "string",
+          "enum": ["on_death", "on_collision", "on_spawn", "on_lifetime_expire", "timed"]
+        },
+        "delay": { "type": "number", "minimum": 0 },
+        "spawn_count": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "events": { "type": "boolean" },
+        "forces": { "type": "boolean" },
+        "collision": { "type": "boolean" },
+        "light_renderer": { "type": "boolean" },
+        "ribbon_renderer": { "type": "boolean" },
+        "min_features": { "type": "integer", "minimum": 0, "maximum": 5 }
+      }
+    },
+    "camera_readability": {
+      "type": "object",
+      "properties": {
+        "distance": { "type": "string", "enum": ["close", "medium", "far"] },
+        "bounds_radius": { "type": "number", "minimum": 0 },
+        "needs_silhouette": { "type": "boolean" },
+        "contrast_target": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "color_array": {
+      "type": "array",
+      "items": { "type": "number", "minimum": 0, "maximum": 1 },
+      "minItems": 3,
+      "maxItems": 4
+    },
+    "vector3": {
+      "type": "object",
+      "properties": {
+        "x": { "type": "number" },
+        "y": { "type": "number" },
+        "z": { "type": "number" }
+      }
+    }
+  }
+}
