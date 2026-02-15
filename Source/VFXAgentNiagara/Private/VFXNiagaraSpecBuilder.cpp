@@ -403,8 +403,14 @@ UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpecV2(const FEffectSpecV2& Spe
 		UNiagaraEmitter* Emitter = BuildEmitterV2(Layer, OutContext);
 		if (Emitter)
 		{
-			FNiagaraEmitterHandle Handle = System->AddEmitterHandle(*Emitter, FName(*Layer.Name));
-			Handle.SetIsEnabled(true);
+			FGuid EmitterVersion = Emitter->GetExposedVersion().VersionGuid;
+			if (!EmitterVersion.IsValid())
+			{
+				EmitterVersion = FGuid::NewGuid(); // Fallback if no version exists
+			}
+
+			FNiagaraEmitterHandle Handle = System->AddEmitterHandle(*Emitter, FName(*Layer.Name), EmitterVersion);
+			Handle.SetIsEnabled(true, *System, true);
 			LogBuildActionV2(OutContext, FString::Printf(TEXT("Added Emitter: %s"), *Layer.Name));
 		}
 	}
@@ -459,6 +465,12 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitterV2(const FLayerSpecV2& Laye
 	// 3. Create & Assign Renderer
 	UNiagaraRendererProperties* RendererProps = nullptr;
 	const FString RendererType = Layer.RendererType.ToLower();
+	
+	FGuid VersionGuid = Emitter->GetExposedVersion().VersionGuid;
+	if (!VersionGuid.IsValid())
+	{
+		VersionGuid = FGuid::NewGuid(); // Fallback if no version exists
+	}
 
 	if (RendererType.Contains(TEXT("sprite")))
 	{
@@ -486,7 +498,12 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitterV2(const FLayerSpecV2& Laye
 	else if (RendererType.Contains(TEXT("mesh")))
 	{
 		UNiagaraMeshRendererProperties* MeshRen = NewObject<UNiagaraMeshRendererProperties>(Emitter, "MeshRenderer");
-		if (NewMaterial) MeshRen->OverrideMaterials.Add(FNiagaraMeshMaterialOverride(NewMaterial));
+		if (NewMaterial) 
+		{
+			FNiagaraMeshMaterialOverride Override;
+			Override.ExplicitMat = NewMaterial;
+			MeshRen->OverrideMaterials.Add(Override);
+		}
 		RendererProps = MeshRen;
 	}
 	else if (RendererType.Contains(TEXT("light")))
@@ -497,7 +514,7 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitterV2(const FLayerSpecV2& Laye
 
 	if (RendererProps)
 	{
-		Emitter->AddRenderer(RendererProps);
+		Emitter->AddRenderer(RendererProps, VersionGuid);
 		LogBuildActionV2(Context, FString::Printf(TEXT("Added Renderer: %s"), *RendererProps->GetName()));
 	}
 	else
@@ -505,7 +522,7 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitterV2(const FLayerSpecV2& Laye
 		// Default to sprite if unknown
 		UNiagaraSpriteRendererProperties* DefaultRen = NewObject<UNiagaraSpriteRendererProperties>(Emitter, "DefaultSpriteRenderer");
 		if (NewMaterial) DefaultRen->Material = NewMaterial;
-		Emitter->AddRenderer(DefaultRen);
+		Emitter->AddRenderer(DefaultRen, VersionGuid);
 		LogBuildActionV2(Context, TEXT("Added Default Renderer (Sprite)"));
 	}
 
