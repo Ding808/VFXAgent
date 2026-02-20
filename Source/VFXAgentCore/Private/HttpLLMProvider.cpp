@@ -579,8 +579,7 @@ void UHttpLLMProvider::RequestRecipeJsonAsync(const FString& UserPrompt, FOnReci
 	{
 		// OpenAI-compatible chat completions.
 		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
-		BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-		BodyRef->SetNumberField(TEXT("max_tokens"), 4096);  // Keep within typical provider limits
+		BodyRef->SetNumberField(TEXT("max_completion_tokens"), 4096);
 
 		TArray<TSharedPtr<FJsonValue>> Messages;
 		{
@@ -786,8 +785,7 @@ void UHttpLLMProvider::RequestDirectorJsonInternalAsync(const FString& UserPromp
 	else
 	{
 		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
-		BodyRef->SetNumberField(TEXT("temperature"), 0.1);
-		BodyRef->SetNumberField(TEXT("max_tokens"), 4096);
+		BodyRef->SetNumberField(TEXT("max_completion_tokens"), 4096);
 
 		TArray<TSharedPtr<FJsonValue>> Messages;
 		{
@@ -834,17 +832,149 @@ void UHttpLLMProvider::RequestDirectorJsonInternalAsync(const FString& UserPromp
 	Req->SetContentAsString(BodyText);
 	Req->SetTimeout(TimeoutSeconds);
 
+	// Capture retry parameters in case we need to fall back from Responses API to Chat Completions
+	const FString CapturedModel = Model;
+	const FString CapturedApiKey = ApiKey;
+	const float CapturedTimeout = TimeoutSeconds;
+	const FString CapturedUserPrompt = UserPrompt;
+	const FString CapturedSystemPrompt = SystemPrompt;
+
 	const EVFXAgentLLMBackend EffectiveBackend = Backend;
 	const bool bResponsesAPI = bUseResponsesAPI;
 	Req->OnProcessRequestComplete().BindLambda([
 		OnComplete,
 		EffectiveBackend,
-		bResponsesAPI
+		bResponsesAPI,
+		CapturedModel,
+		CapturedApiKey,
+		CapturedTimeout,
+		CapturedUserPrompt,
+		CapturedSystemPrompt
 	](FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
 	{
 		if (!bSucceeded || !Response.IsValid())
 		{
-			OnComplete(false, FString(), BuildHttpFailureMessage(TEXT("RequestDirectorJson"), Request, Response));
+			FString FirstError = BuildHttpFailureMessage(TEXT("RequestDirectorJson"), Request, Response);
+
+			// If Responses API failed at connection level, retry with Chat Completions
+			if (bResponsesAPI)
+			{
+				UE_LOG(LogVFXAgent, Warning, TEXT("Responses API connection failed, falling back to Chat Completions API. Error: %s"), *FirstError);
+
+				// Build Chat Completions request
+				FString FallbackEndpoint = TEXT("https://api.openai.com/v1/chat/completions");
+
+				TSharedPtr<FJsonObject> FallbackBody = MakeShared<FJsonObject>();
+				TSharedRef<FJsonObject> FallbackRef = FallbackBody.ToSharedRef();
+				FallbackRef->SetStringField(TEXT("model"), CapturedModel.IsEmpty() ? TEXT("gpt-4o-mini") : CapturedModel);
+				FallbackRef->SetNumberField(TEXT("max_completion_tokens"), 4096);
+
+				TArray<TSharedPtr<FJsonValue>> Messages;
+				{
+					TSharedPtr<FJsonObject> Sys = MakeShared<FJsonObject>();
+					Sys->SetStringField(TEXT("role"), TEXT("system"));
+					Sys->SetStringField(TEXT("content"), CapturedSystemPrompt);
+					Messages.Add(MakeShared<FJsonValueObject>(Sys));
+				}
+				{
+					TSharedPtr<FJsonObject> User = MakeShared<FJsonObject>();
+					User->SetStringField(TEXT("role"), TEXT("user"));
+					User->SetStringField(TEXT("content"), CapturedUserPrompt);
+					Messages.Add(MakeShared<FJsonValueObject>(User));
+				}
+				FallbackRef->SetArrayField(TEXT("messages"), Messages);
+
+				TSharedPtr<FJsonObject> ResponseFormat = MakeShared<FJsonObject>();
+				ResponseFormat->SetStringField(TEXT("type"), TEXT("json_object"));
+				FallbackRef->SetObjectField(TEXT("response_format"), ResponseFormat);
+
+				FString FallbackBodyText;
+				{
+					TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&FallbackBodyText);
+					FJsonSerializer::Serialize(FallbackRef, Writer);
+				}
+
+				FHttpModule& FallbackHttp = FHttpModule::Get();
+				TSharedRef<IHttpRequest, ESPMode::ThreadSafe> FallbackReq = FallbackHttp.CreateRequest();
+				FallbackReq->SetURL(FallbackEndpoint);
+				FallbackReq->SetVerb(TEXT("POST"));
+				FallbackReq->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+				FallbackReq->SetHeader(TEXT("Accept"), TEXT("application/json"));
+				FallbackReq->SetHeader(TEXT("User-Agent"), TEXT("VFXAgent/1.0 (UnrealEngine)"));
+				if (!CapturedApiKey.IsEmpty())
+				{
+					FallbackReq->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *CapturedApiKey));
+				}
+				FallbackReq->SetContentAsString(FallbackBodyText);
+				FallbackReq->SetTimeout(CapturedTimeout);
+
+				FallbackReq->OnProcessRequestComplete().BindLambda([
+					OnComplete, FirstError
+				](FHttpRequestPtr FbReq, FHttpResponsePtr FbResp, bool bFbSucceeded)
+				{
+					if (!bFbSucceeded || !FbResp.IsValid())
+					{
+						FString FallbackError = BuildHttpFailureMessage(TEXT("ChatCompletions-Fallback"), FbReq, FbResp);
+						OnComplete(false, FString(), FString::Printf(TEXT("Both Responses API and Chat Completions failed.\n  Responses API: %s\n  Chat Completions: %s"), *FirstError, *FallbackError));
+						return;
+					}
+
+					const int32 FbCode = FbResp->GetResponseCode();
+					const FString FbResponseText = FbResp->GetContentAsString();
+					if (FbCode < 200 || FbCode >= 300)
+					{
+						OnComplete(false, FString(), FString::Printf(TEXT("Chat Completions fallback returned HTTP %d: %s"), FbCode, *FbResponseText.Left(800)));
+						return;
+					}
+
+					TSharedPtr<FJsonObject> FbRoot;
+					FString FbJsonError;
+					if (!ParseJsonObject(FbResponseText, FbRoot, FbJsonError))
+					{
+						OnComplete(false, FString(), FString::Printf(TEXT("Fallback response is not JSON: %s"), *FbResponseText.Left(200)));
+						return;
+					}
+
+					const TArray<TSharedPtr<FJsonValue>>* Choices = nullptr;
+					if (!FbRoot->TryGetArrayField(TEXT("choices"), Choices) || !Choices || Choices->Num() == 0)
+					{
+						OnComplete(false, FString(), TEXT("Fallback response missing 'choices' array"));
+						return;
+					}
+
+					TSharedPtr<FJsonObject> Choice0 = (*Choices)[0]->AsObject();
+					if (!Choice0.IsValid())
+					{
+						OnComplete(false, FString(), TEXT("Fallback response choice[0] is not an object"));
+						return;
+					}
+
+					const TSharedPtr<FJsonObject> Msg = Choice0->GetObjectField(TEXT("message"));
+					if (!Msg.IsValid())
+					{
+						OnComplete(false, FString(), TEXT("Fallback response missing message object"));
+						return;
+					}
+
+					FString Content;
+					if (!Msg->TryGetStringField(TEXT("content"), Content))
+					{
+						OnComplete(false, FString(), TEXT("Fallback response missing message.content"));
+						return;
+					}
+
+					UE_LOG(LogVFXAgent, Log, TEXT("Chat Completions fallback succeeded."));
+					OnComplete(true, Content, FString());
+				});
+
+				if (!FallbackReq->ProcessRequest())
+				{
+					OnComplete(false, FString(), FString::Printf(TEXT("Responses API failed: %s. Fallback also failed to start."), *FirstError));
+				}
+				return;
+			}
+
+			OnComplete(false, FString(), FirstError);
 			return;
 		}
 
@@ -1264,8 +1394,7 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageAsync(const FString& ImageFileP
 	}
 	else
 	{
-		BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-		BodyRef->SetNumberField(TEXT("max_tokens"), 16384);
+		BodyRef->SetNumberField(TEXT("max_completion_tokens"), 16384);
 
 		TArray<TSharedPtr<FJsonValue>> Messages;
 		{
@@ -1485,8 +1614,7 @@ void UHttpLLMProvider::RequestRecipeJsonWithImageDataAsync(const FString& ImageD
 	}
 	else
 	{
-		BodyRef->SetNumberField(TEXT("temperature"), 0.2);
-		BodyRef->SetNumberField(TEXT("max_tokens"), 4096);
+		BodyRef->SetNumberField(TEXT("max_completion_tokens"), 4096);
 
 		TArray<TSharedPtr<FJsonValue>> Messages;
 		{
@@ -1989,7 +2117,7 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 	}
 	else
 	{
-		BodyObj->SetNumberField(TEXT("max_tokens"), 4096);
+		BodyObj->SetNumberField(TEXT("max_completion_tokens"), 4096);
 
 		TArray<TSharedPtr<FJsonValue>> Messages;
 

@@ -14,14 +14,14 @@ public:
 	FString LLMEndpoint = "https://api.openai.com/v1/chat/completions";
 
 	UPROPERTY(EditAnywhere, config, Category = "LLM", meta=(DisplayName="LLM Model"))
-	FString LLMModel = "gpt-4o-mini";
+	FString LLMModel = "gpt-5o";
 
 	// For OpenAI-compatible endpoints (e.g. https://api.openai.com/v1/chat/completions)
 	UPROPERTY(EditAnywhere, config, Category = "LLM", meta=(DisplayName="LLM API Key", PasswordField="true"))
 	FString LLMApiKey = "";
 
 	UPROPERTY(EditAnywhere, config, Category = "LLM", meta=(DisplayName="LLM Backend"))
-	FString LLMBackend = "OpenAI"; // Mock | OpenAI | Ollama | ChatGPT
+	FString LLMBackend = "OpenAI"; // Mock | OpenAI | GPT5o | Ollama | ChatGPT
 
 	UPROPERTY(EditAnywhere, config, Category = "LLM", meta=(DisplayName="LLM Timeout Seconds", ClampMin="1.0"))
 	float LLMTimeoutSeconds = 120.0f;

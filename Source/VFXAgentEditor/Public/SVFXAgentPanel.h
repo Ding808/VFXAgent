@@ -1,3 +1,4 @@
+﻿// Copyright VFXAgent. All Rights Reserved.
 #pragma once
 
 #include "CoreMinimal.h"
@@ -8,85 +9,134 @@
 #include "VFXDirectorTypes.h"
 #include "VFXMultiCandidatePipeline.h"
 
-class ILLMProvider;
+struct FSlateDynamicImageBrush;
 
+class ILLMProvider;
+class SVFXChatBubble;
+
+// =============================================================================
+// Chat attachment model
+// =============================================================================
+struct FVFXChatAttachment
+{
+	FString FilePath;
+	FString DisplayName;
+	FString Type; // "image", "gif", "video", "niagara_system"
+	TSharedPtr<FSlateDynamicImageBrush> PreviewBrush; // Image preview thumbnail
+};
+
+// =============================================================================
+// SVFXAgentPanel - Modern chat-based VFX Agent interface
+// =============================================================================
 class SVFXAgentPanel : public SCompoundWidget
 {
 public:
-	SLATE_BEGIN_ARGS(SVFXAgentPanel)
-	{}
-	SLATE_END_ARGS()
+SLATE_BEGIN_ARGS(SVFXAgentPanel) {}
+SLATE_END_ARGS()
 
-	void Construct(const FArguments& InArgs);
+void Construct(const FArguments& InArgs);
+virtual bool SupportsKeyboardFocus() const override { return true; }
+virtual FReply OnKeyDown(const FGeometry& MyGeometry, const FKeyEvent& InKeyEvent) override;
+virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
 
-	virtual bool SupportsKeyboardFocus() const override { return true; }
-	virtual void Tick(const FGeometry& AllottedGeometry, const double InCurrentTime, const float InDeltaTime) override;
+// Public API
+void AgentTextRequest(const FString& Action, const FString& Prompt);
 
 private:
-	// UI callbacks
-	FReply OnGenerateClicked();
-	FReply OnGenerateFromImageClicked();
-	FReply OnChooseOutputPathClicked();
-	FReply OnChooseImagePathClicked();
-	FReply OnTestLLMClicked();
-	FReply OnGenerateSpecClicked();
-	FReply OnValidateSpecClicked();
-	FReply OnBuildSpecClicked();
-	FReply OnPreviewClicked();
-	FReply OnReviseSpecClicked();
-	FReply OnCopyPipelineLogClicked();
-	FReply OnExportPipelineLogClicked();
+// --- Chat UI ---
+void AddUserBubble(const FString& Message, const TArray<FVFXChatAttachment>& MessageAttachments = TArray<FVFXChatAttachment>());
+void AddAgentBubble(const FString& Message);
+void AddThinkingBubble();
+void CompleteThinkingBubble(const FString& Summary);
+void AddThinkingStep(const FString& Step);
+void AddAssetLinkBubble(const FString& AssetPath, const FString& Message);
+void AddErrorBubble(const FString& ErrorMsg);
+void ScrollChatToBottom();
 
-	// V2 pipeline callbacks
-	FReply OnGenerateV2SpecClicked();
-	FReply OnValidateV2SpecClicked();
-	FReply OnBuildV2SpecClicked();
+// --- Input handling ---
+FReply OnSendClicked();
+FReply OnAttachFileClicked();
+FReply OnPickNiagaraSystemClicked();
+FReply OnClearAttachmentsClicked();
+FReply OnSettingsClicked();
+FReply OnNewChatClicked();
 
-	// Helper functions
-	void LogMessage(const FString& Message);
-	void UpdateLastRecipe(const FVFXRecipe& Recipe);
-	void RefreshLLMSettingsFromConfig();
-	FVFXRecipe EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, const FString& Prompt);
-	void DrainPipelineLog();
-	void UpdatePipelineLogText();
-	FString BuildPipelineLogText() const;
-	void DisplayV2CandidateResults(const FMultiCandidatePipelineResult& Result);
+// --- Action buttons in chat ---
+FReply OnOpenAssetClicked(FString AssetPath);
 
-	// UI elements
-	TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;
-	TSharedPtr<class SMultiLineEditableTextBox> SpecTextBox;
-	TSharedPtr<class SEditableTextBox> OutputPathTextBox;
-	TSharedPtr<class SEditableTextBox> AssetNameTextBox;
-	TSharedPtr<class SEditableTextBox> ImagePathTextBox;
-	TSharedPtr<class SMultiLineEditableTextBox> LogTextBox;
-	TSharedPtr<class SMultiLineEditableTextBox> PipelineLogTextBox;
-	TSharedPtr<class SCheckBox> UseDirectorPipelineCheckBox;
+// --- Core AI pipeline ---
+void ProcessUserMessage(const FString& Message);
+void ExecuteGenerate(const FString& Prompt);
+void ExecuteModify(const FString& Prompt);
+void ExecuteDebug(const FString& Prompt);
+void ExecuteGenerateFromMedia(const FString& Prompt);
 
-	// Data
-	FVFXRecipe LastRecipe;
-	FString LastPrompt;
-	FString LastDirectorJson;
-	FString LastEffectSpecJson;
-	FString LastGeneratedSystemPath;
-	FVFXExecutionReport LastExecutionReport;
+// --- Pipeline internals ---
+void ExecuteRecipePipeline(const FString& Prompt, const FString& OutputPath, const FString& AssetName);
+void ExecuteDirectorPipeline(const FString& Prompt, const FString& OutputPath, const FString& AssetName);
 
-	// V2 pipeline data
-	FMultiCandidatePipelineResult LastV2Result;
-	FString LastEffectSpecV2Json;
+// --- LLM Provider ---
+void RefreshLLMSettingsFromConfig();
+FString GetModelDisplayName() const;
 
-	// LLM Provider
-	UObject* LLMProviderObject = nullptr;
-	ILLMProvider* LLMProvider = nullptr;
+// --- Helpers ---
+void LogMessage(const FString& Message);
+void DrainPipelineLog();
+FString SanitizeAssetName(const FString& Name) const;
+FString SanitizeOutputPath(const FString& Path) const;
+FVFXRecipe EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, const FString& Prompt);
+void UpdateLastRecipe(const FVFXRecipe& Recipe);
+bool InferIsModifyRequest(const FString& Prompt) const;
+bool InferIsDebugRequest(const FString& Prompt) const;
+FString BuildDefaultOutputPath() const;
+FString BuildDefaultAssetName(const FString& Prompt) const;
 
-	// Cached LLM settings for logging/debug
-	FString CachedLLMEndpoint;
-	FString CachedLLMModel;
-	FString CachedLLMBackend;
-	float CachedLLMTimeoutSeconds = 30.0f;
-	bool bCachedHasApiKey = false;
+// --- UI construction ---
+TSharedRef<SWidget> BuildHeader();
+TSharedRef<SWidget> BuildChatArea();
+TSharedRef<SWidget> BuildInputArea();
+void UpdateAttachmentDisplay();
+void UpdateStatusDisplay();
+TSharedPtr<FSlateDynamicImageBrush> LoadImagePreview(const FString& FilePath, FVector2D PreviewSize = FVector2D(120, 90));
 
-	bool bRequestInFlight = false;
-	TArray<FString> PipelineLogLines;
-	bool bPipelineLogDirty = false;
-	int32 PipelineLogMaxLines = 500;
+// --- UI widgets ---
+TSharedPtr<class SScrollBox> ChatScrollBox;
+TSharedPtr<class SVerticalBox> ChatListBox;
+TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;
+TSharedPtr<class STextBlock> ModelInfoText;
+TSharedPtr<class STextBlock> StatusText;
+TSharedPtr<class SHorizontalBox> AttachmentBar;
+TSharedPtr<class SVerticalBox> AttachmentPreviewBox;
+TSharedPtr<class SButton> SendButton;
+TSharedPtr<SVFXChatBubble> CurrentThinkingBubble;
+
+// --- Attachments & context ---
+TArray<FVFXChatAttachment> Attachments;
+FString ReferencedNiagaraSystemPath;
+
+// --- Pipeline state ---
+FVFXRecipe LastRecipe;
+FString LastPrompt;
+FString LastDirectorJson;
+FString LastEffectSpecJson;
+FString LastEffectSpecV2Json;
+FString LastGeneratedSystemPath;
+FVFXExecutionReport LastExecutionReport;
+FMultiCandidatePipelineResult LastV2Result;
+
+// --- LLM Provider ---
+UObject* LLMProviderObject = nullptr;
+ILLMProvider* LLMProvider = nullptr;
+FString CachedLLMEndpoint;
+FString CachedLLMModel;
+FString CachedLLMBackend;
+float CachedLLMTimeoutSeconds = 30.0f;
+bool bCachedHasApiKey = false;
+
+// --- Flags ---
+bool bRequestInFlight = false;
+TArray<FString> PipelineLogLines;
+bool bPipelineLogDirty = false;
+int32 PipelineLogMaxLines = 500;
+	mutable int32 GenerationCounter = 0;
 };

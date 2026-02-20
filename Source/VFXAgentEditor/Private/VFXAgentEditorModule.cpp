@@ -79,22 +79,20 @@ void FVFXAgentEditorModule::OpenVFXAgentPanel()
 {
 	UE_LOG(LogVFXAgent, Log, TEXT("Opening VFXAgent Panel"));
 
-	// Create a new window
+	// Create the VFX Agent chat window
 	TSharedRef<SWindow> Window = SNew(SWindow)
 		.Title(FText::FromString("VFX Agent"))
-		.ClientSize(FVector2D(800, 600))
+		.ClientSize(FVector2D(520, 720))
 		.SizingRule(ESizingRule::UserSized)
 		.AutoCenter(EAutoCenter::PreferredWorkArea)
 		.IsInitiallyMaximized(false)
 		.HasCloseButton(true)
 		.FocusWhenFirstShown(true)
 		.ActivationPolicy(EWindowActivationPolicy::Always)
+		.SupportsMinimize(true)
+		.SupportsMaximize(true)
 		[
-			SNew(SBorder)
-			.BorderImage(FAppStyle::GetBrush("ToolPanel.GroupBorder"))
-			[
-				SNew(SVFXAgentPanel)
-			]
+			SNew(SVFXAgentPanel)
 		];
 
 	FSlateApplication::Get().AddWindow(Window);
