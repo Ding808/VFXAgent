@@ -1,8 +1,0 @@
-{
-	"SourceFiles": [
-		"e:\\VFXAgent\\VFXAgent\\Source\\VFXAgentCore\\VFXAgentCore.Build.cs",
-		"e:\\VFXAgent\\VFXAgent\\Source\\VFXAgentEditor\\VFXAgentEditor.Build.cs",
-		"e:\\VFXAgent\\VFXAgent\\Source\\VFXAgentNiagara\\VFXAgentNiagara.Build.cs"
-	],
-	"EngineVersion": "5.5.4"
-}
