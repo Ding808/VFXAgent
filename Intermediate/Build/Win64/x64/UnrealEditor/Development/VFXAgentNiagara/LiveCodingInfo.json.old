@@ -10,6 +10,7 @@
 			"VFXRecipeCompiler.gen.cpp.obj",
 			"PerModuleInline.gen.cpp.obj",
 			"AssetBuildPipeline.cpp.obj",
+			"AssetBuildPipelineV2.cpp.obj",
 			"BasicAssetGenService.cpp.obj",
 			"LocalModelServices.cpp.obj",
 			"MaterialCustomBuilder.cpp.obj",

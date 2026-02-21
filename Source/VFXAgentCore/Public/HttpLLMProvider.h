@@ -48,6 +48,9 @@ public:
 	void GenerateRecipeFromImageAsync(const FString& ImageFilePath, const FString& OptionalPrompt, FOnRecipeComplete OnComplete);
 	void RefineRecipeAsync(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt, FOnRecipeComplete OnComplete);
 
+	using FOnAskComplete = TFunction<void(bool /*bSuccess*/, const FString& /*Response*/, const FString& /*Error*/)>;
+	void AskAsync(const FString& Prompt, FOnAskComplete OnComplete) const;
+
 	virtual FVFXRecipe GenerateRecipe(const FString& Prompt) override;
 	virtual FVFXRecipe RefineRecipe(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt) override;
 	

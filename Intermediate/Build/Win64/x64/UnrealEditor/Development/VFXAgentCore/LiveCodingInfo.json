@@ -16,8 +16,7 @@
 			"EffectSpecV2Parser.cpp.obj",
 			"EffectSpecV2Validator.cpp.obj",
 			"EffectSpecValidator.cpp.obj",
-			"HttpLLMProvider.cpp.obj",
-			"ModelServices.cpp.obj"
+			"HttpLLMProvider.cpp.obj"
 		]
 	}
 }

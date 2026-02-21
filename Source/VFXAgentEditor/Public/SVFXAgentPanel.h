@@ -66,6 +66,7 @@ FReply OnOpenAssetClicked(FString AssetPath);
 
 // --- Core AI pipeline ---
 void ProcessUserMessage(const FString& Message);
+void ExecuteAsk(const FString& Prompt);
 void ExecuteGenerate(const FString& Prompt);
 void ExecuteModify(const FString& Prompt);
 void ExecuteDebug(const FString& Prompt);
@@ -99,7 +100,18 @@ void UpdateAttachmentDisplay();
 void UpdateStatusDisplay();
 TSharedPtr<FSlateDynamicImageBrush> LoadImagePreview(const FString& FilePath, FVector2D PreviewSize = FVector2D(120, 90));
 
+// --- UI callbacks ---
+TSharedRef<SWidget> OnGenerateModeComboWidget(TSharedPtr<FString> InItem);
+void OnModeSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+FText GetSelectedModeText() const;
+
+TSharedRef<SWidget> OnGenerateModelComboWidget(TSharedPtr<FString> InItem);
+void OnModelSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo);
+FText GetSelectedModelText() const;
+
 // --- UI widgets ---
+TSharedPtr<class SComboBox<TSharedPtr<FString>>> ModeComboBox;
+TSharedPtr<class SComboBox<TSharedPtr<FString>>> ModelComboBox;
 TSharedPtr<class SScrollBox> ChatScrollBox;
 TSharedPtr<class SVerticalBox> ChatListBox;
 TSharedPtr<class SMultiLineEditableTextBox> PromptTextBox;
@@ -109,6 +121,13 @@ TSharedPtr<class SHorizontalBox> AttachmentBar;
 TSharedPtr<class SVerticalBox> AttachmentPreviewBox;
 TSharedPtr<class SButton> SendButton;
 TSharedPtr<SVFXChatBubble> CurrentThinkingBubble;
+
+// --- State ---
+TArray<TSharedPtr<FString>> AvailableModes;
+TSharedPtr<FString> SelectedMode;
+
+TArray<TSharedPtr<FString>> AvailableModels;
+TSharedPtr<FString> SelectedModel;
 
 // --- Attachments & context ---
 TArray<FVFXChatAttachment> Attachments;

@@ -63,7 +63,8 @@ public class VFXAgentEditor : ModuleRules
 				"NiagaraEditor",
 				"Sequencer",
 				"Settings",
-				"ImageWrapper"
+				"ImageWrapper",
+				"WorkspaceMenuStructure"
 			}
 			);
 		

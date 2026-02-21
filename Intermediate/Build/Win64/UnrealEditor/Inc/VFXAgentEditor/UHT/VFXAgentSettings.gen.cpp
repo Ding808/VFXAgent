@@ -5,25 +5,48 @@
 ===========================================================================*/
 
 #include "UObject/GeneratedCppIncludes.h"
-#include "VFXAgentEditor/Public/VFXAgentSettings.h"
+#include "VFXAgentSettings.h"
+
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
+static_assert(!UE_WITH_CONSTINIT_UOBJECT, "This generated code can only be compiled with !UE_WITH_CONSTINIT_OBJECT");
 void EmptyLinkFunctionForGeneratedCodeVFXAgentSettings() {}
 
-// Begin Cross Module References
+// ********** Begin Cross Module References ********************************************************
 DEVELOPERSETTINGS_API UClass* Z_Construct_UClass_UDeveloperSettings();
 UPackage* Z_Construct_UPackage__Script_VFXAgentEditor();
 VFXAGENTEDITOR_API UClass* Z_Construct_UClass_UVFXAgentSettings();
 VFXAGENTEDITOR_API UClass* Z_Construct_UClass_UVFXAgentSettings_NoRegister();
-// End Cross Module References
+// ********** End Cross Module References **********************************************************
 
-// Begin Class UVFXAgentSettings
-void UVFXAgentSettings::StaticRegisterNativesUVFXAgentSettings()
+// ********** Begin Class UVFXAgentSettings ********************************************************
+FClassRegistrationInfo Z_Registration_Info_UClass_UVFXAgentSettings;
+UClass* UVFXAgentSettings::GetPrivateStaticClass()
 {
+	using TClass = UVFXAgentSettings;
+	if (!Z_Registration_Info_UClass_UVFXAgentSettings.InnerSingleton)
+	{
+		GetPrivateStaticClassBody(
+			TClass::StaticPackage(),
+			TEXT("VFXAgentSettings"),
+			Z_Registration_Info_UClass_UVFXAgentSettings.InnerSingleton,
+			StaticRegisterNativesUVFXAgentSettings,
+			sizeof(TClass),
+			alignof(TClass),
+			TClass::StaticClassFlags,
+			TClass::StaticClassCastFlags(),
+			TClass::StaticConfigName(),
+			(UClass::ClassConstructorType)InternalConstructor<TClass>,
+			(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
+			UOBJECT_CPPCLASS_STATICFUNCTIONS_FORCLASS(TClass),
+			&TClass::Super::StaticClass,
+			&TClass::WithinClass::StaticClass
+		);
+	}
+	return Z_Registration_Info_UClass_UVFXAgentSettings.InnerSingleton;
 }
-IMPLEMENT_CLASS_NO_AUTO_REGISTRATION(UVFXAgentSettings);
 UClass* Z_Construct_UClass_UVFXAgentSettings_NoRegister()
 {
-	return UVFXAgentSettings::StaticClass();
+	return UVFXAgentSettings::GetPrivateStaticClass();
 }
 struct Z_Construct_UClass_UVFXAgentSettings_Statics
 {
@@ -44,15 +67,11 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LLMApiKey_MetaData[] = {
 		{ "Category", "LLM" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// For OpenAI-compatible endpoints (e.g. https://api.openai.com/v1/chat/completions)\n" },
-#endif
 		{ "DisplayName", "LLM API Key" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
 		{ "PasswordField", "true" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "For OpenAI-compatible endpoints (e.g. https:api.openai.com/v1/chat/completions)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LLMBackend_MetaData[] = {
 		{ "Category", "LLM" },
@@ -62,14 +81,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LLMTimeoutSeconds_MetaData[] = {
 		{ "Category", "LLM" },
 		{ "ClampMin", "1.0" },
-#if !UE_BUILD_SHIPPING
-		{ "Comment", "// Mock | OpenAI | Ollama | ChatGPT\n" },
-#endif
+		{ "Comment", "// Mock | OpenAI | GPT5o | Ollama | ChatGPT\n" },
 		{ "DisplayName", "LLM Timeout Seconds" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
-		{ "ToolTip", "Mock | OpenAI | Ollama | ChatGPT" },
-#endif
+		{ "ToolTip", "Mock | OpenAI | GPT5o | Ollama | ChatGPT" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DefaultOutputPath_MetaData[] = {
 		{ "Category", "Generation" },
@@ -81,33 +96,21 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bUseTemplates_MetaData[] = {
 		{ "Category", "Generation" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// If false, generator will create emitters without using templates.\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "If false, generator will create emitters without using templates." },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bDisallowTemplates_MetaData[] = {
 		{ "Category", "Generation" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// If true, any attempt to use templates will be blocked (recommended).\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "If true, any attempt to use templates will be blocked (recommended)." },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bDryRun_MetaData[] = {
 		{ "Category", "Generation" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// If true, build pipeline validates but does not create assets.\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "If true, build pipeline validates but does not create assets." },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_AssetNamePrefix_MetaData[] = {
 		{ "Category", "Generation" },
@@ -115,25 +118,17 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_MaterialLibraryPaths_MetaData[] = {
 		{ "Category", "Materials" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Preferred material library search roots for auto material selection\n" },
-#endif
 		{ "DisplayName", "Material Library Paths" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Preferred material library search roots for auto material selection" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_PreferredImageGenProvider_MetaData[] = {
 		{ "Category", "Providers" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Preferred providers for model services\n" },
-#endif
 		{ "DisplayName", "Preferred ImageGen Provider" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Preferred providers for model services" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_PreferredImageTo3DProvider_MetaData[] = {
 		{ "Category", "Providers" },
@@ -162,16 +157,25 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
 		{ "PasswordField", "true" },
 	};
+	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_MeshyApiKey_MetaData[] = {
+		{ "Category", "Providers|Meshy" },
+		{ "Comment", "// Meshy API Settings\n" },
+		{ "DisplayName", "Meshy API Key" },
+		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
+		{ "PasswordField", "true" },
+		{ "ToolTip", "Meshy API Settings" },
+	};
+	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_MeshyEndpoint_MetaData[] = {
+		{ "Category", "Providers|Meshy" },
+		{ "DisplayName", "Meshy Endpoint" },
+		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
+	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CollisionModuleScriptPath_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Niagara module script paths for collision event handling\n" },
-#endif
 		{ "DisplayName", "Collision Module Script Path" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Niagara module script paths for collision event handling" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_GenerateCollisionEventScriptPath_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -190,14 +194,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CollisionModuleInsertPosition_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Insert position: First | Last\n" },
-#endif
 		{ "DisplayName", "Collision Module Insert Position" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Insert position: First | Last" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CollisionModuleInsertMode_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -206,14 +206,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CollisionModuleInsertPhase_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// First | Last | Phase | Anchor\n" },
-#endif
 		{ "DisplayName", "Collision Module Insert Phase" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "First | Last | Phase | Anchor" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CollisionModuleInsertAnchor_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -227,14 +223,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CollisionModuleInsertPriority_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Before | After\n" },
-#endif
 		{ "DisplayName", "Collision Module Insert Priority" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Before | After" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_GenerateCollisionEventInsertPosition_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -248,14 +240,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_GenerateCollisionEventInsertPhase_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// First | Last | Phase | Anchor\n" },
-#endif
 		{ "DisplayName", "Generate Collision Event Insert Phase" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "First | Last | Phase | Anchor" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_GenerateCollisionEventInsertAnchor_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -269,14 +257,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_GenerateCollisionEventInsertPriority_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Before | After\n" },
-#endif
 		{ "DisplayName", "Generate Collision Event Insert Priority" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Before | After" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ReceiveCollisionEventInsertPosition_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -290,14 +274,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ReceiveCollisionEventInsertPhase_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// First | Last | Phase | Anchor\n" },
-#endif
 		{ "DisplayName", "Receive Collision Event Insert Phase" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "First | Last | Phase | Anchor" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ReceiveCollisionEventInsertAnchor_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -311,14 +291,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ReceiveCollisionEventInsertPriority_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Before | After\n" },
-#endif
 		{ "DisplayName", "Receive Collision Event Insert Priority" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Before | After" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_EventSpawnInsertPosition_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -332,14 +308,10 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_EventSpawnInsertPhase_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// First | Last | Phase | Anchor\n" },
-#endif
 		{ "DisplayName", "Event Spawn Insert Phase" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "First | Last | Phase | Anchor" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_EventSpawnInsertAnchor_MetaData[] = {
 		{ "Category", "Niagara|Events" },
@@ -353,90 +325,64 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_EventSpawnInsertPriority_MetaData[] = {
 		{ "Category", "Niagara|Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Before | After\n" },
-#endif
 		{ "DisplayName", "Event Spawn Insert Priority" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Before | After" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ModuleSortRules_MetaData[] = {
 		{ "Category", "Niagara|Sorting" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Global module sort rules applied to all Update stacks.\n// Format: \"match=<text>;mode=contains|exact|regex;phase=Forces|CollisionDetect|EventWrite|Curves|RenderPrep;priority=0;before=@Anchor;after=@Anchor\"\n" },
-#endif
 		{ "DisplayName", "Module Sort Rules" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Global module sort rules applied to all Update stacks.\nFormat: \"match=<text>;mode=contains|exact|regex;phase=Forces|CollisionDetect|EventWrite|Curves|RenderPrep;priority=0;before=@Anchor;after=@Anchor\"" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bUseV2Pipeline_MetaData[] = {
 		{ "Category", "V2 Pipeline" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "/** Enable the V2 multi-candidate pipeline (EffectSpec v2 + scoring + revision). */" },
-#endif
 		{ "DisplayName", "Use V2 Pipeline" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Enable the V2 multi-candidate pipeline (EffectSpec v2 + scoring + revision)." },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_V2NumCandidates_MetaData[] = {
 		{ "Category", "V2 Pipeline" },
 		{ "ClampMax", "10" },
 		{ "ClampMin", "1" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "/** Number of candidate specs to generate in parallel. */" },
-#endif
 		{ "DisplayName", "Candidate Count" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Number of candidate specs to generate in parallel." },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_V2TargetScore_MetaData[] = {
 		{ "Category", "V2 Pipeline" },
 		{ "ClampMax", "1.0" },
 		{ "ClampMin", "0.0" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "/** Target quality score (0-1). If best candidate scores below this, a revision pass runs. */" },
-#endif
 		{ "DisplayName", "Target Score" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Target quality score (0-1). If best candidate scores below this, a revision pass runs." },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_V2MinAcceptScore_MetaData[] = {
 		{ "Category", "V2 Pipeline" },
 		{ "ClampMax", "1.0" },
 		{ "ClampMin", "0.0" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "/** Minimum acceptable score. Candidates below this threshold are rejected. */" },
-#endif
 		{ "DisplayName", "Minimum Accept Score" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Minimum acceptable score. Candidates below this threshold are rejected." },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_V2MaxRevisionPasses_MetaData[] = {
 		{ "Category", "V2 Pipeline" },
 		{ "ClampMax", "5" },
 		{ "ClampMin", "0" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "/** Maximum number of revision passes per pipeline run. */" },
-#endif
 		{ "DisplayName", "Max Revision Passes" },
 		{ "ModuleRelativePath", "Public/VFXAgentSettings.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Maximum number of revision passes per pipeline run." },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin Class UVFXAgentSettings constinit property declarations ************************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_LLMEndpoint;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_LLMModel;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_LLMApiKey;
@@ -459,6 +405,8 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	static const UECodeGen_Private::FStrPropertyParams NewProp_ImageGenApiKey;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_ImageTo3DEndpoint;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_ImageTo3DApiKey;
+	static const UECodeGen_Private::FStrPropertyParams NewProp_MeshyApiKey;
+	static const UECodeGen_Private::FStrPropertyParams NewProp_MeshyEndpoint;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_CollisionModuleScriptPath;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_GenerateCollisionEventScriptPath;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_ReceiveCollisionEventScriptPath;
@@ -496,12 +444,15 @@ struct Z_Construct_UClass_UVFXAgentSettings_Statics
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_V2MinAcceptScore;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_V2MaxRevisionPasses;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End Class UVFXAgentSettings constinit property declarations **************************
 	static UObject* (*const DependentSingletons[])();
 	static constexpr FCppClassTypeInfoStatic StaticCppClassTypeInfo = {
 		TCppClassTypeTraits<UVFXAgentSettings>::IsAbstract,
 	};
 	static const UECodeGen_Private::FClassParams ClassParams;
-};
+}; // struct Z_Construct_UClass_UVFXAgentSettings_Statics
+
+// ********** Begin Class UVFXAgentSettings Property Definitions ***********************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMEndpoint = { "LLMEndpoint", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, LLMEndpoint), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LLMEndpoint_MetaData), NewProp_LLMEndpoint_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMModel = { "LLMModel", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, LLMModel), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LLMModel_MetaData), NewProp_LLMModel_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_LLMApiKey = { "LLMApiKey", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, LLMApiKey), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LLMApiKey_MetaData), NewProp_LLMApiKey_MetaData) };
@@ -533,6 +484,8 @@ const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_ImageGenApiKey = { "ImageGenApiKey", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, ImageGenApiKey), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ImageGenApiKey_MetaData), NewProp_ImageGenApiKey_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_ImageTo3DEndpoint = { "ImageTo3DEndpoint", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, ImageTo3DEndpoint), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ImageTo3DEndpoint_MetaData), NewProp_ImageTo3DEndpoint_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_ImageTo3DApiKey = { "ImageTo3DApiKey", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, ImageTo3DApiKey), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ImageTo3DApiKey_MetaData), NewProp_ImageTo3DApiKey_MetaData) };
+const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_MeshyApiKey = { "MeshyApiKey", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, MeshyApiKey), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_MeshyApiKey_MetaData), NewProp_MeshyApiKey_MetaData) };
+const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_MeshyEndpoint = { "MeshyEndpoint", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, MeshyEndpoint), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_MeshyEndpoint_MetaData), NewProp_MeshyEndpoint_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_CollisionModuleScriptPath = { "CollisionModuleScriptPath", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, CollisionModuleScriptPath), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_CollisionModuleScriptPath_MetaData), NewProp_CollisionModuleScriptPath_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_GenerateCollisionEventScriptPath = { "GenerateCollisionEventScriptPath", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, GenerateCollisionEventScriptPath), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_GenerateCollisionEventScriptPath_MetaData), NewProp_GenerateCollisionEventScriptPath_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_ReceiveCollisionEventScriptPath = { "ReceiveCollisionEventScriptPath", nullptr, (EPropertyFlags)0x0010000000004001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UVFXAgentSettings, ReceiveCollisionEventScriptPath), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ReceiveCollisionEventScriptPath_MetaData), NewProp_ReceiveCollisionEventScriptPath_MetaData) };
@@ -592,6 +545,8 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UClass_UVFXAgent
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_ImageGenApiKey,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_ImageTo3DEndpoint,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_ImageTo3DApiKey,
+	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_MeshyApiKey,
+	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_MeshyEndpoint,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_CollisionModuleScriptPath,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_GenerateCollisionEventScriptPath,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_ReceiveCollisionEventScriptPath,
@@ -629,6 +584,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UClass_UVFXAgent
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UVFXAgentSettings_Statics::NewProp_V2MaxRevisionPasses,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UClass_UVFXAgentSettings_Statics::PropPointers) < 2048);
+// ********** End Class UVFXAgentSettings Property Definitions *************************************
 UObject* (*const Z_Construct_UClass_UVFXAgentSettings_Statics::DependentSingletons[])() = {
 	(UObject* (*)())Z_Construct_UClass_UDeveloperSettings,
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentEditor,
@@ -649,6 +605,9 @@ const UECodeGen_Private::FClassParams Z_Construct_UClass_UVFXAgentSettings_Stati
 	0x001000A6u,
 	METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UClass_UVFXAgentSettings_Statics::Class_MetaDataParams), Z_Construct_UClass_UVFXAgentSettings_Statics::Class_MetaDataParams)
 };
+void UVFXAgentSettings::StaticRegisterNativesUVFXAgentSettings()
+{
+}
 UClass* Z_Construct_UClass_UVFXAgentSettings()
 {
 	if (!Z_Registration_Info_UClass_UVFXAgentSettings.OuterSingleton)
@@ -657,25 +616,24 @@ UClass* Z_Construct_UClass_UVFXAgentSettings()
 	}
 	return Z_Registration_Info_UClass_UVFXAgentSettings.OuterSingleton;
 }
-template<> VFXAGENTEDITOR_API UClass* StaticClass<UVFXAgentSettings>()
-{
-	return UVFXAgentSettings::StaticClass();
-}
 UVFXAgentSettings::UVFXAgentSettings(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
-DEFINE_VTABLE_PTR_HELPER_CTOR(UVFXAgentSettings);
+DEFINE_VTABLE_PTR_HELPER_CTOR_NS(, UVFXAgentSettings);
 UVFXAgentSettings::~UVFXAgentSettings() {}
-// End Class UVFXAgentSettings
+// ********** End Class UVFXAgentSettings **********************************************************
 
-// Begin Registration
-struct Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics
+// ********** Begin Registration *******************************************************************
+struct Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h__Script_VFXAgentEditor_Statics
 {
 	static constexpr FClassRegisterCompiledInInfo ClassInfo[] = {
-		{ Z_Construct_UClass_UVFXAgentSettings, UVFXAgentSettings::StaticClass, TEXT("UVFXAgentSettings"), &Z_Registration_Info_UClass_UVFXAgentSettings, CONSTRUCT_RELOAD_VERSION_INFO(FClassReloadVersionInfo, sizeof(UVFXAgentSettings), 1093340223U) },
+		{ Z_Construct_UClass_UVFXAgentSettings, UVFXAgentSettings::StaticClass, TEXT("UVFXAgentSettings"), &Z_Registration_Info_UClass_UVFXAgentSettings, CONSTRUCT_RELOAD_VERSION_INFO(FClassReloadVersionInfo, sizeof(UVFXAgentSettings), 2502320276U) },
 	};
-};
-static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_588219078(TEXT("/Script/VFXAgentEditor"),
-	Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics::ClassInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h_Statics::ClassInfo),
+}; // Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h__Script_VFXAgentEditor_Statics 
+static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h__Script_VFXAgentEditor_1368938782{
+	TEXT("/Script/VFXAgentEditor"),
+	Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h__Script_VFXAgentEditor_Statics::ClassInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_VFXAgentSettings_h__Script_VFXAgentEditor_Statics::ClassInfo),
 	nullptr, 0,
-	nullptr, 0);
-// End Registration
+	nullptr, 0,
+};
+// ********** End Registration *********************************************************************
+
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

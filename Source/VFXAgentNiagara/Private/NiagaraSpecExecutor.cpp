@@ -862,20 +862,20 @@ bool FNiagaraSpecExecutor::AddBasicEmitterToSystem(UNiagaraSystem* System, const
         return false;
     }
 
-    const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), true);
+    const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), false);
     if (bDisallowTemplates)
     {
         UE_LOG(LogVFXAgent, Error, TEXT("Template usage blocked"));
         FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Template usage blocked"));
 
-        // Use the engine's Empty emitter as a safe initializer even when templates are disallowed.
+        // Use the engine's Minimal emitter as a safe initializer even when templates are disallowed.
         // This avoids crashes from uninitialized emitters while still producing a standalone emitter.
         UNiagaraEmitter* EmptyTemplate = LoadObject<UNiagaraEmitter>(nullptr,
-            TEXT("/Niagara/DefaultAssets/Templates/Emitters/Empty.Empty"));
+            TEXT("/Niagara/DefaultAssets/Templates/Emitters/Minimal.Minimal"));
         if (!EmptyTemplate)
         {
             EmptyTemplate = LoadObject<UNiagaraEmitter>(nullptr,
-                TEXT("/Niagara/DefaultAssets/Templates/Emitters/Minimal.Minimal"));
+                TEXT("/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain"));
         }
         if (!EmptyTemplate)
         {
@@ -921,15 +921,15 @@ bool FNiagaraSpecExecutor::AddBasicEmitterToSystem(UNiagaraSystem* System, const
     // Instead, we load the "Empty" emitter template which is a truly blank emitter
     // provided by the engine, then add it as a standalone (non-inheriting) copy.
     
-    // Try to load the Empty emitter template - this is the official blank emitter in UE5.5
+    // Try to load the Minimal emitter template - this is a clean emitter with basic modules
     UNiagaraEmitter* EmptyTemplate = LoadObject<UNiagaraEmitter>(nullptr, 
-        TEXT("/Niagara/DefaultAssets/Templates/Emitters/Empty.Empty"));
+        TEXT("/Niagara/DefaultAssets/Templates/Emitters/Minimal.Minimal"));
     
     if (!EmptyTemplate)
     {
-        // Fallback: try Minimal template which is also relatively clean
+        // Fallback: try Fountain template
         EmptyTemplate = LoadObject<UNiagaraEmitter>(nullptr, 
-            TEXT("/Niagara/DefaultAssets/Templates/Emitters/Minimal.Minimal"));
+            TEXT("/Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain"));
     }
     
     if (!EmptyTemplate)
@@ -1054,7 +1054,7 @@ UNiagaraSystem* FNiagaraSpecExecutor::CreateSystemFromSpec(const FVFXEffectSpec&
                 *Selection.StrategyReason);
         }
 
-        const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), true);
+        const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), false);
         if (bDisallowTemplates)
         {
             bHasTemplate = false;
@@ -1963,7 +1963,7 @@ bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const 
 {
     if (!System) return false;
 
-    const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), true);
+    const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), false);
     if (bDisallowTemplates)
     {
         UE_LOG(LogVFXAgent, Error, TEXT("Template usage blocked"));

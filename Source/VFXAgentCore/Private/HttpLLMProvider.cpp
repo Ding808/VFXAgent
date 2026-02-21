@@ -2243,3 +2243,14 @@ void UHttpLLMProvider::RequestImageAnalysisAsync(
 		OnComplete(false, FString(), TEXT("Failed to start request"));
 	}
 }
+
+void UHttpLLMProvider::AskAsync(const FString& Prompt, FOnAskComplete OnComplete) const
+{
+	// Just use the internal RequestDirectorJsonInternalAsync but with a generic system prompt
+	FString SystemPrompt = TEXT("You are a helpful VFX assistant. Answer the user's question about Unreal Engine VFX, Niagara, or general VFX concepts.");
+	
+	RequestDirectorJsonInternalAsync(Prompt, SystemPrompt, [OnComplete](bool bSuccess, const FString& Response, const FString& Error)
+	{
+		OnComplete(bSuccess, Response, Error);
+	});
+}

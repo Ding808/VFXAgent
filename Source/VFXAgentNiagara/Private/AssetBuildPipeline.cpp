@@ -1,4 +1,5 @@
 #include "AssetBuildPipeline.h"
+#include "MeshyModelServices.h"
 #include "EffectSpecParser.h"
 #include "EffectSpecValidator.h"
 #include "NiagaraSpecExecutor.h"
@@ -348,6 +349,8 @@ bool FAssetBuildPipeline::BuildFromJsonSpec(const FString& JsonSpec, const FStri
 	Router.RegisterImageTo3D(TEXT("Local"), MakeShared<FLocalImageTo3DService>());
 	Router.RegisterImageGen(TEXT("External"), MakeShared<FExternalImageGenService>());
 	Router.RegisterImageTo3D(TEXT("External"), MakeShared<FExternalImageTo3DService>());
+	Router.RegisterImageGen(TEXT("Meshy"), MakeShared<FMeshyImageGenService>());
+	Router.RegisterImageTo3D(TEXT("Meshy"), MakeShared<FMeshyImageTo3DService>());
 	const FString PreferredImageGen = GetSettingString(TEXT("PreferredImageGenProvider"), TEXT("Local"));
 	const FString PreferredImageTo3D = GetSettingString(TEXT("PreferredImageTo3DProvider"), TEXT("Local"));
 	TSharedPtr<IImageGenService> ImageGen = Router.PickImageGen(PreferredImageGen);

@@ -12,8 +12,9 @@ public:
 private:
 	void RegisterMenus();
 	void UnregisterMenus();
-	void OpenVFXAgentPanel();
+	
+	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
+	void PluginButtonClicked();
 
-	TSharedPtr<class SWindow> VFXAgentWindow;
 	FDelegateHandle ToolMenusStartupHandle;
 };

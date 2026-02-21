@@ -5,11 +5,13 @@
 ===========================================================================*/
 
 #include "UObject/GeneratedCppIncludes.h"
-#include "VFXAgentCore/Public/EffectSpecV2.h"
+#include "EffectSpecV2.h"
+
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
+static_assert(!UE_WITH_CONSTINIT_UOBJECT, "This generated code can only be compiled with !UE_WITH_CONSTINIT_OBJECT");
 void EmptyLinkFunctionForGeneratedCodeEffectSpecV2() {}
 
-// Begin Cross Module References
+// ********** Begin Cross Module References ********************************************************
 COREUOBJECT_API UScriptStruct* Z_Construct_UScriptStruct_FLinearColor();
 COREUOBJECT_API UScriptStruct* Z_Construct_UScriptStruct_FVector();
 COREUOBJECT_API UScriptStruct* Z_Construct_UScriptStruct_FVector2D();
@@ -31,9 +33,9 @@ VFXAGENTCORE_API UScriptStruct* Z_Construct_UScriptStruct_FMaterialSpecV2();
 VFXAGENTCORE_API UScriptStruct* Z_Construct_UScriptStruct_FMotionDescV2();
 VFXAGENTCORE_API UScriptStruct* Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2();
 VFXAGENTCORE_API UScriptStruct* Z_Construct_UScriptStruct_FTimingEnvelopeV2();
-// End Cross Module References
+// ********** End Cross Module References **********************************************************
 
-// Begin Enum EVFXBehaviorArchetype
+// ********** Begin Enum EVFXBehaviorArchetype *****************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EVFXBehaviorArchetype;
 static UEnum* EVFXBehaviorArchetype_StaticEnum()
 {
@@ -43,7 +45,7 @@ static UEnum* EVFXBehaviorArchetype_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EVFXBehaviorArchetype.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXBehaviorArchetype>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXBehaviorArchetype>()
 {
 	return EVFXBehaviorArchetype_StaticEnum();
 }
@@ -51,9 +53,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXBehaviorArchetype_Statics
 {
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Enum_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Behavior Archetype Tag \xe2\x80\x94 canonical effect families\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "Custom.DisplayName", "Custom" },
 		{ "Custom.Name", "EVFXBehaviorArchetype::Custom" },
 		{ "Electric.DisplayName", "Electric / Arc / Lightning" },
@@ -69,9 +69,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXBehaviorArchetype_Statics
 		{ "Smoke.Name", "EVFXBehaviorArchetype::Smoke" },
 		{ "Teleport.DisplayName", "Teleport / Portal / Warp" },
 		{ "Teleport.Name", "EVFXBehaviorArchetype::Teleport" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Behavior Archetype Tag \xe2\x80\x94 canonical effect families" },
-#endif
 		{ "Water.DisplayName", "Water / Splash / Rain" },
 		{ "Water.Name", "EVFXBehaviorArchetype::Water" },
 	};
@@ -87,7 +85,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXBehaviorArchetype_Statics
 		{ "EVFXBehaviorArchetype::Custom", (int64)EVFXBehaviorArchetype::Custom },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EVFXBehaviorArchetype_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EVFXBehaviorArchetype_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -108,83 +106,50 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EVFXBehaviorArchetype()
 	}
 	return Z_Registration_Info_UEnum_EVFXBehaviorArchetype.InnerSingleton;
 }
-// End Enum EVFXBehaviorArchetype
+// ********** End Enum EVFXBehaviorArchetype *******************************************************
 
-// Begin ScriptStruct FTimingEnvelopeV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_TimingEnvelopeV2;
-class UScriptStruct* FTimingEnvelopeV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_TimingEnvelopeV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_TimingEnvelopeV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FTimingEnvelopeV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("TimingEnvelopeV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_TimingEnvelopeV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FTimingEnvelopeV2>()
-{
-	return FTimingEnvelopeV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FTimingEnvelopeV2 *************************************************
 struct Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FTimingEnvelopeV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FTimingEnvelopeV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Timing Envelope \xe2\x80\x94 when a layer starts, peaks, and ends\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Timing Envelope \xe2\x80\x94 when a layer starts, peaks, and ends" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DelaySeconds_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_AttackSeconds_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Delay before layer starts\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Delay before layer starts" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SustainSeconds_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Ramp-up to full intensity\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Ramp-up to full intensity" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DecaySeconds_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Full-intensity hold\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Full-intensity hold" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_TotalLifetime_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Fade-out\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Fade-out" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bLoop_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Particle lifetime\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Particle lifetime" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FTimingEnvelopeV2 constinit property declarations *****************
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_DelaySeconds;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_AttackSeconds;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_SustainSeconds;
@@ -193,12 +158,24 @@ struct Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics
 	static void NewProp_bLoop_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bLoop;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FTimingEnvelopeV2 constinit property declarations *******************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FTimingEnvelopeV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FTimingEnvelopeV2;
+class UScriptStruct* FTimingEnvelopeV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FTimingEnvelopeV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FTimingEnvelopeV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FTimingEnvelopeV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("TimingEnvelopeV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FTimingEnvelopeV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FTimingEnvelopeV2 Property Definitions ****************************
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::NewProp_DelaySeconds = { "DelaySeconds", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FTimingEnvelopeV2, DelaySeconds), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_DelaySeconds_MetaData), NewProp_DelaySeconds_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::NewProp_AttackSeconds = { "AttackSeconds", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FTimingEnvelopeV2, AttackSeconds), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_AttackSeconds_MetaData), NewProp_AttackSeconds_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::NewProp_SustainSeconds = { "SustainSeconds", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FTimingEnvelopeV2, SustainSeconds), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SustainSeconds_MetaData), NewProp_SustainSeconds_MetaData) };
@@ -218,6 +195,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FT
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::NewProp_bLoop,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FTimingEnvelopeV2 Property Definitions ******************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -233,15 +211,15 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FTimingEnvelope
 };
 UScriptStruct* Z_Construct_UScriptStruct_FTimingEnvelopeV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_TimingEnvelopeV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FTimingEnvelopeV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_TimingEnvelopeV2.InnerSingleton, Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FTimingEnvelopeV2.InnerSingleton, Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_TimingEnvelopeV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FTimingEnvelopeV2.InnerSingleton);
 }
-// End ScriptStruct FTimingEnvelopeV2
+// ********** End ScriptStruct FTimingEnvelopeV2 ***************************************************
 
-// Begin Enum EMotionVerbV2
+// ********** Begin Enum EMotionVerbV2 *************************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EMotionVerbV2;
 static UEnum* EMotionVerbV2_StaticEnum()
 {
@@ -251,7 +229,7 @@ static UEnum* EMotionVerbV2_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EMotionVerbV2.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EMotionVerbV2>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EMotionVerbV2>()
 {
 	return EMotionVerbV2_StaticEnum();
 }
@@ -259,9 +237,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EMotionVerbV2_Statics
 {
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Enum_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Motion Language \xe2\x80\x94 semantic motion description per layer\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "Drift.DisplayName", "Drift (slow wander)" },
 		{ "Drift.Name", "EMotionVerbV2::Drift" },
 		{ "Explode.DisplayName", "Explode (radial outward)" },
@@ -287,9 +263,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EMotionVerbV2_Statics
 		{ "Static.Name", "EMotionVerbV2::Static" },
 		{ "Stream.DisplayName", "Stream (directional flow)" },
 		{ "Stream.Name", "EMotionVerbV2::Stream" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Motion Language \xe2\x80\x94 semantic motion description per layer" },
-#endif
 	};
 #endif // WITH_METADATA
 	static constexpr UECodeGen_Private::FEnumeratorParam Enumerators[] = {
@@ -307,7 +281,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EMotionVerbV2_Statics
 		{ "EMotionVerbV2::Static", (int64)EMotionVerbV2::Static },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EMotionVerbV2_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EMotionVerbV2_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -328,24 +302,13 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EMotionVerbV2()
 	}
 	return Z_Registration_Info_UEnum_EMotionVerbV2.InnerSingleton;
 }
-// End Enum EMotionVerbV2
+// ********** End Enum EMotionVerbV2 ***************************************************************
 
-// Begin ScriptStruct FMotionDescV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_MotionDescV2;
-class UScriptStruct* FMotionDescV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_MotionDescV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_MotionDescV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FMotionDescV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("MotionDescV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_MotionDescV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FMotionDescV2>()
-{
-	return FMotionDescV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FMotionDescV2 *****************************************************
 struct Z_Construct_UScriptStruct_FMotionDescV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FMotionDescV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FMotionDescV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -357,54 +320,36 @@ struct Z_Construct_UScriptStruct_FMotionDescV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Speed_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Primary motion axis\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Primary motion axis" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SpeedVariation_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Base speed (cm/s)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Base speed (cm/s)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CurlNoiseIntensity_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// 0-1 random variation\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "0-1 random variation" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CurlNoiseFrequency_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Turbulence overlay\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Turbulence overlay" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DragCoefficient_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SemanticNote_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Air resistance\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Air resistance" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FMotionDescV2 constinit property declarations *********************
 	static const UECodeGen_Private::FBytePropertyParams NewProp_Verb_Underlying;
 	static const UECodeGen_Private::FEnumPropertyParams NewProp_Verb;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Axis;
@@ -415,14 +360,26 @@ struct Z_Construct_UScriptStruct_FMotionDescV2_Statics
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_DragCoefficient;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_SemanticNote;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FMotionDescV2 constinit property declarations ***********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FMotionDescV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FMotionDescV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FMotionDescV2;
+class UScriptStruct* FMotionDescV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FMotionDescV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FMotionDescV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FMotionDescV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("MotionDescV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FMotionDescV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FMotionDescV2 Property Definitions ********************************
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewProp_Verb_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewProp_Verb = { "Verb", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMotionDescV2, Verb), Z_Construct_UEnum_VFXAgentCore_EMotionVerbV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Verb_MetaData), NewProp_Verb_MetaData) }; // 626191247
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewProp_Verb = { "Verb", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMotionDescV2, Verb), Z_Construct_UEnum_VFXAgentCore_EMotionVerbV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Verb_MetaData), NewProp_Verb_MetaData) }; // 4286348070
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewProp_Axis = { "Axis", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMotionDescV2, Axis), Z_Construct_UScriptStruct_FVector, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Axis_MetaData), NewProp_Axis_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewProp_Speed = { "Speed", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMotionDescV2, Speed), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Speed_MetaData), NewProp_Speed_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewProp_SpeedVariation = { "SpeedVariation", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMotionDescV2, SpeedVariation), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SpeedVariation_MetaData), NewProp_SpeedVariation_MetaData) };
@@ -442,6 +399,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FM
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewProp_SemanticNote,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FMotionDescV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FMotionDescV2 Property Definitions **********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FMotionDescV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -457,93 +415,58 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FMotionDescV2_S
 };
 UScriptStruct* Z_Construct_UScriptStruct_FMotionDescV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_MotionDescV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FMotionDescV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_MotionDescV2.InnerSingleton, Z_Construct_UScriptStruct_FMotionDescV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FMotionDescV2.InnerSingleton, Z_Construct_UScriptStruct_FMotionDescV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_MotionDescV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FMotionDescV2.InnerSingleton);
 }
-// End ScriptStruct FMotionDescV2
+// ********** End ScriptStruct FMotionDescV2 *******************************************************
 
-// Begin ScriptStruct FMaterialFeatureSetV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_MaterialFeatureSetV2;
-class UScriptStruct* FMaterialFeatureSetV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_MaterialFeatureSetV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_MaterialFeatureSetV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FMaterialFeatureSetV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("MaterialFeatureSetV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_MaterialFeatureSetV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FMaterialFeatureSetV2>()
-{
-	return FMaterialFeatureSetV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FMaterialFeatureSetV2 *********************************************
 struct Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FMaterialFeatureSetV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FMaterialFeatureSetV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Material Skeleton \xe2\x80\x94 fixed building blocks that compose a VFX material\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Material Skeleton \xe2\x80\x94 fixed building blocks that compose a VFX material" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bFresnel_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Core features (the \"skeleton\")\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Core features (the \"skeleton\")" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_FresnelExponent_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Rim-lighting / edge glow\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Rim-lighting / edge glow" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bDepthFade_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DepthFadeDistance_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Soft particle blending\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Soft particle blending" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bUVDistortion_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DistortionStrength_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// UV distortion for heat haze\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "UV distortion for heat haze" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bNoiseMask_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_NoiseTiling_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Procedural noise masking\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Procedural noise masking" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_NoiseContrast_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -552,33 +475,23 @@ struct Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ErodeThreshold_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Dissolve / erode effect\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Dissolve / erode effect" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bPanUV_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// 0=fully visible, 1=fully eroded\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "0=fully visible, 1=fully eroded" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_PanSpeed_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Scrolling UV\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Scrolling UV" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FMaterialFeatureSetV2 constinit property declarations *************
 	static void NewProp_bFresnel_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bFresnel;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_FresnelExponent;
@@ -599,12 +512,24 @@ struct Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bPanUV;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_PanSpeed;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FMaterialFeatureSetV2 constinit property declarations ***************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FMaterialFeatureSetV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FMaterialFeatureSetV2;
+class UScriptStruct* FMaterialFeatureSetV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FMaterialFeatureSetV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FMaterialFeatureSetV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FMaterialFeatureSetV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("MaterialFeatureSetV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FMaterialFeatureSetV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FMaterialFeatureSetV2 Property Definitions ************************
 void Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics::NewProp_bFresnel_SetBit(void* Obj)
 {
 	((FMaterialFeatureSetV2*)Obj)->bFresnel = 1;
@@ -658,6 +583,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FM
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics::NewProp_PanSpeed,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FMaterialFeatureSetV2 Property Definitions **************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -673,30 +599,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FMaterialFeatur
 };
 UScriptStruct* Z_Construct_UScriptStruct_FMaterialFeatureSetV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_MaterialFeatureSetV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FMaterialFeatureSetV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_MaterialFeatureSetV2.InnerSingleton, Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FMaterialFeatureSetV2.InnerSingleton, Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_MaterialFeatureSetV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FMaterialFeatureSetV2.InnerSingleton);
 }
-// End ScriptStruct FMaterialFeatureSetV2
+// ********** End ScriptStruct FMaterialFeatureSetV2 ***********************************************
 
-// Begin ScriptStruct FMaterialSpecV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_MaterialSpecV2;
-class UScriptStruct* FMaterialSpecV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_MaterialSpecV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_MaterialSpecV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FMaterialSpecV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("MaterialSpecV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_MaterialSpecV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FMaterialSpecV2>()
-{
-	return FMaterialSpecV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FMaterialSpecV2 ***************************************************
 struct Z_Construct_UScriptStruct_FMaterialSpecV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FMaterialSpecV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FMaterialSpecV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -705,22 +620,14 @@ struct Z_Construct_UScriptStruct_FMaterialSpecV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Blend_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// unlit | lit\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "unlit | lit" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_BaseColor_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// additive | translucent | masked | opaque\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "additive | translucent | masked | opaque" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_EmissiveColor_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -732,31 +639,19 @@ struct Z_Construct_UScriptStruct_FMaterialSpecV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Features_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Feature set (the composable skeleton)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Feature set (the composable skeleton)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_TextureSlots_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Texture slots (name \xe2\x86\x92 usage hint)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Texture slots (name \xe2\x86\x92 usage hint)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bCustomHLSL_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// HLSL Custom Node (optional)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "HLSL Custom Node (optional)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_HLSLCode_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -765,6 +660,8 @@ struct Z_Construct_UScriptStruct_FMaterialSpecV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FMaterialSpecV2 constinit property declarations *******************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Shading;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Blend;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_BaseColor;
@@ -780,19 +677,31 @@ struct Z_Construct_UScriptStruct_FMaterialSpecV2_Statics
 	static const UECodeGen_Private::FStrPropertyParams NewProp_HLSLCode;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_HLSLContract;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FMaterialSpecV2 constinit property declarations *********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FMaterialSpecV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FMaterialSpecV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FMaterialSpecV2;
+class UScriptStruct* FMaterialSpecV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FMaterialSpecV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FMaterialSpecV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FMaterialSpecV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("MaterialSpecV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FMaterialSpecV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FMaterialSpecV2 Property Definitions ******************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_Shading = { "Shading", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, Shading), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Shading_MetaData), NewProp_Shading_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_Blend = { "Blend", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, Blend), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Blend_MetaData), NewProp_Blend_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_BaseColor = { "BaseColor", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, BaseColor), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_BaseColor_MetaData), NewProp_BaseColor_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_EmissiveColor = { "EmissiveColor", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, EmissiveColor), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_EmissiveColor_MetaData), NewProp_EmissiveColor_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_EmissiveIntensity = { "EmissiveIntensity", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, EmissiveIntensity), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_EmissiveIntensity_MetaData), NewProp_EmissiveIntensity_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_Opacity = { "Opacity", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, Opacity), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Opacity_MetaData), NewProp_Opacity_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_Features = { "Features", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, Features), Z_Construct_UScriptStruct_FMaterialFeatureSetV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Features_MetaData), NewProp_Features_MetaData) }; // 307340962
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_Features = { "Features", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, Features), Z_Construct_UScriptStruct_FMaterialFeatureSetV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Features_MetaData), NewProp_Features_MetaData) }; // 1328717963
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_TextureSlots_ValueProp = { "TextureSlots", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 1, METADATA_PARAMS(0, nullptr) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_TextureSlots_Key_KeyProp = { "TextureSlots_Key", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, METADATA_PARAMS(0, nullptr) };
 const UECodeGen_Private::FMapPropertyParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_TextureSlots = { "TextureSlots", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Map, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FMaterialSpecV2, TextureSlots), EMapPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_TextureSlots_MetaData), NewProp_TextureSlots_MetaData) };
@@ -819,6 +728,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FM
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewProp_HLSLContract,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FMaterialSpecV2 Property Definitions ********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -834,15 +744,15 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FMaterialSpecV2
 };
 UScriptStruct* Z_Construct_UScriptStruct_FMaterialSpecV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_MaterialSpecV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FMaterialSpecV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_MaterialSpecV2.InnerSingleton, Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FMaterialSpecV2.InnerSingleton, Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_MaterialSpecV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FMaterialSpecV2.InnerSingleton);
 }
-// End ScriptStruct FMaterialSpecV2
+// ********** End ScriptStruct FMaterialSpecV2 *****************************************************
 
-// Begin Enum ELayerRoleV2
+// ********** Begin Enum ELayerRoleV2 **************************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_ELayerRoleV2;
 static UEnum* ELayerRoleV2_StaticEnum()
 {
@@ -852,7 +762,7 @@ static UEnum* ELayerRoleV2_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_ELayerRoleV2.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<ELayerRoleV2>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<ELayerRoleV2>()
 {
 	return ELayerRoleV2_StaticEnum();
 }
@@ -860,9 +770,7 @@ struct Z_Construct_UEnum_VFXAgentCore_ELayerRoleV2_Statics
 {
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Enum_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Layer Spec v2 \xe2\x80\x94 a single effect layer (maps to one Niagara emitter)\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "CoreBlast.DisplayName", "Core Blast" },
 		{ "CoreBlast.Name", "ELayerRoleV2::CoreBlast" },
 		{ "Custom.DisplayName", "Custom" },
@@ -880,9 +788,7 @@ struct Z_Construct_UEnum_VFXAgentCore_ELayerRoleV2_Statics
 		{ "Smoke.Name", "ELayerRoleV2::Smoke" },
 		{ "Sparks.DisplayName", "Sparks / Debris" },
 		{ "Sparks.Name", "ELayerRoleV2::Sparks" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Layer Spec v2 \xe2\x80\x94 a single effect layer (maps to one Niagara emitter)" },
-#endif
 		{ "Trail.DisplayName", "Trail / Ribbon" },
 		{ "Trail.Name", "ELayerRoleV2::Trail" },
 	};
@@ -899,7 +805,7 @@ struct Z_Construct_UEnum_VFXAgentCore_ELayerRoleV2_Statics
 		{ "ELayerRoleV2::Custom", (int64)ELayerRoleV2::Custom },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_ELayerRoleV2_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_ELayerRoleV2_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -920,24 +826,13 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_ELayerRoleV2()
 	}
 	return Z_Registration_Info_UEnum_ELayerRoleV2.InnerSingleton;
 }
-// End Enum ELayerRoleV2
+// ********** End Enum ELayerRoleV2 ****************************************************************
 
-// Begin ScriptStruct FLayerSpawnV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_LayerSpawnV2;
-class UScriptStruct* FLayerSpawnV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_LayerSpawnV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_LayerSpawnV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FLayerSpawnV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("LayerSpawnV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_LayerSpawnV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FLayerSpawnV2>()
-{
-	return FLayerSpawnV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FLayerSpawnV2 *****************************************************
 struct Z_Construct_UScriptStruct_FLayerSpawnV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FLayerSpawnV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FLayerSpawnV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -946,28 +841,38 @@ struct Z_Construct_UScriptStruct_FLayerSpawnV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Rate_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// burst | rate | event\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "burst | rate | event" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_BurstCount_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FLayerSpawnV2 constinit property declarations *********************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Mode;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Rate;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_BurstCount;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FLayerSpawnV2 constinit property declarations ***********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FLayerSpawnV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FLayerSpawnV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FLayerSpawnV2;
+class UScriptStruct* FLayerSpawnV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FLayerSpawnV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FLayerSpawnV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FLayerSpawnV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("LayerSpawnV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FLayerSpawnV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FLayerSpawnV2 Property Definitions ********************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::NewProp_Mode = { "Mode", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpawnV2, Mode), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Mode_MetaData), NewProp_Mode_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::NewProp_Rate = { "Rate", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpawnV2, Rate), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Rate_MetaData), NewProp_Rate_MetaData) };
 const UECodeGen_Private::FIntPropertyParams Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::NewProp_BurstCount = { "BurstCount", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Int, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpawnV2, BurstCount), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_BurstCount_MetaData), NewProp_BurstCount_MetaData) };
@@ -977,6 +882,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FL
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::NewProp_BurstCount,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FLayerSpawnV2 Property Definitions **********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -992,30 +898,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FLayerSpawnV2_S
 };
 UScriptStruct* Z_Construct_UScriptStruct_FLayerSpawnV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_LayerSpawnV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FLayerSpawnV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_LayerSpawnV2.InnerSingleton, Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FLayerSpawnV2.InnerSingleton, Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_LayerSpawnV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FLayerSpawnV2.InnerSingleton);
 }
-// End ScriptStruct FLayerSpawnV2
+// ********** End ScriptStruct FLayerSpawnV2 *******************************************************
 
-// Begin ScriptStruct FLayerInitV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_LayerInitV2;
-class UScriptStruct* FLayerInitV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_LayerInitV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_LayerInitV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FLayerInitV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("LayerInitV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_LayerInitV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FLayerInitV2>()
-{
-	return FLayerInitV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FLayerInitV2 ******************************************************
 struct Z_Construct_UScriptStruct_FLayerInitV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FLayerInitV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FLayerInitV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -1033,17 +928,31 @@ struct Z_Construct_UScriptStruct_FLayerInitV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FLayerInitV2 constinit property declarations **********************
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Lifetime;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_LifetimeVariation;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_SizeRange;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Velocity;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FLayerInitV2 constinit property declarations ************************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FLayerInitV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FLayerInitV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FLayerInitV2;
+class UScriptStruct* FLayerInitV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FLayerInitV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FLayerInitV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FLayerInitV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("LayerInitV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FLayerInitV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FLayerInitV2 Property Definitions *********************************
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FLayerInitV2_Statics::NewProp_Lifetime = { "Lifetime", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerInitV2, Lifetime), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Lifetime_MetaData), NewProp_Lifetime_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FLayerInitV2_Statics::NewProp_LifetimeVariation = { "LifetimeVariation", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerInitV2, LifetimeVariation), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LifetimeVariation_MetaData), NewProp_LifetimeVariation_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerInitV2_Statics::NewProp_SizeRange = { "SizeRange", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerInitV2, SizeRange), Z_Construct_UScriptStruct_FVector2D, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SizeRange_MetaData), NewProp_SizeRange_MetaData) };
@@ -1055,6 +964,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FL
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FLayerInitV2_Statics::NewProp_Velocity,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FLayerInitV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FLayerInitV2 Property Definitions ***********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FLayerInitV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1070,30 +980,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FLayerInitV2_St
 };
 UScriptStruct* Z_Construct_UScriptStruct_FLayerInitV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_LayerInitV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FLayerInitV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_LayerInitV2.InnerSingleton, Z_Construct_UScriptStruct_FLayerInitV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FLayerInitV2.InnerSingleton, Z_Construct_UScriptStruct_FLayerInitV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_LayerInitV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FLayerInitV2.InnerSingleton);
 }
-// End ScriptStruct FLayerInitV2
+// ********** End ScriptStruct FLayerInitV2 ********************************************************
 
-// Begin ScriptStruct FLayerUpdateV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_LayerUpdateV2;
-class UScriptStruct* FLayerUpdateV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_LayerUpdateV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_LayerUpdateV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FLayerUpdateV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("LayerUpdateV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_LayerUpdateV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FLayerUpdateV2>()
-{
-	return FLayerUpdateV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FLayerUpdateV2 ****************************************************
 struct Z_Construct_UScriptStruct_FLayerUpdateV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FLayerUpdateV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FLayerUpdateV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -1108,36 +1007,42 @@ struct Z_Construct_UScriptStruct_FLayerUpdateV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_AlphaOverLife_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// e.g., \"warm_to_cool\" semantic\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "e.g., \"warm_to_cool\" semantic" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SizeOverLife_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// e.g., \"fade_out_smooth\"\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "e.g., \"fade_out_smooth\"" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FLayerUpdateV2 constinit property declarations ********************
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Drag;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_CurlNoiseStrength;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_ColorOverLife;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_AlphaOverLife;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_SizeOverLife;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FLayerUpdateV2 constinit property declarations **********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FLayerUpdateV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FLayerUpdateV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FLayerUpdateV2;
+class UScriptStruct* FLayerUpdateV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FLayerUpdateV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FLayerUpdateV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FLayerUpdateV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("LayerUpdateV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FLayerUpdateV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FLayerUpdateV2 Property Definitions *******************************
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::NewProp_Drag = { "Drag", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerUpdateV2, Drag), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Drag_MetaData), NewProp_Drag_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::NewProp_CurlNoiseStrength = { "CurlNoiseStrength", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerUpdateV2, CurlNoiseStrength), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_CurlNoiseStrength_MetaData), NewProp_CurlNoiseStrength_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::NewProp_ColorOverLife = { "ColorOverLife", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerUpdateV2, ColorOverLife), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ColorOverLife_MetaData), NewProp_ColorOverLife_MetaData) };
@@ -1151,6 +1056,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FL
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::NewProp_SizeOverLife,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FLayerUpdateV2 Property Definitions *********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1166,30 +1072,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FLayerUpdateV2_
 };
 UScriptStruct* Z_Construct_UScriptStruct_FLayerUpdateV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_LayerUpdateV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FLayerUpdateV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_LayerUpdateV2.InnerSingleton, Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FLayerUpdateV2.InnerSingleton, Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_LayerUpdateV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FLayerUpdateV2.InnerSingleton);
 }
-// End ScriptStruct FLayerUpdateV2
+// ********** End ScriptStruct FLayerUpdateV2 ******************************************************
 
-// Begin ScriptStruct FLayerSpecV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_LayerSpecV2;
-class UScriptStruct* FLayerSpecV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_LayerSpecV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_LayerSpecV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FLayerSpecV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("LayerSpecV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_LayerSpecV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FLayerSpecV2>()
-{
-	return FLayerSpecV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FLayerSpecV2 ******************************************************
 struct Z_Construct_UScriptStruct_FLayerSpecV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FLayerSpecV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FLayerSpecV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -1207,75 +1102,49 @@ struct Z_Construct_UScriptStruct_FLayerSpecV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SortOrder_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// sprite | ribbon | mesh | light\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "sprite | ribbon | mesh | light" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Timing_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Timing & rhythm\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Timing & rhythm" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Spawn_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Spawn\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Spawn" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Init_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Init / Update\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Init / Update" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Update_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Motion_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Motion\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Motion" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Material_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Material\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Material" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_MaxParticles_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Quality budget\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Quality budget" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_PerfHint_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FLayerSpecV2 constinit property declarations **********************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Id;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Name;
 	static const UECodeGen_Private::FBytePropertyParams NewProp_Role_Underlying;
@@ -1291,24 +1160,36 @@ struct Z_Construct_UScriptStruct_FLayerSpecV2_Statics
 	static const UECodeGen_Private::FIntPropertyParams NewProp_MaxParticles;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_PerfHint;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FLayerSpecV2 constinit property declarations ************************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FLayerSpecV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FLayerSpecV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FLayerSpecV2;
+class UScriptStruct* FLayerSpecV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FLayerSpecV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FLayerSpecV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FLayerSpecV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("LayerSpecV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FLayerSpecV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FLayerSpecV2 Property Definitions *********************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Id = { "Id", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Id), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Id_MetaData), NewProp_Id_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Name = { "Name", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Name), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Name_MetaData), NewProp_Name_MetaData) };
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Role_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Role = { "Role", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Role), Z_Construct_UEnum_VFXAgentCore_ELayerRoleV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Role_MetaData), NewProp_Role_MetaData) }; // 2872960911
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Role = { "Role", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Role), Z_Construct_UEnum_VFXAgentCore_ELayerRoleV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Role_MetaData), NewProp_Role_MetaData) }; // 2261688879
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_RendererType = { "RendererType", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, RendererType), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_RendererType_MetaData), NewProp_RendererType_MetaData) };
 const UECodeGen_Private::FIntPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_SortOrder = { "SortOrder", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Int, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, SortOrder), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SortOrder_MetaData), NewProp_SortOrder_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Timing = { "Timing", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Timing), Z_Construct_UScriptStruct_FTimingEnvelopeV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Timing_MetaData), NewProp_Timing_MetaData) }; // 2191040673
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Spawn = { "Spawn", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Spawn), Z_Construct_UScriptStruct_FLayerSpawnV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Spawn_MetaData), NewProp_Spawn_MetaData) }; // 2983178158
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Init = { "Init", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Init), Z_Construct_UScriptStruct_FLayerInitV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Init_MetaData), NewProp_Init_MetaData) }; // 2752214376
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Update = { "Update", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Update), Z_Construct_UScriptStruct_FLayerUpdateV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Update_MetaData), NewProp_Update_MetaData) }; // 974225337
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Motion = { "Motion", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Motion), Z_Construct_UScriptStruct_FMotionDescV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Motion_MetaData), NewProp_Motion_MetaData) }; // 264365547
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Material = { "Material", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Material), Z_Construct_UScriptStruct_FMaterialSpecV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Material_MetaData), NewProp_Material_MetaData) }; // 3170463053
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Timing = { "Timing", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Timing), Z_Construct_UScriptStruct_FTimingEnvelopeV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Timing_MetaData), NewProp_Timing_MetaData) }; // 2670399457
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Spawn = { "Spawn", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Spawn), Z_Construct_UScriptStruct_FLayerSpawnV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Spawn_MetaData), NewProp_Spawn_MetaData) }; // 3592808436
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Init = { "Init", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Init), Z_Construct_UScriptStruct_FLayerInitV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Init_MetaData), NewProp_Init_MetaData) }; // 2205199612
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Update = { "Update", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Update), Z_Construct_UScriptStruct_FLayerUpdateV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Update_MetaData), NewProp_Update_MetaData) }; // 1866875672
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Motion = { "Motion", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Motion), Z_Construct_UScriptStruct_FMotionDescV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Motion_MetaData), NewProp_Motion_MetaData) }; // 357105703
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_Material = { "Material", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, Material), Z_Construct_UScriptStruct_FMaterialSpecV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Material_MetaData), NewProp_Material_MetaData) }; // 2297257739
 const UECodeGen_Private::FIntPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_MaxParticles = { "MaxParticles", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Int, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, MaxParticles), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_MaxParticles_MetaData), NewProp_MaxParticles_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_PerfHint = { "PerfHint", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FLayerSpecV2, PerfHint), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_PerfHint_MetaData), NewProp_PerfHint_MetaData) };
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FLayerSpecV2_Statics::PropPointers[] = {
@@ -1328,6 +1209,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FL
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewProp_PerfHint,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FLayerSpecV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FLayerSpecV2 Property Definitions ***********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FLayerSpecV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1343,15 +1225,15 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FLayerSpecV2_St
 };
 UScriptStruct* Z_Construct_UScriptStruct_FLayerSpecV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_LayerSpecV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FLayerSpecV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_LayerSpecV2.InnerSingleton, Z_Construct_UScriptStruct_FLayerSpecV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FLayerSpecV2.InnerSingleton, Z_Construct_UScriptStruct_FLayerSpecV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_LayerSpecV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FLayerSpecV2.InnerSingleton);
 }
-// End ScriptStruct FLayerSpecV2
+// ********** End ScriptStruct FLayerSpecV2 ********************************************************
 
-// Begin Enum EEventTypeV2
+// ********** Begin Enum EEventTypeV2 **************************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EEventTypeV2;
 static UEnum* EEventTypeV2_StaticEnum()
 {
@@ -1361,7 +1243,7 @@ static UEnum* EEventTypeV2_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EEventTypeV2.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EEventTypeV2>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EEventTypeV2>()
 {
 	return EEventTypeV2_StaticEnum();
 }
@@ -1369,9 +1251,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EEventTypeV2_Statics
 {
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Enum_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Event Binding v2 \xe2\x80\x94 inter-layer event chains\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 		{ "OnCollision.DisplayName", "On Collision" },
 		{ "OnCollision.Name", "EEventTypeV2::OnCollision" },
@@ -1383,9 +1263,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EEventTypeV2_Statics
 		{ "OnSpawn.Name", "EEventTypeV2::OnSpawn" },
 		{ "Timed.DisplayName", "Timed Trigger" },
 		{ "Timed.Name", "EEventTypeV2::Timed" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Event Binding v2 \xe2\x80\x94 inter-layer event chains" },
-#endif
 	};
 #endif // WITH_METADATA
 	static constexpr UECodeGen_Private::FEnumeratorParam Enumerators[] = {
@@ -1396,7 +1274,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EEventTypeV2_Statics
 		{ "EEventTypeV2::Timed", (int64)EEventTypeV2::Timed },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EEventTypeV2_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EEventTypeV2_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1417,24 +1295,13 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EEventTypeV2()
 	}
 	return Z_Registration_Info_UEnum_EEventTypeV2.InnerSingleton;
 }
-// End Enum EEventTypeV2
+// ********** End Enum EEventTypeV2 ****************************************************************
 
-// Begin ScriptStruct FEventBindingV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_EventBindingV2;
-class UScriptStruct* FEventBindingV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_EventBindingV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_EventBindingV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FEventBindingV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("EventBindingV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_EventBindingV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FEventBindingV2>()
-{
-	return FEventBindingV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FEventBindingV2 ***************************************************
 struct Z_Construct_UScriptStruct_FEventBindingV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FEventBindingV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FEventBindingV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -1455,6 +1322,8 @@ struct Z_Construct_UScriptStruct_FEventBindingV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FEventBindingV2 constinit property declarations *******************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_SourceLayerId;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_TargetLayerId;
 	static const UECodeGen_Private::FBytePropertyParams NewProp_Type_Underlying;
@@ -1462,16 +1331,28 @@ struct Z_Construct_UScriptStruct_FEventBindingV2_Statics
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Delay;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_SpawnCount;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FEventBindingV2 constinit property declarations *********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FEventBindingV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FEventBindingV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FEventBindingV2;
+class UScriptStruct* FEventBindingV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FEventBindingV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FEventBindingV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FEventBindingV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("EventBindingV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FEventBindingV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FEventBindingV2 Property Definitions ******************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewProp_SourceLayerId = { "SourceLayerId", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEventBindingV2, SourceLayerId), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SourceLayerId_MetaData), NewProp_SourceLayerId_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewProp_TargetLayerId = { "TargetLayerId", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEventBindingV2, TargetLayerId), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_TargetLayerId_MetaData), NewProp_TargetLayerId_MetaData) };
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewProp_Type_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewProp_Type = { "Type", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEventBindingV2, Type), Z_Construct_UEnum_VFXAgentCore_EEventTypeV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Type_MetaData), NewProp_Type_MetaData) }; // 2237848063
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewProp_Type = { "Type", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEventBindingV2, Type), Z_Construct_UEnum_VFXAgentCore_EEventTypeV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Type_MetaData), NewProp_Type_MetaData) }; // 15509164
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewProp_Delay = { "Delay", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEventBindingV2, Delay), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Delay_MetaData), NewProp_Delay_MetaData) };
 const UECodeGen_Private::FIntPropertyParams Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewProp_SpawnCount = { "SpawnCount", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Int, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEventBindingV2, SpawnCount), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SpawnCount_MetaData), NewProp_SpawnCount_MetaData) };
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FEventBindingV2_Statics::PropPointers[] = {
@@ -1483,6 +1364,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FE
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewProp_SpawnCount,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FEventBindingV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FEventBindingV2 Property Definitions ********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FEventBindingV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1498,89 +1380,56 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FEventBindingV2
 };
 UScriptStruct* Z_Construct_UScriptStruct_FEventBindingV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_EventBindingV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FEventBindingV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_EventBindingV2.InnerSingleton, Z_Construct_UScriptStruct_FEventBindingV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FEventBindingV2.InnerSingleton, Z_Construct_UScriptStruct_FEventBindingV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_EventBindingV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FEventBindingV2.InnerSingleton);
 }
-// End ScriptStruct FEventBindingV2
+// ********** End ScriptStruct FEventBindingV2 *****************************************************
 
-// Begin ScriptStruct FNiagaraFeatureRequirementsV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_NiagaraFeatureRequirementsV2;
-class UScriptStruct* FNiagaraFeatureRequirementsV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_NiagaraFeatureRequirementsV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_NiagaraFeatureRequirementsV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("NiagaraFeatureRequirementsV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_NiagaraFeatureRequirementsV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FNiagaraFeatureRequirementsV2>()
-{
-	return FNiagaraFeatureRequirementsV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FNiagaraFeatureRequirementsV2 *************************************
 struct Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FNiagaraFeatureRequirementsV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FNiagaraFeatureRequirementsV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Niagara Feature Requirements \xe2\x80\x94 hard constraints\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Niagara Feature Requirements \xe2\x80\x94 hard constraints" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bRequiresEvents_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bRequiresForces_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// At least one event binding\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "At least one event binding" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bRequiresCollision_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// At least one force module (drag/noise/vortex)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "At least one force module (drag/noise/vortex)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bRequiresLightRenderer_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Collision detection\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Collision detection" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bRequiresRibbonRenderer_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Light renderer for illumination\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Light renderer for illumination" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_MinFeatureCount_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// How many of the above must be satisfied (min 2 by default)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "How many of the above must be satisfied (min 2 by default)" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FNiagaraFeatureRequirementsV2 constinit property declarations *****
 	static void NewProp_bRequiresEvents_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bRequiresEvents;
 	static void NewProp_bRequiresForces_SetBit(void* Obj);
@@ -1593,12 +1442,24 @@ struct Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bRequiresRibbonRenderer;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_MinFeatureCount;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FNiagaraFeatureRequirementsV2 constinit property declarations *******
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FNiagaraFeatureRequirementsV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FNiagaraFeatureRequirementsV2;
+class UScriptStruct* FNiagaraFeatureRequirementsV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FNiagaraFeatureRequirementsV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FNiagaraFeatureRequirementsV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("NiagaraFeatureRequirementsV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FNiagaraFeatureRequirementsV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FNiagaraFeatureRequirementsV2 Property Definitions ****************
 void Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics::NewProp_bRequiresEvents_SetBit(void* Obj)
 {
 	((FNiagaraFeatureRequirementsV2*)Obj)->bRequiresEvents = 1;
@@ -1634,6 +1495,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FN
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics::NewProp_MinFeatureCount,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FNiagaraFeatureRequirementsV2 Property Definitions ******************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1649,83 +1511,70 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FNiagaraFeature
 };
 UScriptStruct* Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_NiagaraFeatureRequirementsV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FNiagaraFeatureRequirementsV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_NiagaraFeatureRequirementsV2.InnerSingleton, Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FNiagaraFeatureRequirementsV2.InnerSingleton, Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_NiagaraFeatureRequirementsV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FNiagaraFeatureRequirementsV2.InnerSingleton);
 }
-// End ScriptStruct FNiagaraFeatureRequirementsV2
+// ********** End ScriptStruct FNiagaraFeatureRequirementsV2 ***************************************
 
-// Begin ScriptStruct FCameraReadabilityV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_CameraReadabilityV2;
-class UScriptStruct* FCameraReadabilityV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_CameraReadabilityV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_CameraReadabilityV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FCameraReadabilityV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("CameraReadabilityV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_CameraReadabilityV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FCameraReadabilityV2>()
-{
-	return FCameraReadabilityV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FCameraReadabilityV2 **********************************************
 struct Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FCameraReadabilityV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FCameraReadabilityV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Camera Readability Hints\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Camera Readability Hints" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_PreferredDistance_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_BoundsRadius_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// close | medium | far\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "close | medium | far" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bNeedsSilhouette_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Expected visual radius (cm)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Expected visual radius (cm)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ContrastTarget_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Should have clear silhouette\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Should have clear silhouette" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FCameraReadabilityV2 constinit property declarations **************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_PreferredDistance;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_BoundsRadius;
 	static void NewProp_bNeedsSilhouette_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bNeedsSilhouette;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_ContrastTarget;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FCameraReadabilityV2 constinit property declarations ****************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FCameraReadabilityV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FCameraReadabilityV2;
+class UScriptStruct* FCameraReadabilityV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FCameraReadabilityV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FCameraReadabilityV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FCameraReadabilityV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("CameraReadabilityV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FCameraReadabilityV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FCameraReadabilityV2 Property Definitions *************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::NewProp_PreferredDistance = { "PreferredDistance", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FCameraReadabilityV2, PreferredDistance), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_PreferredDistance_MetaData), NewProp_PreferredDistance_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::NewProp_BoundsRadius = { "BoundsRadius", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FCameraReadabilityV2, BoundsRadius), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_BoundsRadius_MetaData), NewProp_BoundsRadius_MetaData) };
 void Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::NewProp_bNeedsSilhouette_SetBit(void* Obj)
@@ -1741,6 +1590,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FC
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::NewProp_ContrastTarget,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FCameraReadabilityV2 Property Definitions ***************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1756,51 +1606,32 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FCameraReadabil
 };
 UScriptStruct* Z_Construct_UScriptStruct_FCameraReadabilityV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_CameraReadabilityV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FCameraReadabilityV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_CameraReadabilityV2.InnerSingleton, Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FCameraReadabilityV2.InnerSingleton, Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_CameraReadabilityV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FCameraReadabilityV2.InnerSingleton);
 }
-// End ScriptStruct FCameraReadabilityV2
+// ********** End ScriptStruct FCameraReadabilityV2 ************************************************
 
-// Begin ScriptStruct FEffectStyleV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_EffectStyleV2;
-class UScriptStruct* FEffectStyleV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_EffectStyleV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_EffectStyleV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FEffectStyleV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("EffectStyleV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_EffectStyleV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FEffectStyleV2>()
-{
-	return FEffectStyleV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FEffectStyleV2 ****************************************************
 struct Z_Construct_UScriptStruct_FEffectStyleV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FEffectStyleV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FEffectStyleV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Global Style v2 \xe2\x80\x94 palette, feel, reference\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Global Style v2 \xe2\x80\x94 palette, feel, reference" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Palette_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_PrimaryColor_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// e.g., \"cool_electric\", \"warm_fire\"\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "e.g., \"cool_electric\", \"warm_fire\"" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SecondaryColor_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -1812,13 +1643,9 @@ struct Z_Construct_UScriptStruct_FEffectStyleV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Brightness_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// 0=photorealistic, 1=stylized/anime\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "0=photorealistic, 1=stylized/anime" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Saturation_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -1827,6 +1654,8 @@ struct Z_Construct_UScriptStruct_FEffectStyleV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FEffectStyleV2 constinit property declarations ********************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Palette;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_PrimaryColor;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_SecondaryColor;
@@ -1836,12 +1665,24 @@ struct Z_Construct_UScriptStruct_FEffectStyleV2_Statics
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Saturation;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_MoodTag;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FEffectStyleV2 constinit property declarations **********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FEffectStyleV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FEffectStyleV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FEffectStyleV2;
+class UScriptStruct* FEffectStyleV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FEffectStyleV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FEffectStyleV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FEffectStyleV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("EffectStyleV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FEffectStyleV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FEffectStyleV2 Property Definitions *******************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FEffectStyleV2_Statics::NewProp_Palette = { "Palette", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectStyleV2, Palette), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Palette_MetaData), NewProp_Palette_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectStyleV2_Statics::NewProp_PrimaryColor = { "PrimaryColor", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectStyleV2, PrimaryColor), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_PrimaryColor_MetaData), NewProp_PrimaryColor_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectStyleV2_Statics::NewProp_SecondaryColor = { "SecondaryColor", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectStyleV2, SecondaryColor), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SecondaryColor_MetaData), NewProp_SecondaryColor_MetaData) };
@@ -1861,6 +1702,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FE
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FEffectStyleV2_Statics::NewProp_MoodTag,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FEffectStyleV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FEffectStyleV2 Property Definitions *********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FEffectStyleV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1876,39 +1718,24 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FEffectStyleV2_
 };
 UScriptStruct* Z_Construct_UScriptStruct_FEffectStyleV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_EffectStyleV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FEffectStyleV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_EffectStyleV2.InnerSingleton, Z_Construct_UScriptStruct_FEffectStyleV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FEffectStyleV2.InnerSingleton, Z_Construct_UScriptStruct_FEffectStyleV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_EffectStyleV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FEffectStyleV2.InnerSingleton);
 }
-// End ScriptStruct FEffectStyleV2
+// ********** End ScriptStruct FEffectStyleV2 ******************************************************
 
-// Begin ScriptStruct FEffectSpecV2
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_EffectSpecV2;
-class UScriptStruct* FEffectSpecV2::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_EffectSpecV2.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_EffectSpecV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FEffectSpecV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("EffectSpecV2"));
-	}
-	return Z_Registration_Info_UScriptStruct_EffectSpecV2.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FEffectSpecV2>()
-{
-	return FEffectSpecV2::StaticStruct();
-}
+// ********** Begin ScriptStruct FEffectSpecV2 *****************************************************
 struct Z_Construct_UScriptStruct_FEffectSpecV2_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FEffectSpecV2); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FEffectSpecV2); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ---------------------------------------------------------------------------\n// Top-Level: EffectSpec v2\n// ---------------------------------------------------------------------------\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Top-Level: EffectSpec v2" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_EffectName_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -1920,13 +1747,9 @@ struct Z_Construct_UScriptStruct_FEffectSpecV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_GlobalStyle_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// e.g., \"shockwave_explosion\", \"heal_burst\"\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "e.g., \"shockwave_explosion\", \"heal_burst\"" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Layers_MetaData[] = {
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
@@ -1941,15 +1764,13 @@ struct Z_Construct_UScriptStruct_FEffectSpecV2_Statics
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Description_MetaData[] = {
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Brief semantic description for logging/debugging\n" },
-#endif
 		{ "ModuleRelativePath", "Public/EffectSpecV2.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Brief semantic description for logging/debugging" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FEffectSpecV2 constinit property declarations *********************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_EffectName;
 	static const UECodeGen_Private::FBytePropertyParams NewProp_Archetype_Underlying;
 	static const UECodeGen_Private::FEnumPropertyParams NewProp_Archetype;
@@ -1963,23 +1784,35 @@ struct Z_Construct_UScriptStruct_FEffectSpecV2_Statics
 	static const UECodeGen_Private::FStructPropertyParams NewProp_CameraReadability;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Description;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FEffectSpecV2 constinit property declarations ***********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FEffectSpecV2>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FEffectSpecV2_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FEffectSpecV2;
+class UScriptStruct* FEffectSpecV2::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FEffectSpecV2.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FEffectSpecV2.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FEffectSpecV2, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("EffectSpecV2"));
+	}
+	return Z_Registration_Info_UScriptStruct_FEffectSpecV2.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FEffectSpecV2 Property Definitions ********************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_EffectName = { "EffectName", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, EffectName), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_EffectName_MetaData), NewProp_EffectName_MetaData) };
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Archetype_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Archetype = { "Archetype", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Archetype), Z_Construct_UEnum_VFXAgentCore_EVFXBehaviorArchetype, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Archetype_MetaData), NewProp_Archetype_MetaData) }; // 722212711
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Archetype = { "Archetype", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Archetype), Z_Construct_UEnum_VFXAgentCore_EVFXBehaviorArchetype, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Archetype_MetaData), NewProp_Archetype_MetaData) }; // 3100817522
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_ArchetypeVariant = { "ArchetypeVariant", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, ArchetypeVariant), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ArchetypeVariant_MetaData), NewProp_ArchetypeVariant_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_GlobalStyle = { "GlobalStyle", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, GlobalStyle), Z_Construct_UScriptStruct_FEffectStyleV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_GlobalStyle_MetaData), NewProp_GlobalStyle_MetaData) }; // 2826754364
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Layers_Inner = { "Layers", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FLayerSpecV2, METADATA_PARAMS(0, nullptr) }; // 4226043138
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Layers = { "Layers", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Layers), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Layers_MetaData), NewProp_Layers_MetaData) }; // 4226043138
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Events_Inner = { "Events", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FEventBindingV2, METADATA_PARAMS(0, nullptr) }; // 976630248
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Events = { "Events", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Events), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Events_MetaData), NewProp_Events_MetaData) }; // 976630248
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Requirements = { "Requirements", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Requirements), Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Requirements_MetaData), NewProp_Requirements_MetaData) }; // 1706594813
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_CameraReadability = { "CameraReadability", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, CameraReadability), Z_Construct_UScriptStruct_FCameraReadabilityV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_CameraReadability_MetaData), NewProp_CameraReadability_MetaData) }; // 55161329
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_GlobalStyle = { "GlobalStyle", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, GlobalStyle), Z_Construct_UScriptStruct_FEffectStyleV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_GlobalStyle_MetaData), NewProp_GlobalStyle_MetaData) }; // 2376355695
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Layers_Inner = { "Layers", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FLayerSpecV2, METADATA_PARAMS(0, nullptr) }; // 1073018644
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Layers = { "Layers", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Layers), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Layers_MetaData), NewProp_Layers_MetaData) }; // 1073018644
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Events_Inner = { "Events", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FEventBindingV2, METADATA_PARAMS(0, nullptr) }; // 4205646659
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Events = { "Events", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Events), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Events_MetaData), NewProp_Events_MetaData) }; // 4205646659
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Requirements = { "Requirements", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Requirements), Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Requirements_MetaData), NewProp_Requirements_MetaData) }; // 3453751168
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_CameraReadability = { "CameraReadability", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, CameraReadability), Z_Construct_UScriptStruct_FCameraReadabilityV2, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_CameraReadability_MetaData), NewProp_CameraReadability_MetaData) }; // 1984276498
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Description = { "Description", nullptr, (EPropertyFlags)0x0010000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FEffectSpecV2, Description), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Description_MetaData), NewProp_Description_MetaData) };
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FEffectSpecV2_Statics::PropPointers[] = {
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_EffectName,
@@ -1996,6 +1829,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FE
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewProp_Description,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FEffectSpecV2_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FEffectSpecV2 Property Definitions **********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FEffectSpecV2_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -2011,42 +1845,45 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FEffectSpecV2_S
 };
 UScriptStruct* Z_Construct_UScriptStruct_FEffectSpecV2()
 {
-	if (!Z_Registration_Info_UScriptStruct_EffectSpecV2.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FEffectSpecV2.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_EffectSpecV2.InnerSingleton, Z_Construct_UScriptStruct_FEffectSpecV2_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FEffectSpecV2.InnerSingleton, Z_Construct_UScriptStruct_FEffectSpecV2_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_EffectSpecV2.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FEffectSpecV2.InnerSingleton);
 }
-// End ScriptStruct FEffectSpecV2
+// ********** End ScriptStruct FEffectSpecV2 *******************************************************
 
-// Begin Registration
-struct Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_Statics
+// ********** Begin Registration *******************************************************************
+struct Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h__Script_VFXAgentCore_Statics
 {
 	static constexpr FEnumRegisterCompiledInInfo EnumInfo[] = {
-		{ EVFXBehaviorArchetype_StaticEnum, TEXT("EVFXBehaviorArchetype"), &Z_Registration_Info_UEnum_EVFXBehaviorArchetype, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 722212711U) },
-		{ EMotionVerbV2_StaticEnum, TEXT("EMotionVerbV2"), &Z_Registration_Info_UEnum_EMotionVerbV2, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 626191247U) },
-		{ ELayerRoleV2_StaticEnum, TEXT("ELayerRoleV2"), &Z_Registration_Info_UEnum_ELayerRoleV2, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 2872960911U) },
-		{ EEventTypeV2_StaticEnum, TEXT("EEventTypeV2"), &Z_Registration_Info_UEnum_EEventTypeV2, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 2237848063U) },
+		{ EVFXBehaviorArchetype_StaticEnum, TEXT("EVFXBehaviorArchetype"), &Z_Registration_Info_UEnum_EVFXBehaviorArchetype, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 3100817522U) },
+		{ EMotionVerbV2_StaticEnum, TEXT("EMotionVerbV2"), &Z_Registration_Info_UEnum_EMotionVerbV2, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 4286348070U) },
+		{ ELayerRoleV2_StaticEnum, TEXT("ELayerRoleV2"), &Z_Registration_Info_UEnum_ELayerRoleV2, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 2261688879U) },
+		{ EEventTypeV2_StaticEnum, TEXT("EEventTypeV2"), &Z_Registration_Info_UEnum_EEventTypeV2, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 15509164U) },
 	};
 	static constexpr FStructRegisterCompiledInInfo ScriptStructInfo[] = {
-		{ FTimingEnvelopeV2::StaticStruct, Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::NewStructOps, TEXT("TimingEnvelopeV2"), &Z_Registration_Info_UScriptStruct_TimingEnvelopeV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FTimingEnvelopeV2), 2191040673U) },
-		{ FMotionDescV2::StaticStruct, Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewStructOps, TEXT("MotionDescV2"), &Z_Registration_Info_UScriptStruct_MotionDescV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FMotionDescV2), 264365547U) },
-		{ FMaterialFeatureSetV2::StaticStruct, Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics::NewStructOps, TEXT("MaterialFeatureSetV2"), &Z_Registration_Info_UScriptStruct_MaterialFeatureSetV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FMaterialFeatureSetV2), 307340962U) },
-		{ FMaterialSpecV2::StaticStruct, Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewStructOps, TEXT("MaterialSpecV2"), &Z_Registration_Info_UScriptStruct_MaterialSpecV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FMaterialSpecV2), 3170463053U) },
-		{ FLayerSpawnV2::StaticStruct, Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::NewStructOps, TEXT("LayerSpawnV2"), &Z_Registration_Info_UScriptStruct_LayerSpawnV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FLayerSpawnV2), 2983178158U) },
-		{ FLayerInitV2::StaticStruct, Z_Construct_UScriptStruct_FLayerInitV2_Statics::NewStructOps, TEXT("LayerInitV2"), &Z_Registration_Info_UScriptStruct_LayerInitV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FLayerInitV2), 2752214376U) },
-		{ FLayerUpdateV2::StaticStruct, Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::NewStructOps, TEXT("LayerUpdateV2"), &Z_Registration_Info_UScriptStruct_LayerUpdateV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FLayerUpdateV2), 974225337U) },
-		{ FLayerSpecV2::StaticStruct, Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewStructOps, TEXT("LayerSpecV2"), &Z_Registration_Info_UScriptStruct_LayerSpecV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FLayerSpecV2), 4226043138U) },
-		{ FEventBindingV2::StaticStruct, Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewStructOps, TEXT("EventBindingV2"), &Z_Registration_Info_UScriptStruct_EventBindingV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FEventBindingV2), 976630248U) },
-		{ FNiagaraFeatureRequirementsV2::StaticStruct, Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics::NewStructOps, TEXT("NiagaraFeatureRequirementsV2"), &Z_Registration_Info_UScriptStruct_NiagaraFeatureRequirementsV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FNiagaraFeatureRequirementsV2), 1706594813U) },
-		{ FCameraReadabilityV2::StaticStruct, Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::NewStructOps, TEXT("CameraReadabilityV2"), &Z_Registration_Info_UScriptStruct_CameraReadabilityV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FCameraReadabilityV2), 55161329U) },
-		{ FEffectStyleV2::StaticStruct, Z_Construct_UScriptStruct_FEffectStyleV2_Statics::NewStructOps, TEXT("EffectStyleV2"), &Z_Registration_Info_UScriptStruct_EffectStyleV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FEffectStyleV2), 2826754364U) },
-		{ FEffectSpecV2::StaticStruct, Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewStructOps, TEXT("EffectSpecV2"), &Z_Registration_Info_UScriptStruct_EffectSpecV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FEffectSpecV2), 777009049U) },
+		{ FTimingEnvelopeV2::StaticStruct, Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics::NewStructOps, TEXT("TimingEnvelopeV2"),&Z_Registration_Info_UScriptStruct_FTimingEnvelopeV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FTimingEnvelopeV2), 2670399457U) },
+		{ FMotionDescV2::StaticStruct, Z_Construct_UScriptStruct_FMotionDescV2_Statics::NewStructOps, TEXT("MotionDescV2"),&Z_Registration_Info_UScriptStruct_FMotionDescV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FMotionDescV2), 357105703U) },
+		{ FMaterialFeatureSetV2::StaticStruct, Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics::NewStructOps, TEXT("MaterialFeatureSetV2"),&Z_Registration_Info_UScriptStruct_FMaterialFeatureSetV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FMaterialFeatureSetV2), 1328717963U) },
+		{ FMaterialSpecV2::StaticStruct, Z_Construct_UScriptStruct_FMaterialSpecV2_Statics::NewStructOps, TEXT("MaterialSpecV2"),&Z_Registration_Info_UScriptStruct_FMaterialSpecV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FMaterialSpecV2), 2297257739U) },
+		{ FLayerSpawnV2::StaticStruct, Z_Construct_UScriptStruct_FLayerSpawnV2_Statics::NewStructOps, TEXT("LayerSpawnV2"),&Z_Registration_Info_UScriptStruct_FLayerSpawnV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FLayerSpawnV2), 3592808436U) },
+		{ FLayerInitV2::StaticStruct, Z_Construct_UScriptStruct_FLayerInitV2_Statics::NewStructOps, TEXT("LayerInitV2"),&Z_Registration_Info_UScriptStruct_FLayerInitV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FLayerInitV2), 2205199612U) },
+		{ FLayerUpdateV2::StaticStruct, Z_Construct_UScriptStruct_FLayerUpdateV2_Statics::NewStructOps, TEXT("LayerUpdateV2"),&Z_Registration_Info_UScriptStruct_FLayerUpdateV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FLayerUpdateV2), 1866875672U) },
+		{ FLayerSpecV2::StaticStruct, Z_Construct_UScriptStruct_FLayerSpecV2_Statics::NewStructOps, TEXT("LayerSpecV2"),&Z_Registration_Info_UScriptStruct_FLayerSpecV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FLayerSpecV2), 1073018644U) },
+		{ FEventBindingV2::StaticStruct, Z_Construct_UScriptStruct_FEventBindingV2_Statics::NewStructOps, TEXT("EventBindingV2"),&Z_Registration_Info_UScriptStruct_FEventBindingV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FEventBindingV2), 4205646659U) },
+		{ FNiagaraFeatureRequirementsV2::StaticStruct, Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics::NewStructOps, TEXT("NiagaraFeatureRequirementsV2"),&Z_Registration_Info_UScriptStruct_FNiagaraFeatureRequirementsV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FNiagaraFeatureRequirementsV2), 3453751168U) },
+		{ FCameraReadabilityV2::StaticStruct, Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics::NewStructOps, TEXT("CameraReadabilityV2"),&Z_Registration_Info_UScriptStruct_FCameraReadabilityV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FCameraReadabilityV2), 1984276498U) },
+		{ FEffectStyleV2::StaticStruct, Z_Construct_UScriptStruct_FEffectStyleV2_Statics::NewStructOps, TEXT("EffectStyleV2"),&Z_Registration_Info_UScriptStruct_FEffectStyleV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FEffectStyleV2), 2376355695U) },
+		{ FEffectSpecV2::StaticStruct, Z_Construct_UScriptStruct_FEffectSpecV2_Statics::NewStructOps, TEXT("EffectSpecV2"),&Z_Registration_Info_UScriptStruct_FEffectSpecV2, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FEffectSpecV2), 1453347971U) },
 	};
-};
-static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_2442458328(TEXT("/Script/VFXAgentCore"),
+}; // Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h__Script_VFXAgentCore_Statics 
+static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h__Script_VFXAgentCore_4071547496{
+	TEXT("/Script/VFXAgentCore"),
 	nullptr, 0,
-	Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_Statics::ScriptStructInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_Statics::ScriptStructInfo),
-	Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_Statics::EnumInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_Statics::EnumInfo));
-// End Registration
+	Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h__Script_VFXAgentCore_Statics::ScriptStructInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h__Script_VFXAgentCore_Statics::ScriptStructInfo),
+	Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h__Script_VFXAgentCore_Statics::EnumInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h__Script_VFXAgentCore_Statics::EnumInfo),
+};
+// ********** End Registration *********************************************************************
+
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

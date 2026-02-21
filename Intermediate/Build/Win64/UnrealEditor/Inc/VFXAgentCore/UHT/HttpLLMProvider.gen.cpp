@@ -5,19 +5,21 @@
 ===========================================================================*/
 
 #include "UObject/GeneratedCppIncludes.h"
-#include "VFXAgentCore/Public/HttpLLMProvider.h"
+#include "HttpLLMProvider.h"
+
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
+static_assert(!UE_WITH_CONSTINIT_UOBJECT, "This generated code can only be compiled with !UE_WITH_CONSTINIT_OBJECT");
 void EmptyLinkFunctionForGeneratedCodeHttpLLMProvider() {}
 
-// Begin Cross Module References
+// ********** Begin Cross Module References ********************************************************
 COREUOBJECT_API UClass* Z_Construct_UClass_UObject();
 UPackage* Z_Construct_UPackage__Script_VFXAgentCore();
 VFXAGENTCORE_API UClass* Z_Construct_UClass_UHttpLLMProvider();
 VFXAGENTCORE_API UClass* Z_Construct_UClass_UHttpLLMProvider_NoRegister();
 VFXAGENTCORE_API UEnum* Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend();
-// End Cross Module References
+// ********** End Cross Module References **********************************************************
 
-// Begin Enum EVFXAgentLLMBackend
+// ********** Begin Enum EVFXAgentLLMBackend *******************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EVFXAgentLLMBackend;
 static UEnum* EVFXAgentLLMBackend_StaticEnum()
 {
@@ -27,7 +29,7 @@ static UEnum* EVFXAgentLLMBackend_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EVFXAgentLLMBackend.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXAgentLLMBackend>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXAgentLLMBackend>()
 {
 	return EVFXAgentLLMBackend_StaticEnum();
 }
@@ -54,7 +56,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend_Statics
 		{ "EVFXAgentLLMBackend::OllamaGenerate", (int64)EVFXAgentLLMBackend::OllamaGenerate },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -75,9 +77,9 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend()
 	}
 	return Z_Registration_Info_UEnum_EVFXAgentLLMBackend.InnerSingleton;
 }
-// End Enum EVFXAgentLLMBackend
+// ********** End Enum EVFXAgentLLMBackend *********************************************************
 
-// Begin Class UHttpLLMProvider Function Configure
+// ********** Begin Class UHttpLLMProvider Function Configure **************************************
 struct Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics
 {
 	struct HttpLLMProvider_eventConfigure_Parms
@@ -104,6 +106,8 @@ struct Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics
 		{ "NativeConst", "" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin Function Configure constinit property declarations *****************************
 	static const UECodeGen_Private::FBytePropertyParams NewProp_InBackend_Underlying;
 	static const UECodeGen_Private::FEnumPropertyParams NewProp_InBackend;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_InEndpoint;
@@ -111,10 +115,13 @@ struct Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics
 	static const UECodeGen_Private::FStrPropertyParams NewProp_InApiKey;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_InTimeoutSeconds;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End Function Configure constinit property declarations *******************************
 	static const UECodeGen_Private::FFunctionParams FuncParams;
 };
+
+// ********** Begin Function Configure Property Definitions ****************************************
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::NewProp_InBackend_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::NewProp_InBackend = { "InBackend", nullptr, (EPropertyFlags)0x0010000000000080, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(HttpLLMProvider_eventConfigure_Parms, InBackend), Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend, METADATA_PARAMS(0, nullptr) }; // 3911309017
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::NewProp_InBackend = { "InBackend", nullptr, (EPropertyFlags)0x0010000000000080, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(HttpLLMProvider_eventConfigure_Parms, InBackend), Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend, METADATA_PARAMS(0, nullptr) }; // 741680154
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::NewProp_InEndpoint = { "InEndpoint", nullptr, (EPropertyFlags)0x0010000000000080, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(HttpLLMProvider_eventConfigure_Parms, InEndpoint), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_InEndpoint_MetaData), NewProp_InEndpoint_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::NewProp_InModel = { "InModel", nullptr, (EPropertyFlags)0x0010000000000080, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(HttpLLMProvider_eventConfigure_Parms, InModel), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_InModel_MetaData), NewProp_InModel_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::NewProp_InApiKey = { "InApiKey", nullptr, (EPropertyFlags)0x0010000000000080, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(HttpLLMProvider_eventConfigure_Parms, InApiKey), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_InApiKey_MetaData), NewProp_InApiKey_MetaData) };
@@ -128,7 +135,11 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UFunction_UHttpL
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::NewProp_InTimeoutSeconds,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::PropPointers) < 2048);
-const UECodeGen_Private::FFunctionParams Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::FuncParams = { (UObject*(*)())Z_Construct_UClass_UHttpLLMProvider, nullptr, "Configure", nullptr, nullptr, Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::PropPointers, UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::PropPointers), sizeof(Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::HttpLLMProvider_eventConfigure_Parms), RF_Public|RF_Transient|RF_MarkAsNative, (EFunctionFlags)0x04020401, 0, 0, METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::Function_MetaDataParams), Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::Function_MetaDataParams) };
+// ********** End Function Configure Property Definitions ******************************************
+const UECodeGen_Private::FFunctionParams Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::FuncParams = { { (UObject*(*)())Z_Construct_UClass_UHttpLLMProvider, nullptr, "Configure", 	Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::PropPointers, 
+	UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::PropPointers), 
+sizeof(Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::HttpLLMProvider_eventConfigure_Parms),
+RF_Public|RF_Transient|RF_MarkAsNative, (EFunctionFlags)0x04020401, 0, 0, METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::Function_MetaDataParams), Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::Function_MetaDataParams)},  };
 static_assert(sizeof(Z_Construct_UFunction_UHttpLLMProvider_Configure_Statics::HttpLLMProvider_eventConfigure_Parms) < MAX_uint16);
 UFunction* Z_Construct_UFunction_UHttpLLMProvider_Configure()
 {
@@ -151,9 +162,9 @@ DEFINE_FUNCTION(UHttpLLMProvider::execConfigure)
 	P_THIS->Configure(EVFXAgentLLMBackend(Z_Param_InBackend),Z_Param_InEndpoint,Z_Param_InModel,Z_Param_InApiKey,Z_Param_InTimeoutSeconds);
 	P_NATIVE_END;
 }
-// End Class UHttpLLMProvider Function Configure
+// ********** End Class UHttpLLMProvider Function Configure ****************************************
 
-// Begin Class UHttpLLMProvider Function GetLastError
+// ********** Begin Class UHttpLLMProvider Function GetLastError ***********************************
 struct Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics
 {
 	struct HttpLLMProvider_eventGetLastError_Parms
@@ -166,16 +177,25 @@ struct Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics
 		{ "ModuleRelativePath", "Public/HttpLLMProvider.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin Function GetLastError constinit property declarations **************************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_ReturnValue;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End Function GetLastError constinit property declarations ****************************
 	static const UECodeGen_Private::FFunctionParams FuncParams;
 };
+
+// ********** Begin Function GetLastError Property Definitions *************************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::NewProp_ReturnValue = { "ReturnValue", nullptr, (EPropertyFlags)0x0010000000000580, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(HttpLLMProvider_eventGetLastError_Parms, ReturnValue), METADATA_PARAMS(0, nullptr) };
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::PropPointers[] = {
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::NewProp_ReturnValue,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::PropPointers) < 2048);
-const UECodeGen_Private::FFunctionParams Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::FuncParams = { (UObject*(*)())Z_Construct_UClass_UHttpLLMProvider, nullptr, "GetLastError", nullptr, nullptr, Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::PropPointers, UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::PropPointers), sizeof(Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::HttpLLMProvider_eventGetLastError_Parms), RF_Public|RF_Transient|RF_MarkAsNative, (EFunctionFlags)0x54020401, 0, 0, METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::Function_MetaDataParams), Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::Function_MetaDataParams) };
+// ********** End Function GetLastError Property Definitions ***************************************
+const UECodeGen_Private::FFunctionParams Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::FuncParams = { { (UObject*(*)())Z_Construct_UClass_UHttpLLMProvider, nullptr, "GetLastError", 	Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::PropPointers, 
+	UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::PropPointers), 
+sizeof(Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::HttpLLMProvider_eventGetLastError_Parms),
+RF_Public|RF_Transient|RF_MarkAsNative, (EFunctionFlags)0x54020401, 0, 0, METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::Function_MetaDataParams), Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::Function_MetaDataParams)},  };
 static_assert(sizeof(Z_Construct_UFunction_UHttpLLMProvider_GetLastError_Statics::HttpLLMProvider_eventGetLastError_Parms) < MAX_uint16);
 UFunction* Z_Construct_UFunction_UHttpLLMProvider_GetLastError()
 {
@@ -193,9 +213,9 @@ DEFINE_FUNCTION(UHttpLLMProvider::execGetLastError)
 	*(FString*)Z_Param__Result=P_THIS->GetLastError();
 	P_NATIVE_END;
 }
-// End Class UHttpLLMProvider Function GetLastError
+// ********** End Class UHttpLLMProvider Function GetLastError *************************************
 
-// Begin Class UHttpLLMProvider Function GetLastRawRecipeJson
+// ********** Begin Class UHttpLLMProvider Function GetLastRawRecipeJson ***************************
 struct Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics
 {
 	struct HttpLLMProvider_eventGetLastRawRecipeJson_Parms
@@ -208,16 +228,25 @@ struct Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics
 		{ "ModuleRelativePath", "Public/HttpLLMProvider.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin Function GetLastRawRecipeJson constinit property declarations ******************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_ReturnValue;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End Function GetLastRawRecipeJson constinit property declarations ********************
 	static const UECodeGen_Private::FFunctionParams FuncParams;
 };
+
+// ********** Begin Function GetLastRawRecipeJson Property Definitions *****************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::NewProp_ReturnValue = { "ReturnValue", nullptr, (EPropertyFlags)0x0010000000000580, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(HttpLLMProvider_eventGetLastRawRecipeJson_Parms, ReturnValue), METADATA_PARAMS(0, nullptr) };
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::PropPointers[] = {
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::NewProp_ReturnValue,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::PropPointers) < 2048);
-const UECodeGen_Private::FFunctionParams Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::FuncParams = { (UObject*(*)())Z_Construct_UClass_UHttpLLMProvider, nullptr, "GetLastRawRecipeJson", nullptr, nullptr, Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::PropPointers, UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::PropPointers), sizeof(Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::HttpLLMProvider_eventGetLastRawRecipeJson_Parms), RF_Public|RF_Transient|RF_MarkAsNative, (EFunctionFlags)0x54020401, 0, 0, METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::Function_MetaDataParams), Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::Function_MetaDataParams) };
+// ********** End Function GetLastRawRecipeJson Property Definitions *******************************
+const UECodeGen_Private::FFunctionParams Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::FuncParams = { { (UObject*(*)())Z_Construct_UClass_UHttpLLMProvider, nullptr, "GetLastRawRecipeJson", 	Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::PropPointers, 
+	UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::PropPointers), 
+sizeof(Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::HttpLLMProvider_eventGetLastRawRecipeJson_Parms),
+RF_Public|RF_Transient|RF_MarkAsNative, (EFunctionFlags)0x54020401, 0, 0, METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::Function_MetaDataParams), Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::Function_MetaDataParams)},  };
 static_assert(sizeof(Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson_Statics::HttpLLMProvider_eventGetLastRawRecipeJson_Parms) < MAX_uint16);
 UFunction* Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson()
 {
@@ -235,23 +264,37 @@ DEFINE_FUNCTION(UHttpLLMProvider::execGetLastRawRecipeJson)
 	*(FString*)Z_Param__Result=P_THIS->GetLastRawRecipeJson();
 	P_NATIVE_END;
 }
-// End Class UHttpLLMProvider Function GetLastRawRecipeJson
+// ********** End Class UHttpLLMProvider Function GetLastRawRecipeJson *****************************
 
-// Begin Class UHttpLLMProvider
-void UHttpLLMProvider::StaticRegisterNativesUHttpLLMProvider()
+// ********** Begin Class UHttpLLMProvider *********************************************************
+FClassRegistrationInfo Z_Registration_Info_UClass_UHttpLLMProvider;
+UClass* UHttpLLMProvider::GetPrivateStaticClass()
 {
-	UClass* Class = UHttpLLMProvider::StaticClass();
-	static const FNameNativePtrPair Funcs[] = {
-		{ "Configure", &UHttpLLMProvider::execConfigure },
-		{ "GetLastError", &UHttpLLMProvider::execGetLastError },
-		{ "GetLastRawRecipeJson", &UHttpLLMProvider::execGetLastRawRecipeJson },
-	};
-	FNativeFunctionRegistrar::RegisterFunctions(Class, Funcs, UE_ARRAY_COUNT(Funcs));
+	using TClass = UHttpLLMProvider;
+	if (!Z_Registration_Info_UClass_UHttpLLMProvider.InnerSingleton)
+	{
+		GetPrivateStaticClassBody(
+			TClass::StaticPackage(),
+			TEXT("HttpLLMProvider"),
+			Z_Registration_Info_UClass_UHttpLLMProvider.InnerSingleton,
+			StaticRegisterNativesUHttpLLMProvider,
+			sizeof(TClass),
+			alignof(TClass),
+			TClass::StaticClassFlags,
+			TClass::StaticClassCastFlags(),
+			TClass::StaticConfigName(),
+			(UClass::ClassConstructorType)InternalConstructor<TClass>,
+			(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
+			UOBJECT_CPPCLASS_STATICFUNCTIONS_FORCLASS(TClass),
+			&TClass::Super::StaticClass,
+			&TClass::WithinClass::StaticClass
+		);
+	}
+	return Z_Registration_Info_UClass_UHttpLLMProvider.InnerSingleton;
 }
-IMPLEMENT_CLASS_NO_AUTO_REGISTRATION(UHttpLLMProvider);
 UClass* Z_Construct_UClass_UHttpLLMProvider_NoRegister()
 {
-	return UHttpLLMProvider::StaticClass();
+	return UHttpLLMProvider::GetPrivateStaticClass();
 }
 struct Z_Construct_UClass_UHttpLLMProvider_Statics
 {
@@ -290,6 +333,8 @@ struct Z_Construct_UClass_UHttpLLMProvider_Statics
 		{ "ModuleRelativePath", "Public/HttpLLMProvider.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin Class UHttpLLMProvider constinit property declarations *************************
 	static const UECodeGen_Private::FBytePropertyParams NewProp_Backend_Underlying;
 	static const UECodeGen_Private::FEnumPropertyParams NewProp_Backend;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Endpoint;
@@ -299,20 +344,28 @@ struct Z_Construct_UClass_UHttpLLMProvider_Statics
 	static const UECodeGen_Private::FStrPropertyParams NewProp_LastError;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_LastRawRecipeJson;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End Class UHttpLLMProvider constinit property declarations ***************************
+	static constexpr UE::CodeGen::FClassNativeFunction Funcs[] = {
+		{ .NameUTF8 = UTF8TEXT("Configure"), .Pointer = &UHttpLLMProvider::execConfigure },
+		{ .NameUTF8 = UTF8TEXT("GetLastError"), .Pointer = &UHttpLLMProvider::execGetLastError },
+		{ .NameUTF8 = UTF8TEXT("GetLastRawRecipeJson"), .Pointer = &UHttpLLMProvider::execGetLastRawRecipeJson },
+	};
 	static UObject* (*const DependentSingletons[])();
 	static constexpr FClassFunctionLinkInfo FuncInfo[] = {
-		{ &Z_Construct_UFunction_UHttpLLMProvider_Configure, "Configure" }, // 2228374311
-		{ &Z_Construct_UFunction_UHttpLLMProvider_GetLastError, "GetLastError" }, // 2559575072
-		{ &Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson, "GetLastRawRecipeJson" }, // 4030418761
+		{ &Z_Construct_UFunction_UHttpLLMProvider_Configure, "Configure" }, // 3740887880
+		{ &Z_Construct_UFunction_UHttpLLMProvider_GetLastError, "GetLastError" }, // 75789081
+		{ &Z_Construct_UFunction_UHttpLLMProvider_GetLastRawRecipeJson, "GetLastRawRecipeJson" }, // 975417181
 	};
 	static_assert(UE_ARRAY_COUNT(FuncInfo) < 2048);
 	static constexpr FCppClassTypeInfoStatic StaticCppClassTypeInfo = {
 		TCppClassTypeTraits<UHttpLLMProvider>::IsAbstract,
 	};
 	static const UECodeGen_Private::FClassParams ClassParams;
-};
+}; // struct Z_Construct_UClass_UHttpLLMProvider_Statics
+
+// ********** Begin Class UHttpLLMProvider Property Definitions ************************************
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UClass_UHttpLLMProvider_Statics::NewProp_Backend_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UClass_UHttpLLMProvider_Statics::NewProp_Backend = { "Backend", nullptr, (EPropertyFlags)0x0040000000000001, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UHttpLLMProvider, Backend), Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Backend_MetaData), NewProp_Backend_MetaData) }; // 3911309017
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UClass_UHttpLLMProvider_Statics::NewProp_Backend = { "Backend", nullptr, (EPropertyFlags)0x0040000000000001, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UHttpLLMProvider, Backend), Z_Construct_UEnum_VFXAgentCore_EVFXAgentLLMBackend, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Backend_MetaData), NewProp_Backend_MetaData) }; // 741680154
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UHttpLLMProvider_Statics::NewProp_Endpoint = { "Endpoint", nullptr, (EPropertyFlags)0x0040000000000001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UHttpLLMProvider, Endpoint), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Endpoint_MetaData), NewProp_Endpoint_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UHttpLLMProvider_Statics::NewProp_Model = { "Model", nullptr, (EPropertyFlags)0x0040000000000001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UHttpLLMProvider, Model), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Model_MetaData), NewProp_Model_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UClass_UHttpLLMProvider_Statics::NewProp_ApiKey = { "ApiKey", nullptr, (EPropertyFlags)0x0040000000000001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(UHttpLLMProvider, ApiKey), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ApiKey_MetaData), NewProp_ApiKey_MetaData) };
@@ -330,6 +383,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UClass_UHttpLLMP
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UClass_UHttpLLMProvider_Statics::NewProp_LastRawRecipeJson,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UClass_UHttpLLMProvider_Statics::PropPointers) < 2048);
+// ********** End Class UHttpLLMProvider Property Definitions **************************************
 UObject* (*const Z_Construct_UClass_UHttpLLMProvider_Statics::DependentSingletons[])() = {
 	(UObject* (*)())Z_Construct_UClass_UObject,
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
@@ -350,6 +404,11 @@ const UECodeGen_Private::FClassParams Z_Construct_UClass_UHttpLLMProvider_Static
 	0x001000A0u,
 	METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UClass_UHttpLLMProvider_Statics::Class_MetaDataParams), Z_Construct_UClass_UHttpLLMProvider_Statics::Class_MetaDataParams)
 };
+void UHttpLLMProvider::StaticRegisterNativesUHttpLLMProvider()
+{
+	UClass* Class = UHttpLLMProvider::StaticClass();
+	FNativeFunctionRegistrar::RegisterFunctions(Class, MakeConstArrayView(Z_Construct_UClass_UHttpLLMProvider_Statics::Funcs));
+}
 UClass* Z_Construct_UClass_UHttpLLMProvider()
 {
 	if (!Z_Registration_Info_UClass_UHttpLLMProvider.OuterSingleton)
@@ -358,28 +417,27 @@ UClass* Z_Construct_UClass_UHttpLLMProvider()
 	}
 	return Z_Registration_Info_UClass_UHttpLLMProvider.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UClass* StaticClass<UHttpLLMProvider>()
-{
-	return UHttpLLMProvider::StaticClass();
-}
 UHttpLLMProvider::UHttpLLMProvider(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
-DEFINE_VTABLE_PTR_HELPER_CTOR(UHttpLLMProvider);
+DEFINE_VTABLE_PTR_HELPER_CTOR_NS(, UHttpLLMProvider);
 UHttpLLMProvider::~UHttpLLMProvider() {}
-// End Class UHttpLLMProvider
+// ********** End Class UHttpLLMProvider ***********************************************************
 
-// Begin Registration
-struct Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h_Statics
+// ********** Begin Registration *******************************************************************
+struct Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h__Script_VFXAgentCore_Statics
 {
 	static constexpr FEnumRegisterCompiledInInfo EnumInfo[] = {
-		{ EVFXAgentLLMBackend_StaticEnum, TEXT("EVFXAgentLLMBackend"), &Z_Registration_Info_UEnum_EVFXAgentLLMBackend, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 3911309017U) },
+		{ EVFXAgentLLMBackend_StaticEnum, TEXT("EVFXAgentLLMBackend"), &Z_Registration_Info_UEnum_EVFXAgentLLMBackend, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 741680154U) },
 	};
 	static constexpr FClassRegisterCompiledInInfo ClassInfo[] = {
-		{ Z_Construct_UClass_UHttpLLMProvider, UHttpLLMProvider::StaticClass, TEXT("UHttpLLMProvider"), &Z_Registration_Info_UClass_UHttpLLMProvider, CONSTRUCT_RELOAD_VERSION_INFO(FClassReloadVersionInfo, sizeof(UHttpLLMProvider), 2264495930U) },
+		{ Z_Construct_UClass_UHttpLLMProvider, UHttpLLMProvider::StaticClass, TEXT("UHttpLLMProvider"), &Z_Registration_Info_UClass_UHttpLLMProvider, CONSTRUCT_RELOAD_VERSION_INFO(FClassReloadVersionInfo, sizeof(UHttpLLMProvider), 460065828U) },
 	};
-};
-static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h_4110846826(TEXT("/Script/VFXAgentCore"),
-	Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h_Statics::ClassInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h_Statics::ClassInfo),
+}; // Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h__Script_VFXAgentCore_Statics 
+static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h__Script_VFXAgentCore_1543698570{
+	TEXT("/Script/VFXAgentCore"),
+	Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h__Script_VFXAgentCore_Statics::ClassInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h__Script_VFXAgentCore_Statics::ClassInfo),
 	nullptr, 0,
-	Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h_Statics::EnumInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h_Statics::EnumInfo));
-// End Registration
+	Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h__Script_VFXAgentCore_Statics::EnumInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_HttpLLMProvider_h__Script_VFXAgentCore_Statics::EnumInfo),
+};
+// ********** End Registration *********************************************************************
+
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

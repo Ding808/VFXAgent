@@ -5,11 +5,13 @@
 ===========================================================================*/
 
 #include "UObject/GeneratedCppIncludes.h"
-#include "VFXAgentCore/Public/VFXRecipe.h"
+#include "VFXRecipe.h"
+
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
+static_assert(!UE_WITH_CONSTINIT_UOBJECT, "This generated code can only be compiled with !UE_WITH_CONSTINIT_OBJECT");
 void EmptyLinkFunctionForGeneratedCodeVFXRecipe() {}
 
-// Begin Cross Module References
+// ********** Begin Cross Module References ********************************************************
 COREUOBJECT_API UScriptStruct* Z_Construct_UScriptStruct_FLinearColor();
 COREUOBJECT_API UScriptStruct* Z_Construct_UScriptStruct_FVector();
 UPackage* Z_Construct_UPackage__Script_VFXAgentCore();
@@ -37,9 +39,9 @@ VFXAGENTCORE_API UScriptStruct* Z_Construct_UScriptStruct_FVFXRenderRecipe();
 VFXAGENTCORE_API UScriptStruct* Z_Construct_UScriptStruct_FVFXRepairReport();
 VFXAGENTCORE_API UScriptStruct* Z_Construct_UScriptStruct_FVFXTextureRecipe();
 VFXAGENTCORE_API UScriptStruct* Z_Construct_UScriptStruct_FVFXVisualHierarchy();
-// End Cross Module References
+// ********** End Cross Module References **********************************************************
 
-// Begin Enum EVFXArchetype
+// ********** Begin Enum EVFXArchetype *************************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EVFXArchetype;
 static UEnum* EVFXArchetype_StaticEnum()
 {
@@ -49,7 +51,7 @@ static UEnum* EVFXArchetype_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EVFXArchetype.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXArchetype>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXArchetype>()
 {
 	return EVFXArchetype_StaticEnum();
 }
@@ -62,9 +64,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXArchetype_Statics
 		{ "Beam.DisplayName", "Beam" },
 		{ "Beam.Name", "EVFXArchetype::Beam" },
 		{ "BlueprintType", "true" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ============================================================================\n// VFX INTENT LAYER - Director-level semantic understanding\n// ============================================================================\n" },
-#endif
 		{ "Custom.DisplayName", "Custom" },
 		{ "Custom.Name", "EVFXArchetype::Custom" },
 		{ "Dust.DisplayName", "Dust" },
@@ -82,9 +82,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXArchetype_Statics
 		{ "Smoke.Name", "EVFXArchetype::Smoke" },
 		{ "Sparks.DisplayName", "Sparks" },
 		{ "Sparks.Name", "EVFXArchetype::Sparks" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "VFX INTENT LAYER - Director-level semantic understanding" },
-#endif
 		{ "Tornado.DisplayName", "Tornado" },
 		{ "Tornado.Name", "EVFXArchetype::Tornado" },
 		{ "Trail.DisplayName", "Trail" },
@@ -106,7 +104,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXArchetype_Statics
 		{ "EVFXArchetype::Custom", (int64)EVFXArchetype::Custom },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EVFXArchetype_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EVFXArchetype_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -127,9 +125,9 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EVFXArchetype()
 	}
 	return Z_Registration_Info_UEnum_EVFXArchetype.InnerSingleton;
 }
-// End Enum EVFXArchetype
+// ********** End Enum EVFXArchetype ***************************************************************
 
-// Begin Enum EVFXMotionModel
+// ********** Begin Enum EVFXMotionModel ***********************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EVFXMotionModel;
 static UEnum* EVFXMotionModel_StaticEnum()
 {
@@ -139,7 +137,7 @@ static UEnum* EVFXMotionModel_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EVFXMotionModel.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXMotionModel>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXMotionModel>()
 {
 	return EVFXMotionModel_StaticEnum();
 }
@@ -178,7 +176,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXMotionModel_Statics
 		{ "EVFXMotionModel::Static", (int64)EVFXMotionModel::Static },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EVFXMotionModel_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EVFXMotionModel_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -199,34 +197,19 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EVFXMotionModel()
 	}
 	return Z_Registration_Info_UEnum_EVFXMotionModel.InnerSingleton;
 }
-// End Enum EVFXMotionModel
+// ********** End Enum EVFXMotionModel *************************************************************
 
-// Begin ScriptStruct FVFXPatternAvoidance
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXPatternAvoidance;
-class UScriptStruct* FVFXPatternAvoidance::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXPatternAvoidance.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXPatternAvoidance.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXPatternAvoidance, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXPatternAvoidance"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXPatternAvoidance.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXPatternAvoidance>()
-{
-	return FVFXPatternAvoidance::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXPatternAvoidance **********************************************
 struct Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXPatternAvoidance); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXPatternAvoidance); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Behaviors that should NEVER be used for a given effect\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Behaviors that should NEVER be used for a given effect" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bAvoidConeVelocity_MetaData[] = {
 		{ "Category", "Avoidance" },
@@ -234,45 +217,31 @@ struct Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bAvoidRadialExplosion_MetaData[] = {
 		{ "Category", "Avoidance" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// No outward cone spray\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "No outward cone spray" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bAvoidUniformGravity_MetaData[] = {
 		{ "Category", "Avoidance" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// No radial burst\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "No radial burst" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bAvoidUniformRotation_MetaData[] = {
 		{ "Category", "Avoidance" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// No downward gravity\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "No downward gravity" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bAvoidHighSpread_MetaData[] = {
 		{ "Category", "Avoidance" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// No simple spin\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "No simple spin" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXPatternAvoidance constinit property declarations **************
 	static void NewProp_bAvoidConeVelocity_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bAvoidConeVelocity;
 	static void NewProp_bAvoidRadialExplosion_SetBit(void* Obj);
@@ -284,12 +253,24 @@ struct Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics
 	static void NewProp_bAvoidHighSpread_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bAvoidHighSpread;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXPatternAvoidance constinit property declarations ****************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXPatternAvoidance>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXPatternAvoidance;
+class UScriptStruct* FVFXPatternAvoidance::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXPatternAvoidance.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXPatternAvoidance.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXPatternAvoidance, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXPatternAvoidance"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXPatternAvoidance.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXPatternAvoidance Property Definitions *************************
 void Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics::NewProp_bAvoidConeVelocity_SetBit(void* Obj)
 {
 	((FVFXPatternAvoidance*)Obj)->bAvoidConeVelocity = 1;
@@ -323,6 +304,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics::NewProp_bAvoidHighSpread,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXPatternAvoidance Property Definitions ***************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -338,40 +320,25 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXPatternAvoi
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXPatternAvoidance()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXPatternAvoidance.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXPatternAvoidance.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXPatternAvoidance.InnerSingleton, Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXPatternAvoidance.InnerSingleton, Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXPatternAvoidance.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXPatternAvoidance.InnerSingleton);
 }
-// End ScriptStruct FVFXPatternAvoidance
+// ********** End ScriptStruct FVFXPatternAvoidance ************************************************
 
-// Begin ScriptStruct FVFXMotionBehavior
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXMotionBehavior;
-class UScriptStruct* FVFXMotionBehavior::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXMotionBehavior.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXMotionBehavior.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXMotionBehavior, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXMotionBehavior"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXMotionBehavior.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXMotionBehavior>()
-{
-	return FVFXMotionBehavior::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXMotionBehavior ************************************************
 struct Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXMotionBehavior); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXMotionBehavior); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Motion behavior definition for directing Niagara composition\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Motion behavior definition for directing Niagara composition" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_PrimaryModel_MetaData[] = {
 		{ "Category", "Motion" },
@@ -383,49 +350,35 @@ struct Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bRadiusDependsOnHeight_MetaData[] = {
 		{ "Category", "Motion" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// For orbit/vortex\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "For orbit/vortex" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bAngularVelocityIncreases_MetaData[] = {
 		{ "Category", "Motion" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Funnel effect\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Funnel effect" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bCentripetal_MetaData[] = {
 		{ "Category", "Motion" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Faster at top\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Faster at top" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CentripetalStrength_MetaData[] = {
 		{ "Category", "Motion" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Attract to center\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Attract to center" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bHeightDriven_MetaData[] = {
 		{ "Category", "Motion" },
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXMotionBehavior constinit property declarations ****************
 	static const UECodeGen_Private::FBytePropertyParams NewProp_PrimaryModel_Underlying;
 	static const UECodeGen_Private::FEnumPropertyParams NewProp_PrimaryModel;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_MotionAxis;
@@ -439,14 +392,26 @@ struct Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics
 	static void NewProp_bHeightDriven_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bHeightDriven;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXMotionBehavior constinit property declarations ******************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXMotionBehavior>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXMotionBehavior;
+class UScriptStruct* FVFXMotionBehavior::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXMotionBehavior.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXMotionBehavior.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXMotionBehavior, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXMotionBehavior"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXMotionBehavior.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXMotionBehavior Property Definitions ***************************
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::NewProp_PrimaryModel_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::NewProp_PrimaryModel = { "PrimaryModel", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMotionBehavior, PrimaryModel), Z_Construct_UEnum_VFXAgentCore_EVFXMotionModel, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_PrimaryModel_MetaData), NewProp_PrimaryModel_MetaData) }; // 810998637
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::NewProp_PrimaryModel = { "PrimaryModel", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMotionBehavior, PrimaryModel), Z_Construct_UEnum_VFXAgentCore_EVFXMotionModel, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_PrimaryModel_MetaData), NewProp_PrimaryModel_MetaData) }; // 3479131074
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::NewProp_MotionAxis = { "MotionAxis", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMotionBehavior, MotionAxis), Z_Construct_UScriptStruct_FVector, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_MotionAxis_MetaData), NewProp_MotionAxis_MetaData) };
 void Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::NewProp_bRadiusDependsOnHeight_SetBit(void* Obj)
 {
@@ -480,6 +445,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::NewProp_bHeightDriven,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXMotionBehavior Property Definitions *****************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -495,40 +461,25 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXMotionBehav
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXMotionBehavior()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXMotionBehavior.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXMotionBehavior.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXMotionBehavior.InnerSingleton, Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXMotionBehavior.InnerSingleton, Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXMotionBehavior.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXMotionBehavior.InnerSingleton);
 }
-// End ScriptStruct FVFXMotionBehavior
+// ********** End ScriptStruct FVFXMotionBehavior **************************************************
 
-// Begin ScriptStruct FVFXVisualHierarchy
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXVisualHierarchy;
-class UScriptStruct* FVFXVisualHierarchy::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXVisualHierarchy.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXVisualHierarchy.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXVisualHierarchy, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXVisualHierarchy"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXVisualHierarchy.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXVisualHierarchy>()
-{
-	return FVFXVisualHierarchy::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXVisualHierarchy ***********************************************
 struct Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXVisualHierarchy); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXVisualHierarchy); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Visual hierarchy - what is dominant and secondary\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Visual hierarchy - what is dominant and secondary" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DominantElement_MetaData[] = {
 		{ "Category", "Hierarchy" },
@@ -536,35 +487,25 @@ struct Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_DominantWeight_MetaData[] = {
 		{ "Category", "Hierarchy" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Main visual (e.g., \"core_funnel\")\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Main visual (e.g., \"core_funnel\")" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SecondaryElements_MetaData[] = {
 		{ "Category", "Hierarchy" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Visual priority (0-1)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Visual priority (0-1)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SecondaryWeights_MetaData[] = {
 		{ "Category", "Hierarchy" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Supporting visuals\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Supporting visuals" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXVisualHierarchy constinit property declarations ***************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_DominantElement;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_DominantWeight;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_SecondaryElements_Inner;
@@ -572,12 +513,24 @@ struct Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_SecondaryWeights_Inner;
 	static const UECodeGen_Private::FArrayPropertyParams NewProp_SecondaryWeights;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXVisualHierarchy constinit property declarations *****************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXVisualHierarchy>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXVisualHierarchy;
+class UScriptStruct* FVFXVisualHierarchy::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXVisualHierarchy.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXVisualHierarchy.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXVisualHierarchy, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXVisualHierarchy"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXVisualHierarchy.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXVisualHierarchy Property Definitions **************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::NewProp_DominantElement = { "DominantElement", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXVisualHierarchy, DominantElement), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_DominantElement_MetaData), NewProp_DominantElement_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::NewProp_DominantWeight = { "DominantWeight", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXVisualHierarchy, DominantWeight), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_DominantWeight_MetaData), NewProp_DominantWeight_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::NewProp_SecondaryElements_Inner = { "SecondaryElements", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, METADATA_PARAMS(0, nullptr) };
@@ -593,6 +546,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::NewProp_SecondaryWeights,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXVisualHierarchy Property Definitions ****************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -608,40 +562,25 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXVisualHiera
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXVisualHierarchy()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXVisualHierarchy.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXVisualHierarchy.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXVisualHierarchy.InnerSingleton, Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXVisualHierarchy.InnerSingleton, Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXVisualHierarchy.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXVisualHierarchy.InnerSingleton);
 }
-// End ScriptStruct FVFXVisualHierarchy
+// ********** End ScriptStruct FVFXVisualHierarchy *************************************************
 
-// Begin ScriptStruct FVFXIntent
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXIntent;
-class UScriptStruct* FVFXIntent::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXIntent.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXIntent.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXIntent, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXIntent"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXIntent.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXIntent>()
-{
-	return FVFXIntent::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXIntent ********************************************************
 struct Z_Construct_UScriptStruct_FVFXIntent_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXIntent); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXIntent); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// The VFX Intent - Director's understanding BEFORE generating Niagara\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "The VFX Intent - Director's understanding BEFORE generating Niagara" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Archetype_MetaData[] = {
 		{ "Category", "Intent" },
@@ -661,45 +600,31 @@ struct Z_Construct_UScriptStruct_FVFXIntent_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_RequiredLayers_MetaData[] = {
 		{ "Category", "Intent" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Required effect layers (names like \"core_funnel\", \"debris\", \"dust\")\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Required effect layers (names like \"core_funnel\", \"debris\", \"dust\")" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_RequiredForces_MetaData[] = {
 		{ "Category", "Intent" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Key physics behaviors needed\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Key physics behaviors needed" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SuggestedEmitterCount_MetaData[] = {
 		{ "Category", "Intent" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// How many emitters needed\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "How many emitters needed" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Description_MetaData[] = {
 		{ "Category", "Intent" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Semantic description for logging\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Semantic description for logging" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXIntent constinit property declarations ************************
 	static const UECodeGen_Private::FBytePropertyParams NewProp_Archetype_Underlying;
 	static const UECodeGen_Private::FEnumPropertyParams NewProp_Archetype;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Motion;
@@ -712,17 +637,29 @@ struct Z_Construct_UScriptStruct_FVFXIntent_Statics
 	static const UECodeGen_Private::FIntPropertyParams NewProp_SuggestedEmitterCount;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Description;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXIntent constinit property declarations **************************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXIntent>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXIntent_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXIntent;
+class UScriptStruct* FVFXIntent::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXIntent.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXIntent.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXIntent, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXIntent"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXIntent.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXIntent Property Definitions ***********************************
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Archetype_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Archetype = { "Archetype", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, Archetype), Z_Construct_UEnum_VFXAgentCore_EVFXArchetype, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Archetype_MetaData), NewProp_Archetype_MetaData) }; // 1386258222
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Motion = { "Motion", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, Motion), Z_Construct_UScriptStruct_FVFXMotionBehavior, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Motion_MetaData), NewProp_Motion_MetaData) }; // 2159418799
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Hierarchy = { "Hierarchy", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, Hierarchy), Z_Construct_UScriptStruct_FVFXVisualHierarchy, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Hierarchy_MetaData), NewProp_Hierarchy_MetaData) }; // 1462781300
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Avoidance = { "Avoidance", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, Avoidance), Z_Construct_UScriptStruct_FVFXPatternAvoidance, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Avoidance_MetaData), NewProp_Avoidance_MetaData) }; // 3331547998
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Archetype = { "Archetype", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, Archetype), Z_Construct_UEnum_VFXAgentCore_EVFXArchetype, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Archetype_MetaData), NewProp_Archetype_MetaData) }; // 1239467032
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Motion = { "Motion", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, Motion), Z_Construct_UScriptStruct_FVFXMotionBehavior, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Motion_MetaData), NewProp_Motion_MetaData) }; // 2776603170
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Hierarchy = { "Hierarchy", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, Hierarchy), Z_Construct_UScriptStruct_FVFXVisualHierarchy, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Hierarchy_MetaData), NewProp_Hierarchy_MetaData) }; // 2224825837
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Avoidance = { "Avoidance", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, Avoidance), Z_Construct_UScriptStruct_FVFXPatternAvoidance, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Avoidance_MetaData), NewProp_Avoidance_MetaData) }; // 3180674912
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_RequiredLayers_Inner = { "RequiredLayers", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, METADATA_PARAMS(0, nullptr) };
 const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_RequiredLayers = { "RequiredLayers", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXIntent, RequiredLayers), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_RequiredLayers_MetaData), NewProp_RequiredLayers_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_RequiredForces_Inner = { "RequiredForces", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, METADATA_PARAMS(0, nullptr) };
@@ -743,6 +680,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXIntent_Statics::NewProp_Description,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXIntent_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXIntent Property Definitions *************************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXIntent_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -758,60 +696,37 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXIntent_Stat
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXIntent()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXIntent.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXIntent.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXIntent.InnerSingleton, Z_Construct_UScriptStruct_FVFXIntent_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXIntent.InnerSingleton, Z_Construct_UScriptStruct_FVFXIntent_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXIntent.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXIntent.InnerSingleton);
 }
-// End ScriptStruct FVFXIntent
+// ********** End ScriptStruct FVFXIntent **********************************************************
 
-// Begin ScriptStruct FVFXEmitterRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXEmitterRecipe;
-class UScriptStruct* FVFXEmitterRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXEmitterRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXEmitterRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXEmitterRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXEmitterRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXEmitterRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXEmitterRecipe>()
-{
-	return FVFXEmitterRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXEmitterRecipe *************************************************
 struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXEmitterRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXEmitterRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ============================================================================\n// RECIPE STRUCTURES (Niagara-level compilation targets)\n// ============================================================================\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "RECIPE STRUCTURES (Niagara-level compilation targets)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Name_MetaData[] = {
 		{ "Category", "Emitter" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Optional human-readable layer name/purpose (e.g. \"CoreBurst\", \"Sparks\", \"Smoke\", \"Shockwave\").\n// Used for naming within the generated Niagara System.\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Optional human-readable layer name/purpose (e.g. \"CoreBurst\", \"Sparks\", \"Smoke\", \"Shockwave\").\nUsed for naming within the generated Niagara System." },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SpawnRate_MetaData[] = {
 		{ "Category", "Spawn" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Spawn Parameters ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Spawn Parameters ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_BurstCount_MetaData[] = {
 		{ "Category", "Spawn" },
@@ -823,33 +738,21 @@ struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_RendererType_MetaData[] = {
 		{ "Category", "Renderer" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Renderer ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Renderer ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_TemplateName_MetaData[] = {
 		{ "Category", "Emitter" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// New: Specify a preferred Niagara template to base this emitter on.\n// Examples: \"Fountain\", \"DirectionalBurst\", \"HangingParticulates\", \"OmnidirectionalBurst\", \"UpwardMeshBurst\", \"Beam\"\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "New: Specify a preferred Niagara template to base this emitter on.\nExamples: \"Fountain\", \"DirectionalBurst\", \"HangingParticulates\", \"OmnidirectionalBurst\", \"UpwardMeshBurst\", \"Beam\"" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Color_MetaData[] = {
 		{ "Category", "Color" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Color & Appearance ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Color & Appearance ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ColorEnd_MetaData[] = {
 		{ "Category", "Color" },
@@ -857,23 +760,15 @@ struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bUseColorGradient_MetaData[] = {
 		{ "Category", "Color" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Color at end of lifetime (for gradient)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Color at end of lifetime (for gradient)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Lifetime_MetaData[] = {
 		{ "Category", "Lifetime" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Lifetime & Size ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Lifetime & Size ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_LifetimeVariation_MetaData[] = {
 		{ "Category", "Lifetime" },
@@ -881,13 +776,9 @@ struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Size_MetaData[] = {
 		{ "Category", "Size" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Random variation (0-1, multiplier)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Random variation (0-1, multiplier)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SizeEnd_MetaData[] = {
 		{ "Category", "Size" },
@@ -895,103 +786,63 @@ struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bUseSizeOverLife_MetaData[] = {
 		{ "Category", "Size" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Size at end of lifetime\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Size at end of lifetime" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SizeVariation_MetaData[] = {
 		{ "Category", "Size" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Scale from Size to SizeEnd\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Scale from Size to SizeEnd" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Velocity_MetaData[] = {
 		{ "Category", "Velocity" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Velocity & Movement ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Velocity & Movement ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_VelocityVariation_MetaData[] = {
 		{ "Category", "Velocity" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Initial velocity\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Initial velocity" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Acceleration_MetaData[] = {
 		{ "Category", "Velocity" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Random velocity variation (0-1, multiplier)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Random velocity variation (0-1, multiplier)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Drag_MetaData[] = {
 		{ "Category", "Velocity" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Gravity or constant acceleration\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Gravity or constant acceleration" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_InitialRotation_MetaData[] = {
 		{ "Category", "Rotation" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Rotation ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Rotation ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_RotationRate_MetaData[] = {
 		{ "Category", "Rotation" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Initial rotation in degrees\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Initial rotation in degrees" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_RotationRateVariation_MetaData[] = {
 		{ "Category", "Rotation" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Rotation speed in degrees/second\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Rotation speed in degrees/second" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bUseGravity_MetaData[] = {
 		{ "Category", "Physics" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Physics & Forces ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Physics & Forces ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Mass_MetaData[] = {
 		{ "Category", "Physics" },
@@ -999,55 +850,37 @@ struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_EmitShape_MetaData[] = {
 		{ "Category", "Shape" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Emitter Shape ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Emitter Shape ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_ShapeSize_MetaData[] = {
 		{ "Category", "Shape" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Point, Sphere, Box, Cone, Cylinder\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Point, Sphere, Box, Cone, Cylinder" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_MaterialIndex_MetaData[] = {
 		{ "Category", "Material" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Material Assignment ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Material Assignment ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SortOrder_MetaData[] = {
 		{ "Category", "Rendering" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// === Sorting & Rendering ===\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "=== Sorting & Rendering ===" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bLocalSpace_MetaData[] = {
 		{ "Category", "Rendering" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Higher values render later (on top)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Higher values render later (on top)" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXEmitterRecipe constinit property declarations *****************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Name;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_SpawnRate;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_BurstCount;
@@ -1082,12 +915,24 @@ struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics
 	static void NewProp_bLocalSpace_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bLocalSpace;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXEmitterRecipe constinit property declarations *******************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXEmitterRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXEmitterRecipe;
+class UScriptStruct* FVFXEmitterRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXEmitterRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXEmitterRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXEmitterRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXEmitterRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXEmitterRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXEmitterRecipe Property Definitions ****************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::NewProp_Name = { "Name", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterRecipe, Name), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Name_MetaData), NewProp_Name_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::NewProp_SpawnRate = { "SpawnRate", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterRecipe, SpawnRate), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SpawnRate_MetaData), NewProp_SpawnRate_MetaData) };
 const UECodeGen_Private::FIntPropertyParams Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::NewProp_BurstCount = { "BurstCount", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Int, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterRecipe, BurstCount), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_BurstCount_MetaData), NewProp_BurstCount_MetaData) };
@@ -1165,6 +1010,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::NewProp_bLocalSpace,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXEmitterRecipe Property Definitions ******************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1180,30 +1026,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXEmitterReci
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXEmitterRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXEmitterRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXEmitterRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXEmitterRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXEmitterRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXEmitterRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXEmitterRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXEmitterRecipe
+// ********** End ScriptStruct FVFXEmitterRecipe ***************************************************
 
-// Begin ScriptStruct FVFXTextureRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXTextureRecipe;
-class UScriptStruct* FVFXTextureRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXTextureRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXTextureRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXTextureRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXTextureRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXTextureRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXTextureRecipe>()
-{
-	return FVFXTextureRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXTextureRecipe *************************************************
 struct Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXTextureRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXTextureRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -1219,13 +1054,9 @@ struct Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_PrimaryColor_MetaData[] = {
 		{ "Category", "Texture" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Gradient, Noise, Perlin, Voronoi, Custom\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Gradient, Noise, Perlin, Voronoi, Custom" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_SecondaryColor_MetaData[] = {
 		{ "Category", "Texture" },
@@ -1237,35 +1068,25 @@ struct Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_NoiseScale_MetaData[] = {
 		{ "Category", "Texture" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Texture resolution (256, 512, 1024, etc.)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Texture resolution (256, 512, 1024, etc.)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Octaves_MetaData[] = {
 		{ "Category", "Texture" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// For noise-based textures\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "For noise-based textures" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Description_MetaData[] = {
 		{ "Category", "Texture" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// For fractal noise\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "For fractal noise" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXTextureRecipe constinit property declarations *****************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Name;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Type;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_PrimaryColor;
@@ -1275,12 +1096,24 @@ struct Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics
 	static const UECodeGen_Private::FIntPropertyParams NewProp_Octaves;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Description;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXTextureRecipe constinit property declarations *******************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXTextureRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXTextureRecipe;
+class UScriptStruct* FVFXTextureRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXTextureRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXTextureRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXTextureRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXTextureRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXTextureRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXTextureRecipe Property Definitions ****************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::NewProp_Name = { "Name", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXTextureRecipe, Name), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Name_MetaData), NewProp_Name_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::NewProp_Type = { "Type", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXTextureRecipe, Type), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Type_MetaData), NewProp_Type_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::NewProp_PrimaryColor = { "PrimaryColor", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXTextureRecipe, PrimaryColor), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_PrimaryColor_MetaData), NewProp_PrimaryColor_MetaData) };
@@ -1300,6 +1133,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::NewProp_Description,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXTextureRecipe Property Definitions ******************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1315,30 +1149,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXTextureReci
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXTextureRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXTextureRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXTextureRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXTextureRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXTextureRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXTextureRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXTextureRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXTextureRecipe
+// ********** End ScriptStruct FVFXTextureRecipe ***************************************************
 
-// Begin ScriptStruct FVFXMaterialRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXMaterialRecipe;
-class UScriptStruct* FVFXMaterialRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXMaterialRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXMaterialRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXMaterialRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXMaterialRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXMaterialRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXMaterialRecipe>()
-{
-	return FVFXMaterialRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXMaterialRecipe ************************************************
 struct Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXMaterialRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXMaterialRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -1390,13 +1213,9 @@ struct Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_BaseColorTexture_MetaData[] = {
 		{ "Category", "Material" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Textures to use (can reference generated textures)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Textures to use (can reference generated textures)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_EmissiveTexture_MetaData[] = {
 		{ "Category", "Material" },
@@ -1412,15 +1231,13 @@ struct Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_GeneratedTextures_MetaData[] = {
 		{ "Category", "Material" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Auto-generate textures based on these recipes\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Auto-generate textures based on these recipes" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXMaterialRecipe constinit property declarations ****************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Name;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Description;
 	static void NewProp_bIsAdditive_SetBit(void* Obj);
@@ -1441,12 +1258,24 @@ struct Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics
 	static const UECodeGen_Private::FStructPropertyParams NewProp_GeneratedTextures_Inner;
 	static const UECodeGen_Private::FArrayPropertyParams NewProp_GeneratedTextures;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXMaterialRecipe constinit property declarations ******************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXMaterialRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXMaterialRecipe;
+class UScriptStruct* FVFXMaterialRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXMaterialRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXMaterialRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXMaterialRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXMaterialRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXMaterialRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXMaterialRecipe Property Definitions ***************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_Name = { "Name", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMaterialRecipe, Name), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Name_MetaData), NewProp_Name_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_Description = { "Description", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMaterialRecipe, Description), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Description_MetaData), NewProp_Description_MetaData) };
 void Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_bIsAdditive_SetBit(void* Obj)
@@ -1470,8 +1299,8 @@ const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXMateri
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_EmissiveTexture = { "EmissiveTexture", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMaterialRecipe, EmissiveTexture), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_EmissiveTexture_MetaData), NewProp_EmissiveTexture_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_OpacityTexture = { "OpacityTexture", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMaterialRecipe, OpacityTexture), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_OpacityTexture_MetaData), NewProp_OpacityTexture_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_NormalTexture = { "NormalTexture", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMaterialRecipe, NormalTexture), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_NormalTexture_MetaData), NewProp_NormalTexture_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_GeneratedTextures_Inner = { "GeneratedTextures", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXTextureRecipe, METADATA_PARAMS(0, nullptr) }; // 1674770203
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_GeneratedTextures = { "GeneratedTextures", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMaterialRecipe, GeneratedTextures), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_GeneratedTextures_MetaData), NewProp_GeneratedTextures_MetaData) }; // 1674770203
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_GeneratedTextures_Inner = { "GeneratedTextures", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXTextureRecipe, METADATA_PARAMS(0, nullptr) }; // 1708579409
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_GeneratedTextures = { "GeneratedTextures", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXMaterialRecipe, GeneratedTextures), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_GeneratedTextures_MetaData), NewProp_GeneratedTextures_MetaData) }; // 1708579409
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::PropPointers[] = {
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_Name,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_Description,
@@ -1492,6 +1321,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewProp_GeneratedTextures,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXMaterialRecipe Property Definitions *****************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1507,15 +1337,15 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXMaterialRec
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXMaterialRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXMaterialRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXMaterialRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXMaterialRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXMaterialRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXMaterialRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXMaterialRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXMaterialRecipe
+// ********** End ScriptStruct FVFXMaterialRecipe **************************************************
 
-// Begin Enum EVFXRendererType
+// ********** Begin Enum EVFXRendererType **********************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EVFXRendererType;
 static UEnum* EVFXRendererType_StaticEnum()
 {
@@ -1525,7 +1355,7 @@ static UEnum* EVFXRendererType_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EVFXRendererType.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXRendererType>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXRendererType>()
 {
 	return EVFXRendererType_StaticEnum();
 }
@@ -1534,9 +1364,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXRendererType_Statics
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Enum_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// --- New Schema for Niagara Spec ---\n" },
-#endif
 		{ "Light.DisplayName", "Light" },
 		{ "Light.Name", "EVFXRendererType::Light" },
 		{ "Mesh.DisplayName", "Mesh" },
@@ -1546,9 +1374,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXRendererType_Statics
 		{ "Ribbon.Name", "EVFXRendererType::Ribbon" },
 		{ "Sprite.DisplayName", "Sprite" },
 		{ "Sprite.Name", "EVFXRendererType::Sprite" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "--- New Schema for Niagara Spec ---" },
-#endif
 	};
 #endif // WITH_METADATA
 	static constexpr UECodeGen_Private::FEnumeratorParam Enumerators[] = {
@@ -1558,7 +1384,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXRendererType_Statics
 		{ "EVFXRendererType::Light", (int64)EVFXRendererType::Light },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EVFXRendererType_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EVFXRendererType_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1579,24 +1405,13 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EVFXRendererType()
 	}
 	return Z_Registration_Info_UEnum_EVFXRendererType.InnerSingleton;
 }
-// End Enum EVFXRendererType
+// ********** End Enum EVFXRendererType ************************************************************
 
-// Begin ScriptStruct FVFXPerSpawnInfo
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXPerSpawnInfo;
-class UScriptStruct* FVFXPerSpawnInfo::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXPerSpawnInfo.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXPerSpawnInfo.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXPerSpawnInfo, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXPerSpawnInfo"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXPerSpawnInfo.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXPerSpawnInfo>()
-{
-	return FVFXPerSpawnInfo::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXPerSpawnInfo **************************************************
 struct Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXPerSpawnInfo); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXPerSpawnInfo); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -1608,35 +1423,41 @@ struct Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Burst_MetaData[] = {
 		{ "Category", "Spawn" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// If > 0, use SpawnRate\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "If > 0, use SpawnRate" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_BurstTime_MetaData[] = {
 		{ "Category", "Spawn" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// If > 0, use Burst\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "If > 0, use Burst" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXPerSpawnInfo constinit property declarations ******************
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Rate;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_Burst;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_BurstTime;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXPerSpawnInfo constinit property declarations ********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXPerSpawnInfo>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXPerSpawnInfo;
+class UScriptStruct* FVFXPerSpawnInfo::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXPerSpawnInfo.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXPerSpawnInfo.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXPerSpawnInfo, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXPerSpawnInfo"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXPerSpawnInfo.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXPerSpawnInfo Property Definitions *****************************
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::NewProp_Rate = { "Rate", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXPerSpawnInfo, Rate), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Rate_MetaData), NewProp_Rate_MetaData) };
 const UECodeGen_Private::FIntPropertyParams Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::NewProp_Burst = { "Burst", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Int, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXPerSpawnInfo, Burst), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Burst_MetaData), NewProp_Burst_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::NewProp_BurstTime = { "BurstTime", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXPerSpawnInfo, BurstTime), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_BurstTime_MetaData), NewProp_BurstTime_MetaData) };
@@ -1646,6 +1467,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::NewProp_BurstTime,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXPerSpawnInfo Property Definitions *******************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1661,15 +1483,15 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXPerSpawnInf
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXPerSpawnInfo()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXPerSpawnInfo.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXPerSpawnInfo.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXPerSpawnInfo.InnerSingleton, Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXPerSpawnInfo.InnerSingleton, Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXPerSpawnInfo.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXPerSpawnInfo.InnerSingleton);
 }
-// End ScriptStruct FVFXPerSpawnInfo
+// ********** End ScriptStruct FVFXPerSpawnInfo ****************************************************
 
-// Begin Enum EVFXForceType
+// ********** Begin Enum EVFXForceType *************************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EVFXForceType;
 static UEnum* EVFXForceType_StaticEnum()
 {
@@ -1679,7 +1501,7 @@ static UEnum* EVFXForceType_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EVFXForceType.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXForceType>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXForceType>()
 {
 	return EVFXForceType_StaticEnum();
 }
@@ -1715,7 +1537,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXForceType_Statics
 		{ "EVFXForceType::LimitVelocity", (int64)EVFXForceType::LimitVelocity },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EVFXForceType_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EVFXForceType_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1736,24 +1558,13 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EVFXForceType()
 	}
 	return Z_Registration_Info_UEnum_EVFXForceType.InnerSingleton;
 }
-// End Enum EVFXForceType
+// ********** End Enum EVFXForceType ***************************************************************
 
-// Begin ScriptStruct FVFXCurveKey
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXCurveKey;
-class UScriptStruct* FVFXCurveKey::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXCurveKey.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXCurveKey.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXCurveKey, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXCurveKey"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXCurveKey.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXCurveKey>()
-{
-	return FVFXCurveKey::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXCurveKey ******************************************************
 struct Z_Construct_UScriptStruct_FVFXCurveKey_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXCurveKey); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXCurveKey); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -1765,24 +1576,34 @@ struct Z_Construct_UScriptStruct_FVFXCurveKey_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Value_MetaData[] = {
 		{ "Category", "Curve" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// 0-1\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "0-1" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXCurveKey constinit property declarations **********************
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Time;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Value;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXCurveKey constinit property declarations ************************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXCurveKey>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXCurveKey_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXCurveKey;
+class UScriptStruct* FVFXCurveKey::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXCurveKey.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXCurveKey.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXCurveKey, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXCurveKey"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXCurveKey.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXCurveKey Property Definitions *********************************
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXCurveKey_Statics::NewProp_Time = { "Time", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXCurveKey, Time), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Time_MetaData), NewProp_Time_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXCurveKey_Statics::NewProp_Value = { "Value", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXCurveKey, Value), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Value_MetaData), NewProp_Value_MetaData) };
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FVFXCurveKey_Statics::PropPointers[] = {
@@ -1790,6 +1611,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXCurveKey_Statics::NewProp_Value,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXCurveKey_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXCurveKey Property Definitions ***********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXCurveKey_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1805,30 +1627,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXCurveKey_St
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXCurveKey()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXCurveKey.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXCurveKey.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXCurveKey.InnerSingleton, Z_Construct_UScriptStruct_FVFXCurveKey_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXCurveKey.InnerSingleton, Z_Construct_UScriptStruct_FVFXCurveKey_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXCurveKey.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXCurveKey.InnerSingleton);
 }
-// End ScriptStruct FVFXCurveKey
+// ********** End ScriptStruct FVFXCurveKey ********************************************************
 
-// Begin ScriptStruct FVFXColorKey
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXColorKey;
-class UScriptStruct* FVFXColorKey::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXColorKey.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXColorKey.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXColorKey, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXColorKey"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXColorKey.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXColorKey>()
-{
-	return FVFXColorKey::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXColorKey ******************************************************
 struct Z_Construct_UScriptStruct_FVFXColorKey_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXColorKey); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXColorKey); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -1840,24 +1651,34 @@ struct Z_Construct_UScriptStruct_FVFXColorKey_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Color_MetaData[] = {
 		{ "Category", "Curve" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// 0-1\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "0-1" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXColorKey constinit property declarations **********************
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Time;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Color;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXColorKey constinit property declarations ************************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXColorKey>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXColorKey_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXColorKey;
+class UScriptStruct* FVFXColorKey::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXColorKey.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXColorKey.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXColorKey, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXColorKey"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXColorKey.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXColorKey Property Definitions *********************************
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXColorKey_Statics::NewProp_Time = { "Time", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXColorKey, Time), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Time_MetaData), NewProp_Time_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXColorKey_Statics::NewProp_Color = { "Color", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXColorKey, Color), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Color_MetaData), NewProp_Color_MetaData) };
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FVFXColorKey_Statics::PropPointers[] = {
@@ -1865,6 +1686,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXColorKey_Statics::NewProp_Color,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXColorKey_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXColorKey Property Definitions ***********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXColorKey_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1880,30 +1702,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXColorKey_St
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXColorKey()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXColorKey.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXColorKey.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXColorKey.InnerSingleton, Z_Construct_UScriptStruct_FVFXColorKey_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXColorKey.InnerSingleton, Z_Construct_UScriptStruct_FVFXColorKey_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXColorKey.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXColorKey.InnerSingleton);
 }
-// End ScriptStruct FVFXColorKey
+// ********** End ScriptStruct FVFXColorKey ********************************************************
 
-// Begin ScriptStruct FVFXCurveRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXCurveRecipe;
-class UScriptStruct* FVFXCurveRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXCurveRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXCurveRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXCurveRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXCurveRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXCurveRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXCurveRecipe>()
-{
-	return FVFXCurveRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXCurveRecipe ***************************************************
 struct Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXCurveRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXCurveRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -1922,6 +1733,8 @@ struct Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXCurveRecipe constinit property declarations *******************
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Size_Inner;
 	static const UECodeGen_Private::FArrayPropertyParams NewProp_Size;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Alpha_Inner;
@@ -1929,18 +1742,30 @@ struct Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Color_Inner;
 	static const UECodeGen_Private::FArrayPropertyParams NewProp_Color;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXCurveRecipe constinit property declarations *********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXCurveRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Size_Inner = { "Size", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXCurveKey, METADATA_PARAMS(0, nullptr) }; // 3138778442
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Size = { "Size", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXCurveRecipe, Size), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Size_MetaData), NewProp_Size_MetaData) }; // 3138778442
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Alpha_Inner = { "Alpha", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXCurveKey, METADATA_PARAMS(0, nullptr) }; // 3138778442
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Alpha = { "Alpha", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXCurveRecipe, Alpha), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Alpha_MetaData), NewProp_Alpha_MetaData) }; // 3138778442
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Color_Inner = { "Color", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXColorKey, METADATA_PARAMS(0, nullptr) }; // 3468581039
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Color = { "Color", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXCurveRecipe, Color), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Color_MetaData), NewProp_Color_MetaData) }; // 3468581039
+}; // struct Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXCurveRecipe;
+class UScriptStruct* FVFXCurveRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXCurveRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXCurveRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXCurveRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXCurveRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXCurveRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXCurveRecipe Property Definitions ******************************
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Size_Inner = { "Size", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXCurveKey, METADATA_PARAMS(0, nullptr) }; // 2538690331
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Size = { "Size", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXCurveRecipe, Size), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Size_MetaData), NewProp_Size_MetaData) }; // 2538690331
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Alpha_Inner = { "Alpha", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXCurveKey, METADATA_PARAMS(0, nullptr) }; // 2538690331
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Alpha = { "Alpha", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXCurveRecipe, Alpha), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Alpha_MetaData), NewProp_Alpha_MetaData) }; // 2538690331
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Color_Inner = { "Color", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXColorKey, METADATA_PARAMS(0, nullptr) }; // 1576140641
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Color = { "Color", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXCurveRecipe, Color), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Color_MetaData), NewProp_Color_MetaData) }; // 1576140641
 const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::PropPointers[] = {
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Size_Inner,
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Size,
@@ -1950,6 +1775,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewProp_Color,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXCurveRecipe Property Definitions ********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -1965,30 +1791,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXCurveRecipe
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXCurveRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXCurveRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXCurveRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXCurveRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXCurveRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXCurveRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXCurveRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXCurveRecipe
+// ********** End ScriptStruct FVFXCurveRecipe *****************************************************
 
-// Begin ScriptStruct FVFXForceRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXForceRecipe;
-class UScriptStruct* FVFXForceRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXForceRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXForceRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXForceRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXForceRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXForceRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXForceRecipe>()
-{
-	return FVFXForceRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXForceRecipe ***************************************************
 struct Z_Construct_UScriptStruct_FVFXForceRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXForceRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXForceRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -2023,6 +1838,8 @@ struct Z_Construct_UScriptStruct_FVFXForceRecipe_Statics
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXForceRecipe constinit property declarations *******************
 	static const UECodeGen_Private::FBytePropertyParams NewProp_Type_Underlying;
 	static const UECodeGen_Private::FEnumPropertyParams NewProp_Type;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_Strength;
@@ -2033,14 +1850,26 @@ struct Z_Construct_UScriptStruct_FVFXForceRecipe_Statics
 	static void NewProp_bEnabled_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bEnabled;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXForceRecipe constinit property declarations *********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXForceRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXForceRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXForceRecipe;
+class UScriptStruct* FVFXForceRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXForceRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXForceRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXForceRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXForceRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXForceRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXForceRecipe Property Definitions ******************************
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewProp_Type_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewProp_Type = { "Type", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXForceRecipe, Type), Z_Construct_UEnum_VFXAgentCore_EVFXForceType, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Type_MetaData), NewProp_Type_MetaData) }; // 2676254183
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewProp_Type = { "Type", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXForceRecipe, Type), Z_Construct_UEnum_VFXAgentCore_EVFXForceType, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Type_MetaData), NewProp_Type_MetaData) }; // 644312078
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewProp_Strength = { "Strength", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXForceRecipe, Strength), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Strength_MetaData), NewProp_Strength_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewProp_Frequency = { "Frequency", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXForceRecipe, Frequency), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Frequency_MetaData), NewProp_Frequency_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewProp_Direction = { "Direction", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXForceRecipe, Direction), Z_Construct_UScriptStruct_FVector, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Direction_MetaData), NewProp_Direction_MetaData) };
@@ -2062,6 +1891,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewProp_bEnabled,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXForceRecipe Property Definitions ********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -2077,30 +1907,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXForceRecipe
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXForceRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXForceRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXForceRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXForceRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXForceRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXForceRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXForceRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXForceRecipe
+// ********** End ScriptStruct FVFXForceRecipe *****************************************************
 
-// Begin ScriptStruct FVFXRenderRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXRenderRecipe;
-class UScriptStruct* FVFXRenderRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXRenderRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXRenderRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXRenderRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXRenderRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXRenderRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXRenderRecipe>()
-{
-	return FVFXRenderRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXRenderRecipe **************************************************
 struct Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXRenderRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXRenderRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -2112,33 +1931,21 @@ struct Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_FacingMode_MetaData[] = {
 		{ "Category", "Render" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Sprite, Mesh, Ribbon, Light\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Sprite, Mesh, Ribbon, Light" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Alignment_MetaData[] = {
 		{ "Category", "Render" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Camera, Velocity, Custom\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Camera, Velocity, Custom" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bSoftParticles_MetaData[] = {
 		{ "Category", "Render" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Unaligned, VelocityAligned, Custom\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Unaligned, VelocityAligned, Custom" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bVelocityAligned_MetaData[] = {
 		{ "Category", "Render" },
@@ -2149,6 +1956,8 @@ struct Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXRenderRecipe constinit property declarations ******************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_RendererType;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_FacingMode;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Alignment;
@@ -2158,12 +1967,24 @@ struct Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bVelocityAligned;
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_MotionStretch;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXRenderRecipe constinit property declarations ********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXRenderRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXRenderRecipe;
+class UScriptStruct* FVFXRenderRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXRenderRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXRenderRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXRenderRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXRenderRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXRenderRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXRenderRecipe Property Definitions *****************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::NewProp_RendererType = { "RendererType", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRenderRecipe, RendererType), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_RendererType_MetaData), NewProp_RendererType_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::NewProp_FacingMode = { "FacingMode", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRenderRecipe, FacingMode), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_FacingMode_MetaData), NewProp_FacingMode_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::NewProp_Alignment = { "Alignment", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRenderRecipe, Alignment), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Alignment_MetaData), NewProp_Alignment_MetaData) };
@@ -2187,6 +2008,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::NewProp_MotionStretch,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXRenderRecipe Property Definitions *******************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -2202,30 +2024,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXRenderRecip
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXRenderRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXRenderRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXRenderRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXRenderRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXRenderRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXRenderRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXRenderRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXRenderRecipe
+// ********** End ScriptStruct FVFXRenderRecipe ****************************************************
 
-// Begin ScriptStruct FVFXLayerRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXLayerRecipe;
-class UScriptStruct* FVFXLayerRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXLayerRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXLayerRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXLayerRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXLayerRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXLayerRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXLayerRecipe>()
-{
-	return FVFXLayerRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXLayerRecipe ***************************************************
 struct Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXLayerRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXLayerRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -2241,13 +2052,9 @@ struct Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Spawn_MetaData[] = {
 		{ "Category", "Spawn" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// core/smoke/sparks/trail/etc\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "core/smoke/sparks/trail/etc" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Lifetime_MetaData[] = {
 		{ "Category", "Lifetime" },
@@ -2306,6 +2113,8 @@ struct Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXLayerRecipe constinit property declarations *******************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Name;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Role;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Spawn;
@@ -2326,25 +2135,37 @@ struct Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bLocalSpace;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_MaterialIndex;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXLayerRecipe constinit property declarations *********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXLayerRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXLayerRecipe;
+class UScriptStruct* FVFXLayerRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXLayerRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXLayerRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXLayerRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXLayerRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXLayerRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXLayerRecipe Property Definitions ******************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Name = { "Name", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Name), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Name_MetaData), NewProp_Name_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Role = { "Role", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Role), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Role_MetaData), NewProp_Role_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Spawn = { "Spawn", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Spawn), Z_Construct_UScriptStruct_FVFXPerSpawnInfo, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Spawn_MetaData), NewProp_Spawn_MetaData) }; // 279740116
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Spawn = { "Spawn", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Spawn), Z_Construct_UScriptStruct_FVFXPerSpawnInfo, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Spawn_MetaData), NewProp_Spawn_MetaData) }; // 3076027827
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Lifetime = { "Lifetime", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Lifetime), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Lifetime_MetaData), NewProp_Lifetime_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_LifetimeVariation = { "LifetimeVariation", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, LifetimeVariation), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_LifetimeVariation_MetaData), NewProp_LifetimeVariation_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Size = { "Size", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Size), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Size_MetaData), NewProp_Size_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Color = { "Color", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Color), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Color_MetaData), NewProp_Color_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_InitialVelocity = { "InitialVelocity", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, InitialVelocity), Z_Construct_UScriptStruct_FVector, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_InitialVelocity_MetaData), NewProp_InitialVelocity_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_VelocityVariation = { "VelocityVariation", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, VelocityVariation), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_VelocityVariation_MetaData), NewProp_VelocityVariation_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Forces_Inner = { "Forces", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXForceRecipe, METADATA_PARAMS(0, nullptr) }; // 1254458843
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Forces = { "Forces", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Forces), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Forces_MetaData), NewProp_Forces_MetaData) }; // 1254458843
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Curves = { "Curves", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Curves), Z_Construct_UScriptStruct_FVFXCurveRecipe, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Curves_MetaData), NewProp_Curves_MetaData) }; // 105848296
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Render = { "Render", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Render), Z_Construct_UScriptStruct_FVFXRenderRecipe, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Render_MetaData), NewProp_Render_MetaData) }; // 1047685923
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Forces_Inner = { "Forces", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXForceRecipe, METADATA_PARAMS(0, nullptr) }; // 1428190472
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Forces = { "Forces", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Forces), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Forces_MetaData), NewProp_Forces_MetaData) }; // 1428190472
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Curves = { "Curves", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Curves), Z_Construct_UScriptStruct_FVFXCurveRecipe, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Curves_MetaData), NewProp_Curves_MetaData) }; // 241530474
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_Render = { "Render", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, Render), Z_Construct_UScriptStruct_FVFXRenderRecipe, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Render_MetaData), NewProp_Render_MetaData) }; // 114851593
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_EmitShape = { "EmitShape", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, EmitShape), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_EmitShape_MetaData), NewProp_EmitShape_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_ShapeSize = { "ShapeSize", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, ShapeSize), Z_Construct_UScriptStruct_FVector, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ShapeSize_MetaData), NewProp_ShapeSize_MetaData) };
 const UECodeGen_Private::FIntPropertyParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_SortOrder = { "SortOrder", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Int, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXLayerRecipe, SortOrder), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SortOrder_MetaData), NewProp_SortOrder_MetaData) };
@@ -2375,6 +2196,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewProp_MaterialIndex,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXLayerRecipe Property Definitions ********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -2390,15 +2212,15 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXLayerRecipe
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXLayerRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXLayerRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXLayerRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXLayerRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXLayerRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXLayerRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXLayerRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXLayerRecipe
+// ********** End ScriptStruct FVFXLayerRecipe *****************************************************
 
-// Begin Enum EVFXEventType
+// ********** Begin Enum EVFXEventType *************************************************************
 static FEnumRegistrationInfo Z_Registration_Info_UEnum_EVFXEventType;
 static UEnum* EVFXEventType_StaticEnum()
 {
@@ -2408,7 +2230,7 @@ static UEnum* EVFXEventType_StaticEnum()
 	}
 	return Z_Registration_Info_UEnum_EVFXEventType.OuterSingleton;
 }
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXEventType>()
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXEventType>()
 {
 	return EVFXEventType_StaticEnum();
 }
@@ -2435,7 +2257,7 @@ struct Z_Construct_UEnum_VFXAgentCore_EVFXEventType_Statics
 		{ "EVFXEventType::OnEmitterCollision", (int64)EVFXEventType::OnEmitterCollision },
 	};
 	static const UECodeGen_Private::FEnumParams EnumParams;
-};
+}; // struct Z_Construct_UEnum_VFXAgentCore_EVFXEventType_Statics 
 const UECodeGen_Private::FEnumParams Z_Construct_UEnum_VFXAgentCore_EVFXEventType_Statics::EnumParams = {
 	(UObject*(*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -2456,24 +2278,13 @@ UEnum* Z_Construct_UEnum_VFXAgentCore_EVFXEventType()
 	}
 	return Z_Registration_Info_UEnum_EVFXEventType.InnerSingleton;
 }
-// End Enum EVFXEventType
+// ********** End Enum EVFXEventType ***************************************************************
 
-// Begin ScriptStruct FVFXEventRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXEventRecipe;
-class UScriptStruct* FVFXEventRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXEventRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXEventRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXEventRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXEventRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXEventRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXEventRecipe>()
-{
-	return FVFXEventRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXEventRecipe ***************************************************
 struct Z_Construct_UScriptStruct_FVFXEventRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXEventRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXEventRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -2508,6 +2319,8 @@ struct Z_Construct_UScriptStruct_FVFXEventRecipe_Statics
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXEventRecipe constinit property declarations *******************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_SourceLayer;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_TargetLayer;
 	static const UECodeGen_Private::FBytePropertyParams NewProp_Type_Underlying;
@@ -2517,16 +2330,28 @@ struct Z_Construct_UScriptStruct_FVFXEventRecipe_Statics
 	static const UECodeGen_Private::FFloatPropertyParams NewProp_RateMultiplier;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_BurstOverride;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXEventRecipe constinit property declarations *********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXEventRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXEventRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXEventRecipe;
+class UScriptStruct* FVFXEventRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXEventRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXEventRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXEventRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXEventRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXEventRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXEventRecipe Property Definitions ******************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_SourceLayer = { "SourceLayer", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEventRecipe, SourceLayer), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SourceLayer_MetaData), NewProp_SourceLayer_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_TargetLayer = { "TargetLayer", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEventRecipe, TargetLayer), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_TargetLayer_MetaData), NewProp_TargetLayer_MetaData) };
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_Type_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_Type = { "Type", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEventRecipe, Type), Z_Construct_UEnum_VFXAgentCore_EVFXEventType, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Type_MetaData), NewProp_Type_MetaData) }; // 3948902276
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_Type = { "Type", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEventRecipe, Type), Z_Construct_UEnum_VFXAgentCore_EVFXEventType, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Type_MetaData), NewProp_Type_MetaData) }; // 251924240
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_Delay = { "Delay", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEventRecipe, Delay), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Delay_MetaData), NewProp_Delay_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_BurstMultiplier = { "BurstMultiplier", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEventRecipe, BurstMultiplier), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_BurstMultiplier_MetaData), NewProp_BurstMultiplier_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_RateMultiplier = { "RateMultiplier", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEventRecipe, RateMultiplier), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_RateMultiplier_MetaData), NewProp_RateMultiplier_MetaData) };
@@ -2542,6 +2367,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewProp_BurstOverride,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXEventRecipe Property Definitions ********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -2557,30 +2383,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXEventRecipe
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXEventRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXEventRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXEventRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXEventRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXEventRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXEventRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXEventRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXEventRecipe
+// ********** End ScriptStruct FVFXEventRecipe *****************************************************
 
-// Begin ScriptStruct FVFXEmitterSpec
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXEmitterSpec;
-class UScriptStruct* FVFXEmitterSpec::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXEmitterSpec.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXEmitterSpec.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXEmitterSpec, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXEmitterSpec"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXEmitterSpec.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXEmitterSpec>()
-{
-	return FVFXEmitterSpec::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXEmitterSpec ***************************************************
 struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXEmitterSpec); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXEmitterSpec); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -2592,23 +2407,15 @@ struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_TemplatePath_MetaData[] = {
 		{ "Category", "Emitter" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Path to a Niagara System or Emitter asset to use as template\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Path to a Niagara System or Emitter asset to use as template" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_TemplateId_MetaData[] = {
 		{ "Category", "Emitter" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Or a known ID like \"Fountain\", \"Beam\" if we support mapping\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Or a known ID like \"Fountain\", \"Beam\" if we support mapping" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_RendererType_MetaData[] = {
 		{ "Category", "Emitter" },
@@ -2664,13 +2471,9 @@ struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CurlNoiseStrength_MetaData[] = {
 		{ "Category", "Emitter|Forces" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Forces (module-driven)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Forces (module-driven)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_CurlNoiseFrequency_MetaData[] = {
 		{ "Category", "Emitter|Forces" },
@@ -2702,13 +2505,9 @@ struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Drag_MetaData[] = {
 		{ "Category", "Emitter|Physics" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Physics\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Physics" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Acceleration_MetaData[] = {
 		{ "Category", "Emitter|Physics" },
@@ -2724,13 +2523,9 @@ struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_RotationRate_MetaData[] = {
 		{ "Category", "Emitter|Rotation" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Rotation\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Rotation" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_InitialRotation_MetaData[] = {
 		{ "Category", "Emitter|Rotation" },
@@ -2742,13 +2537,9 @@ struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Alpha_MetaData[] = {
 		{ "Category", "Emitter|Color" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Alpha over life\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Alpha over life" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_AlphaEnd_MetaData[] = {
 		{ "Category", "Emitter|Color" },
@@ -2760,13 +2551,9 @@ struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_FacingMode_MetaData[] = {
 		{ "Category", "Emitter|Rendering" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Render options\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Render options" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Alignment_MetaData[] = {
 		{ "Category", "Emitter|Rendering" },
@@ -2801,6 +2588,8 @@ struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXEmitterSpec constinit property declarations *******************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Name;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_TemplatePath;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_TemplateId;
@@ -2852,18 +2641,30 @@ struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
 	static const UECodeGen_Private::FStructPropertyParams NewProp_ShapeSize;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Notes;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXEmitterSpec constinit property declarations *********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXEmitterSpec>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXEmitterSpec;
+class UScriptStruct* FVFXEmitterSpec::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXEmitterSpec.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXEmitterSpec.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXEmitterSpec, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXEmitterSpec"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXEmitterSpec.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXEmitterSpec Property Definitions ******************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_Name = { "Name", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, Name), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Name_MetaData), NewProp_Name_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_TemplatePath = { "TemplatePath", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, TemplatePath), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_TemplatePath_MetaData), NewProp_TemplatePath_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_TemplateId = { "TemplateId", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, TemplateId), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_TemplateId_MetaData), NewProp_TemplateId_MetaData) };
 const UECodeGen_Private::FBytePropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_RendererType_Underlying = { "UnderlyingType", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Byte, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, nullptr, METADATA_PARAMS(0, nullptr) };
-const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_RendererType = { "RendererType", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, RendererType), Z_Construct_UEnum_VFXAgentCore_EVFXRendererType, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_RendererType_MetaData), NewProp_RendererType_MetaData) }; // 1675559599
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_Spawn = { "Spawn", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, Spawn), Z_Construct_UScriptStruct_FVFXPerSpawnInfo, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Spawn_MetaData), NewProp_Spawn_MetaData) }; // 279740116
+const UECodeGen_Private::FEnumPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_RendererType = { "RendererType", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Enum, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, RendererType), Z_Construct_UEnum_VFXAgentCore_EVFXRendererType, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_RendererType_MetaData), NewProp_RendererType_MetaData) }; // 624130330
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_Spawn = { "Spawn", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, Spawn), Z_Construct_UScriptStruct_FVFXPerSpawnInfo, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Spawn_MetaData), NewProp_Spawn_MetaData) }; // 3076027827
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_Color = { "Color", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, Color), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Color_MetaData), NewProp_Color_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_ColorEnd = { "ColorEnd", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEmitterSpec, ColorEnd), Z_Construct_UScriptStruct_FLinearColor, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_ColorEnd_MetaData), NewProp_ColorEnd_MetaData) };
 void Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_bUseColorGradient_SetBit(void* Obj)
@@ -2973,6 +2774,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewProp_Notes,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXEmitterSpec Property Definitions ********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -2988,30 +2790,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXEmitterSpec
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXEmitterSpec()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXEmitterSpec.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXEmitterSpec.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXEmitterSpec.InnerSingleton, Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXEmitterSpec.InnerSingleton, Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXEmitterSpec.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXEmitterSpec.InnerSingleton);
 }
-// End ScriptStruct FVFXEmitterSpec
+// ********** End ScriptStruct FVFXEmitterSpec *****************************************************
 
-// Begin ScriptStruct FVFXEffectSpec
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXEffectSpec;
-class UScriptStruct* FVFXEffectSpec::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXEffectSpec.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXEffectSpec.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXEffectSpec, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXEffectSpec"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXEffectSpec.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXEffectSpec>()
-{
-	return FVFXEffectSpec::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXEffectSpec ****************************************************
 struct Z_Construct_UScriptStruct_FVFXEffectSpec_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXEffectSpec); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXEffectSpec); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -3035,19 +2826,17 @@ struct Z_Construct_UScriptStruct_FVFXEffectSpec_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Intent_MetaData[] = {
 		{ "Category", "Effect" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// NEW: Intent for constraint-aware generation (non-optional for simplicity)\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "NEW: Intent for constraint-aware generation (non-optional for simplicity)" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bHasIntent_MetaData[] = {
 		{ "Category", "Effect" },
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXEffectSpec constinit property declarations ********************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Name;
 	static const UECodeGen_Private::FStrPropertyParams NewProp_OutputPath;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Emitters_Inner;
@@ -3058,19 +2847,31 @@ struct Z_Construct_UScriptStruct_FVFXEffectSpec_Statics
 	static void NewProp_bHasIntent_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bHasIntent;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXEffectSpec constinit property declarations **********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXEffectSpec>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXEffectSpec_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXEffectSpec;
+class UScriptStruct* FVFXEffectSpec::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXEffectSpec.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXEffectSpec.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXEffectSpec, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXEffectSpec"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXEffectSpec.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXEffectSpec Property Definitions *******************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Name = { "Name", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEffectSpec, Name), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Name_MetaData), NewProp_Name_MetaData) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_OutputPath = { "OutputPath", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEffectSpec, OutputPath), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_OutputPath_MetaData), NewProp_OutputPath_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Emitters_Inner = { "Emitters", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXEmitterSpec, METADATA_PARAMS(0, nullptr) }; // 1135699159
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Emitters = { "Emitters", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEffectSpec, Emitters), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Emitters_MetaData), NewProp_Emitters_MetaData) }; // 1135699159
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Materials_Inner = { "Materials", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXMaterialRecipe, METADATA_PARAMS(0, nullptr) }; // 2727159392
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Materials = { "Materials", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEffectSpec, Materials), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Materials_MetaData), NewProp_Materials_MetaData) }; // 2727159392
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Intent = { "Intent", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEffectSpec, Intent), Z_Construct_UScriptStruct_FVFXIntent, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Intent_MetaData), NewProp_Intent_MetaData) }; // 720305667
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Emitters_Inner = { "Emitters", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXEmitterSpec, METADATA_PARAMS(0, nullptr) }; // 3234902414
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Emitters = { "Emitters", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEffectSpec, Emitters), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Emitters_MetaData), NewProp_Emitters_MetaData) }; // 3234902414
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Materials_Inner = { "Materials", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXMaterialRecipe, METADATA_PARAMS(0, nullptr) }; // 3281737724
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Materials = { "Materials", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEffectSpec, Materials), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Materials_MetaData), NewProp_Materials_MetaData) }; // 3281737724
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_Intent = { "Intent", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXEffectSpec, Intent), Z_Construct_UScriptStruct_FVFXIntent, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Intent_MetaData), NewProp_Intent_MetaData) }; // 3289489561
 void Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_bHasIntent_SetBit(void* Obj)
 {
 	((FVFXEffectSpec*)Obj)->bHasIntent = 1;
@@ -3087,6 +2888,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewProp_bHasIntent,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXEffectSpec Property Definitions *********************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -3102,30 +2904,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXEffectSpec_
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXEffectSpec()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXEffectSpec.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXEffectSpec.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXEffectSpec.InnerSingleton, Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXEffectSpec.InnerSingleton, Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXEffectSpec.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXEffectSpec.InnerSingleton);
 }
-// End ScriptStruct FVFXEffectSpec
+// ********** End ScriptStruct FVFXEffectSpec ******************************************************
 
-// Begin ScriptStruct FVFXRepairReport
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXRepairReport;
-class UScriptStruct* FVFXRepairReport::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXRepairReport.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXRepairReport.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXRepairReport, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXRepairReport"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXRepairReport.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXRepairReport>()
-{
-	return FVFXRepairReport::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXRepairReport **************************************************
 struct Z_Construct_UScriptStruct_FVFXRepairReport_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXRepairReport); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXRepairReport); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -3148,6 +2939,8 @@ struct Z_Construct_UScriptStruct_FVFXRepairReport_Statics
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXRepairReport constinit property declarations ******************
 	static const UECodeGen_Private::FStrPropertyParams NewProp_SystemPath;
 	static void NewProp_bCompileSuccess_SetBit(void* Obj);
 	static const UECodeGen_Private::FBoolPropertyParams NewProp_bCompileSuccess;
@@ -3156,12 +2949,24 @@ struct Z_Construct_UScriptStruct_FVFXRepairReport_Statics
 	static const UECodeGen_Private::FStrPropertyParams NewProp_Warnings_Inner;
 	static const UECodeGen_Private::FArrayPropertyParams NewProp_Warnings;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXRepairReport constinit property declarations ********************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXRepairReport>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
+}; // struct Z_Construct_UScriptStruct_FVFXRepairReport_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXRepairReport;
+class UScriptStruct* FVFXRepairReport::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXRepairReport.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXRepairReport.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXRepairReport, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXRepairReport"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXRepairReport.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXRepairReport Property Definitions *****************************
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXRepairReport_Statics::NewProp_SystemPath = { "SystemPath", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRepairReport, SystemPath), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_SystemPath_MetaData), NewProp_SystemPath_MetaData) };
 void Z_Construct_UScriptStruct_FVFXRepairReport_Statics::NewProp_bCompileSuccess_SetBit(void* Obj)
 {
@@ -3181,6 +2986,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXRepairReport_Statics::NewProp_Warnings,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXRepairReport_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXRepairReport Property Definitions *******************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXRepairReport_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -3196,30 +3002,19 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXRepairRepor
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXRepairReport()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXRepairReport.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXRepairReport.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXRepairReport.InnerSingleton, Z_Construct_UScriptStruct_FVFXRepairReport_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXRepairReport.InnerSingleton, Z_Construct_UScriptStruct_FVFXRepairReport_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXRepairReport.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXRepairReport.InnerSingleton);
 }
-// End ScriptStruct FVFXRepairReport
+// ********** End ScriptStruct FVFXRepairReport ****************************************************
 
-// Begin ScriptStruct FVFXRecipe
-static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_VFXRecipe;
-class UScriptStruct* FVFXRecipe::StaticStruct()
-{
-	if (!Z_Registration_Info_UScriptStruct_VFXRecipe.OuterSingleton)
-	{
-		Z_Registration_Info_UScriptStruct_VFXRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXRecipe"));
-	}
-	return Z_Registration_Info_UScriptStruct_VFXRecipe.OuterSingleton;
-}
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<FVFXRecipe>()
-{
-	return FVFXRecipe::StaticStruct();
-}
+// ********** Begin ScriptStruct FVFXRecipe ********************************************************
 struct Z_Construct_UScriptStruct_FVFXRecipe_Statics
 {
+	static inline consteval int32 GetStructSize() { return sizeof(FVFXRecipe); }
+	static inline consteval int16 GetStructAlignment() { return alignof(FVFXRecipe); }
 #if WITH_METADATA
 	static constexpr UECodeGen_Private::FMetaDataPairParam Struct_MetaDataParams[] = {
 		{ "BlueprintType", "true" },
@@ -3227,33 +3022,21 @@ struct Z_Construct_UScriptStruct_FVFXRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Intent_MetaData[] = {
 		{ "Category", "Intent" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ========== NEW: VFX Intent Layer (Director's Understanding) ==========\n// This is the semantic understanding of WHAT the effect is, BEFORE Niagara modules\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "========== NEW: VFX Intent Layer (Director's Understanding) ==========\nThis is the semantic understanding of WHAT the effect is, BEFORE Niagara modules" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Spec_MetaData[] = {
 		{ "Category", "Spec" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ========== NEW: Niagara Spec (Constraint-aware compilation target) ==========\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "========== NEW: Niagara Spec (Constraint-aware compilation target) ==========" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_bLoop_MetaData[] = {
 		{ "Category", "System" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// ========== System-level properties ==========\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "========== System-level properties ==========" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Duration_MetaData[] = {
 		{ "Category", "System" },
@@ -3261,13 +3044,9 @@ struct Z_Construct_UScriptStruct_FVFXRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_WarmupTime_MetaData[] = {
 		{ "Category", "System" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// 0 for infinite\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "0 for infinite" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Bounds_MetaData[] = {
 		{ "Category", "System" },
@@ -3279,23 +3058,15 @@ struct Z_Construct_UScriptStruct_FVFXRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Layers_MetaData[] = {
 		{ "Category", "Layers" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// New layered recipe format\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "New layered recipe format" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Events_MetaData[] = {
 		{ "Category", "Events" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Event chain between layers\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Event chain between layers" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Parameters_MetaData[] = {
 		{ "Category", "Parameters" },
@@ -3303,13 +3074,9 @@ struct Z_Construct_UScriptStruct_FVFXRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Materials_MetaData[] = {
 		{ "Category", "Materials" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// User parameters like color, intensity\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "User parameters like color, intensity" },
-#endif
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Dependencies_MetaData[] = {
 		{ "Category", "Dependencies" },
@@ -3317,15 +3084,13 @@ struct Z_Construct_UScriptStruct_FVFXRecipe_Statics
 	};
 	static constexpr UECodeGen_Private::FMetaDataPairParam NewProp_Version_MetaData[] = {
 		{ "Category", "Version" },
-#if !UE_BUILD_SHIPPING
 		{ "Comment", "// Texture/Model paths\n" },
-#endif
 		{ "ModuleRelativePath", "Public/VFXRecipe.h" },
-#if !UE_BUILD_SHIPPING
 		{ "ToolTip", "Texture/Model paths" },
-#endif
 	};
 #endif // WITH_METADATA
+
+// ********** Begin ScriptStruct FVFXRecipe constinit property declarations ************************
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Intent;
 	static const UECodeGen_Private::FStructPropertyParams NewProp_Spec;
 	static void NewProp_bLoop_SetBit(void* Obj);
@@ -3348,14 +3113,26 @@ struct Z_Construct_UScriptStruct_FVFXRecipe_Statics
 	static const UECodeGen_Private::FArrayPropertyParams NewProp_Dependencies;
 	static const UECodeGen_Private::FIntPropertyParams NewProp_Version;
 	static const UECodeGen_Private::FPropertyParamsBase* const PropPointers[];
+// ********** End ScriptStruct FVFXRecipe constinit property declarations **************************
 	static void* NewStructOps()
 	{
 		return (UScriptStruct::ICppStructOps*)new UScriptStruct::TCppStructOps<FVFXRecipe>();
 	}
 	static const UECodeGen_Private::FStructParams StructParams;
-};
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Intent = { "Intent", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Intent), Z_Construct_UScriptStruct_FVFXIntent, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Intent_MetaData), NewProp_Intent_MetaData) }; // 720305667
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Spec = { "Spec", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Spec), Z_Construct_UScriptStruct_FVFXEffectSpec, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Spec_MetaData), NewProp_Spec_MetaData) }; // 1097271504
+}; // struct Z_Construct_UScriptStruct_FVFXRecipe_Statics
+static FStructRegistrationInfo Z_Registration_Info_UScriptStruct_FVFXRecipe;
+class UScriptStruct* FVFXRecipe::StaticStruct()
+{
+	if (!Z_Registration_Info_UScriptStruct_FVFXRecipe.OuterSingleton)
+	{
+		Z_Registration_Info_UScriptStruct_FVFXRecipe.OuterSingleton = GetStaticStruct(Z_Construct_UScriptStruct_FVFXRecipe, (UObject*)Z_Construct_UPackage__Script_VFXAgentCore(), TEXT("VFXRecipe"));
+	}
+	return Z_Registration_Info_UScriptStruct_FVFXRecipe.OuterSingleton;
+	}
+
+// ********** Begin ScriptStruct FVFXRecipe Property Definitions ***********************************
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Intent = { "Intent", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Intent), Z_Construct_UScriptStruct_FVFXIntent, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Intent_MetaData), NewProp_Intent_MetaData) }; // 3289489561
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Spec = { "Spec", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Spec), Z_Construct_UScriptStruct_FVFXEffectSpec, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Spec_MetaData), NewProp_Spec_MetaData) }; // 1773197136
 void Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_bLoop_SetBit(void* Obj)
 {
 	((FVFXRecipe*)Obj)->bLoop = 1;
@@ -3364,17 +3141,17 @@ const UECodeGen_Private::FBoolPropertyParams Z_Construct_UScriptStruct_FVFXRecip
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Duration = { "Duration", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Duration), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Duration_MetaData), NewProp_Duration_MetaData) };
 const UECodeGen_Private::FFloatPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_WarmupTime = { "WarmupTime", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Float, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, WarmupTime), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_WarmupTime_MetaData), NewProp_WarmupTime_MetaData) };
 const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Bounds = { "Bounds", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Bounds), Z_Construct_UScriptStruct_FVector, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Bounds_MetaData), NewProp_Bounds_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Emitters_Inner = { "Emitters", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXEmitterRecipe, METADATA_PARAMS(0, nullptr) }; // 1225645300
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Emitters = { "Emitters", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Emitters), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Emitters_MetaData), NewProp_Emitters_MetaData) }; // 1225645300
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Layers_Inner = { "Layers", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXLayerRecipe, METADATA_PARAMS(0, nullptr) }; // 3127653306
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Layers = { "Layers", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Layers), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Layers_MetaData), NewProp_Layers_MetaData) }; // 3127653306
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Events_Inner = { "Events", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXEventRecipe, METADATA_PARAMS(0, nullptr) }; // 4131990201
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Events = { "Events", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Events), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Events_MetaData), NewProp_Events_MetaData) }; // 4131990201
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Emitters_Inner = { "Emitters", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXEmitterRecipe, METADATA_PARAMS(0, nullptr) }; // 3145495049
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Emitters = { "Emitters", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Emitters), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Emitters_MetaData), NewProp_Emitters_MetaData) }; // 3145495049
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Layers_Inner = { "Layers", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXLayerRecipe, METADATA_PARAMS(0, nullptr) }; // 1464274648
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Layers = { "Layers", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Layers), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Layers_MetaData), NewProp_Layers_MetaData) }; // 1464274648
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Events_Inner = { "Events", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXEventRecipe, METADATA_PARAMS(0, nullptr) }; // 4187006034
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Events = { "Events", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Events), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Events_MetaData), NewProp_Events_MetaData) }; // 4187006034
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Parameters_ValueProp = { "Parameters", nullptr, (EPropertyFlags)0x0000000000000001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 1, METADATA_PARAMS(0, nullptr) };
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Parameters_Key_KeyProp = { "Parameters_Key", nullptr, (EPropertyFlags)0x0000000000000001, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, METADATA_PARAMS(0, nullptr) };
 const UECodeGen_Private::FMapPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Parameters = { "Parameters", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Map, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Parameters), EMapPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Parameters_MetaData), NewProp_Parameters_MetaData) };
-const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Materials_Inner = { "Materials", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXMaterialRecipe, METADATA_PARAMS(0, nullptr) }; // 2727159392
-const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Materials = { "Materials", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Materials), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Materials_MetaData), NewProp_Materials_MetaData) }; // 2727159392
+const UECodeGen_Private::FStructPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Materials_Inner = { "Materials", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Struct, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, Z_Construct_UScriptStruct_FVFXMaterialRecipe, METADATA_PARAMS(0, nullptr) }; // 3281737724
+const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Materials = { "Materials", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Materials), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Materials_MetaData), NewProp_Materials_MetaData) }; // 3281737724
 const UECodeGen_Private::FStrPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Dependencies_Inner = { "Dependencies", nullptr, (EPropertyFlags)0x0000000000000000, UECodeGen_Private::EPropertyGenFlags::Str, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, 0, METADATA_PARAMS(0, nullptr) };
 const UECodeGen_Private::FArrayPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Dependencies = { "Dependencies", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Array, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Dependencies), EArrayPropertyFlags::None, METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Dependencies_MetaData), NewProp_Dependencies_MetaData) };
 const UECodeGen_Private::FIntPropertyParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Version = { "Version", nullptr, (EPropertyFlags)0x0010000000000005, UECodeGen_Private::EPropertyGenFlags::Int, RF_Public|RF_Transient|RF_MarkAsNative, nullptr, nullptr, 1, STRUCT_OFFSET(FVFXRecipe, Version), METADATA_PARAMS(UE_ARRAY_COUNT(NewProp_Version_MetaData), NewProp_Version_MetaData) };
@@ -3401,6 +3178,7 @@ const UECodeGen_Private::FPropertyParamsBase* const Z_Construct_UScriptStruct_FV
 	(const UECodeGen_Private::FPropertyParamsBase*)&Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewProp_Version,
 };
 static_assert(UE_ARRAY_COUNT(Z_Construct_UScriptStruct_FVFXRecipe_Statics::PropPointers) < 2048);
+// ********** End ScriptStruct FVFXRecipe Property Definitions *************************************
 const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXRecipe_Statics::StructParams = {
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentCore,
 	nullptr,
@@ -3416,49 +3194,52 @@ const UECodeGen_Private::FStructParams Z_Construct_UScriptStruct_FVFXRecipe_Stat
 };
 UScriptStruct* Z_Construct_UScriptStruct_FVFXRecipe()
 {
-	if (!Z_Registration_Info_UScriptStruct_VFXRecipe.InnerSingleton)
+	if (!Z_Registration_Info_UScriptStruct_FVFXRecipe.InnerSingleton)
 	{
-		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_VFXRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXRecipe_Statics::StructParams);
+		UECodeGen_Private::ConstructUScriptStruct(Z_Registration_Info_UScriptStruct_FVFXRecipe.InnerSingleton, Z_Construct_UScriptStruct_FVFXRecipe_Statics::StructParams);
 	}
-	return Z_Registration_Info_UScriptStruct_VFXRecipe.InnerSingleton;
+	return CastChecked<UScriptStruct>(Z_Registration_Info_UScriptStruct_FVFXRecipe.InnerSingleton);
 }
-// End ScriptStruct FVFXRecipe
+// ********** End ScriptStruct FVFXRecipe **********************************************************
 
-// Begin Registration
-struct Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_Statics
+// ********** Begin Registration *******************************************************************
+struct Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h__Script_VFXAgentCore_Statics
 {
 	static constexpr FEnumRegisterCompiledInInfo EnumInfo[] = {
-		{ EVFXArchetype_StaticEnum, TEXT("EVFXArchetype"), &Z_Registration_Info_UEnum_EVFXArchetype, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 1386258222U) },
-		{ EVFXMotionModel_StaticEnum, TEXT("EVFXMotionModel"), &Z_Registration_Info_UEnum_EVFXMotionModel, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 810998637U) },
-		{ EVFXRendererType_StaticEnum, TEXT("EVFXRendererType"), &Z_Registration_Info_UEnum_EVFXRendererType, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 1675559599U) },
-		{ EVFXForceType_StaticEnum, TEXT("EVFXForceType"), &Z_Registration_Info_UEnum_EVFXForceType, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 2676254183U) },
-		{ EVFXEventType_StaticEnum, TEXT("EVFXEventType"), &Z_Registration_Info_UEnum_EVFXEventType, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 3948902276U) },
+		{ EVFXArchetype_StaticEnum, TEXT("EVFXArchetype"), &Z_Registration_Info_UEnum_EVFXArchetype, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 1239467032U) },
+		{ EVFXMotionModel_StaticEnum, TEXT("EVFXMotionModel"), &Z_Registration_Info_UEnum_EVFXMotionModel, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 3479131074U) },
+		{ EVFXRendererType_StaticEnum, TEXT("EVFXRendererType"), &Z_Registration_Info_UEnum_EVFXRendererType, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 624130330U) },
+		{ EVFXForceType_StaticEnum, TEXT("EVFXForceType"), &Z_Registration_Info_UEnum_EVFXForceType, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 644312078U) },
+		{ EVFXEventType_StaticEnum, TEXT("EVFXEventType"), &Z_Registration_Info_UEnum_EVFXEventType, CONSTRUCT_RELOAD_VERSION_INFO(FEnumReloadVersionInfo, 251924240U) },
 	};
 	static constexpr FStructRegisterCompiledInInfo ScriptStructInfo[] = {
-		{ FVFXPatternAvoidance::StaticStruct, Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics::NewStructOps, TEXT("VFXPatternAvoidance"), &Z_Registration_Info_UScriptStruct_VFXPatternAvoidance, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXPatternAvoidance), 3331547998U) },
-		{ FVFXMotionBehavior::StaticStruct, Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::NewStructOps, TEXT("VFXMotionBehavior"), &Z_Registration_Info_UScriptStruct_VFXMotionBehavior, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXMotionBehavior), 2159418799U) },
-		{ FVFXVisualHierarchy::StaticStruct, Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::NewStructOps, TEXT("VFXVisualHierarchy"), &Z_Registration_Info_UScriptStruct_VFXVisualHierarchy, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXVisualHierarchy), 1462781300U) },
-		{ FVFXIntent::StaticStruct, Z_Construct_UScriptStruct_FVFXIntent_Statics::NewStructOps, TEXT("VFXIntent"), &Z_Registration_Info_UScriptStruct_VFXIntent, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXIntent), 720305667U) },
-		{ FVFXEmitterRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::NewStructOps, TEXT("VFXEmitterRecipe"), &Z_Registration_Info_UScriptStruct_VFXEmitterRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXEmitterRecipe), 1225645300U) },
-		{ FVFXTextureRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::NewStructOps, TEXT("VFXTextureRecipe"), &Z_Registration_Info_UScriptStruct_VFXTextureRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXTextureRecipe), 1674770203U) },
-		{ FVFXMaterialRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewStructOps, TEXT("VFXMaterialRecipe"), &Z_Registration_Info_UScriptStruct_VFXMaterialRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXMaterialRecipe), 2727159392U) },
-		{ FVFXPerSpawnInfo::StaticStruct, Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::NewStructOps, TEXT("VFXPerSpawnInfo"), &Z_Registration_Info_UScriptStruct_VFXPerSpawnInfo, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXPerSpawnInfo), 279740116U) },
-		{ FVFXCurveKey::StaticStruct, Z_Construct_UScriptStruct_FVFXCurveKey_Statics::NewStructOps, TEXT("VFXCurveKey"), &Z_Registration_Info_UScriptStruct_VFXCurveKey, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXCurveKey), 3138778442U) },
-		{ FVFXColorKey::StaticStruct, Z_Construct_UScriptStruct_FVFXColorKey_Statics::NewStructOps, TEXT("VFXColorKey"), &Z_Registration_Info_UScriptStruct_VFXColorKey, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXColorKey), 3468581039U) },
-		{ FVFXCurveRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewStructOps, TEXT("VFXCurveRecipe"), &Z_Registration_Info_UScriptStruct_VFXCurveRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXCurveRecipe), 105848296U) },
-		{ FVFXForceRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewStructOps, TEXT("VFXForceRecipe"), &Z_Registration_Info_UScriptStruct_VFXForceRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXForceRecipe), 1254458843U) },
-		{ FVFXRenderRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::NewStructOps, TEXT("VFXRenderRecipe"), &Z_Registration_Info_UScriptStruct_VFXRenderRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXRenderRecipe), 1047685923U) },
-		{ FVFXLayerRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewStructOps, TEXT("VFXLayerRecipe"), &Z_Registration_Info_UScriptStruct_VFXLayerRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXLayerRecipe), 3127653306U) },
-		{ FVFXEventRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewStructOps, TEXT("VFXEventRecipe"), &Z_Registration_Info_UScriptStruct_VFXEventRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXEventRecipe), 4131990201U) },
-		{ FVFXEmitterSpec::StaticStruct, Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewStructOps, TEXT("VFXEmitterSpec"), &Z_Registration_Info_UScriptStruct_VFXEmitterSpec, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXEmitterSpec), 1135699159U) },
-		{ FVFXEffectSpec::StaticStruct, Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewStructOps, TEXT("VFXEffectSpec"), &Z_Registration_Info_UScriptStruct_VFXEffectSpec, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXEffectSpec), 1097271504U) },
-		{ FVFXRepairReport::StaticStruct, Z_Construct_UScriptStruct_FVFXRepairReport_Statics::NewStructOps, TEXT("VFXRepairReport"), &Z_Registration_Info_UScriptStruct_VFXRepairReport, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXRepairReport), 4166929288U) },
-		{ FVFXRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewStructOps, TEXT("VFXRecipe"), &Z_Registration_Info_UScriptStruct_VFXRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXRecipe), 1585434955U) },
+		{ FVFXPatternAvoidance::StaticStruct, Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics::NewStructOps, TEXT("VFXPatternAvoidance"),&Z_Registration_Info_UScriptStruct_FVFXPatternAvoidance, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXPatternAvoidance), 3180674912U) },
+		{ FVFXMotionBehavior::StaticStruct, Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics::NewStructOps, TEXT("VFXMotionBehavior"),&Z_Registration_Info_UScriptStruct_FVFXMotionBehavior, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXMotionBehavior), 2776603170U) },
+		{ FVFXVisualHierarchy::StaticStruct, Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics::NewStructOps, TEXT("VFXVisualHierarchy"),&Z_Registration_Info_UScriptStruct_FVFXVisualHierarchy, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXVisualHierarchy), 2224825837U) },
+		{ FVFXIntent::StaticStruct, Z_Construct_UScriptStruct_FVFXIntent_Statics::NewStructOps, TEXT("VFXIntent"),&Z_Registration_Info_UScriptStruct_FVFXIntent, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXIntent), 3289489561U) },
+		{ FVFXEmitterRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics::NewStructOps, TEXT("VFXEmitterRecipe"),&Z_Registration_Info_UScriptStruct_FVFXEmitterRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXEmitterRecipe), 3145495049U) },
+		{ FVFXTextureRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics::NewStructOps, TEXT("VFXTextureRecipe"),&Z_Registration_Info_UScriptStruct_FVFXTextureRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXTextureRecipe), 1708579409U) },
+		{ FVFXMaterialRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics::NewStructOps, TEXT("VFXMaterialRecipe"),&Z_Registration_Info_UScriptStruct_FVFXMaterialRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXMaterialRecipe), 3281737724U) },
+		{ FVFXPerSpawnInfo::StaticStruct, Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics::NewStructOps, TEXT("VFXPerSpawnInfo"),&Z_Registration_Info_UScriptStruct_FVFXPerSpawnInfo, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXPerSpawnInfo), 3076027827U) },
+		{ FVFXCurveKey::StaticStruct, Z_Construct_UScriptStruct_FVFXCurveKey_Statics::NewStructOps, TEXT("VFXCurveKey"),&Z_Registration_Info_UScriptStruct_FVFXCurveKey, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXCurveKey), 2538690331U) },
+		{ FVFXColorKey::StaticStruct, Z_Construct_UScriptStruct_FVFXColorKey_Statics::NewStructOps, TEXT("VFXColorKey"),&Z_Registration_Info_UScriptStruct_FVFXColorKey, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXColorKey), 1576140641U) },
+		{ FVFXCurveRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics::NewStructOps, TEXT("VFXCurveRecipe"),&Z_Registration_Info_UScriptStruct_FVFXCurveRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXCurveRecipe), 241530474U) },
+		{ FVFXForceRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXForceRecipe_Statics::NewStructOps, TEXT("VFXForceRecipe"),&Z_Registration_Info_UScriptStruct_FVFXForceRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXForceRecipe), 1428190472U) },
+		{ FVFXRenderRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics::NewStructOps, TEXT("VFXRenderRecipe"),&Z_Registration_Info_UScriptStruct_FVFXRenderRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXRenderRecipe), 114851593U) },
+		{ FVFXLayerRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics::NewStructOps, TEXT("VFXLayerRecipe"),&Z_Registration_Info_UScriptStruct_FVFXLayerRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXLayerRecipe), 1464274648U) },
+		{ FVFXEventRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXEventRecipe_Statics::NewStructOps, TEXT("VFXEventRecipe"),&Z_Registration_Info_UScriptStruct_FVFXEventRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXEventRecipe), 4187006034U) },
+		{ FVFXEmitterSpec::StaticStruct, Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics::NewStructOps, TEXT("VFXEmitterSpec"),&Z_Registration_Info_UScriptStruct_FVFXEmitterSpec, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXEmitterSpec), 3234902414U) },
+		{ FVFXEffectSpec::StaticStruct, Z_Construct_UScriptStruct_FVFXEffectSpec_Statics::NewStructOps, TEXT("VFXEffectSpec"),&Z_Registration_Info_UScriptStruct_FVFXEffectSpec, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXEffectSpec), 1773197136U) },
+		{ FVFXRepairReport::StaticStruct, Z_Construct_UScriptStruct_FVFXRepairReport_Statics::NewStructOps, TEXT("VFXRepairReport"),&Z_Registration_Info_UScriptStruct_FVFXRepairReport, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXRepairReport), 2943550343U) },
+		{ FVFXRecipe::StaticStruct, Z_Construct_UScriptStruct_FVFXRecipe_Statics::NewStructOps, TEXT("VFXRecipe"),&Z_Registration_Info_UScriptStruct_FVFXRecipe, CONSTRUCT_RELOAD_VERSION_INFO(FStructReloadVersionInfo, sizeof(FVFXRecipe), 2212918003U) },
 	};
-};
-static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_3534703277(TEXT("/Script/VFXAgentCore"),
+}; // Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h__Script_VFXAgentCore_Statics 
+static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h__Script_VFXAgentCore_924880361{
+	TEXT("/Script/VFXAgentCore"),
 	nullptr, 0,
-	Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_Statics::ScriptStructInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_Statics::ScriptStructInfo),
-	Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_Statics::EnumInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_Statics::EnumInfo));
-// End Registration
+	Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h__Script_VFXAgentCore_Statics::ScriptStructInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h__Script_VFXAgentCore_Statics::ScriptStructInfo),
+	Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h__Script_VFXAgentCore_Statics::EnumInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h__Script_VFXAgentCore_Statics::EnumInfo),
+};
+// ********** End Registration *********************************************************************
+
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

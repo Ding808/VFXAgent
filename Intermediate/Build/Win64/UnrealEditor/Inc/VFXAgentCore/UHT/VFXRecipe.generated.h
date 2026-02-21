@@ -5,152 +5,211 @@
 ===========================================================================*/
 
 // IWYU pragma: private, include "VFXRecipe.h"
-#include "UObject/ObjectMacros.h"
-#include "UObject/ScriptMacros.h"
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 #ifdef VFXAGENTCORE_VFXRecipe_generated_h
 #error "VFXRecipe.generated.h already included, missing '#pragma once' in VFXRecipe.h"
 #endif
 #define VFXAGENTCORE_VFXRecipe_generated_h
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_44_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics; \
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+// ********** Begin ScriptStruct FVFXPatternAvoidance **********************************************
+struct Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_44_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXPatternAvoidance_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXPatternAvoidance>();
+struct FVFXPatternAvoidance;
+// ********** End ScriptStruct FVFXPatternAvoidance ************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_66_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics; \
+// ********** Begin ScriptStruct FVFXMotionBehavior ************************************************
+struct Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_66_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXMotionBehavior_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXMotionBehavior>();
+struct FVFXMotionBehavior;
+// ********** End ScriptStruct FVFXMotionBehavior **************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_94_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics; \
+// ********** Begin ScriptStruct FVFXVisualHierarchy ***********************************************
+struct Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_94_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXVisualHierarchy_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXVisualHierarchy>();
+struct FVFXVisualHierarchy;
+// ********** End ScriptStruct FVFXVisualHierarchy *************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_113_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXIntent_Statics; \
+// ********** Begin ScriptStruct FVFXIntent ********************************************************
+struct Z_Construct_UScriptStruct_FVFXIntent_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_113_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXIntent_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXIntent>();
+struct FVFXIntent;
+// ********** End ScriptStruct FVFXIntent **********************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_151_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXEmitterRecipe *************************************************
+struct Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_151_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXEmitterRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXEmitterRecipe>();
+struct FVFXEmitterRecipe;
+// ********** End ScriptStruct FVFXEmitterRecipe ***************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_258_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXTextureRecipe *************************************************
+struct Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_258_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXTextureRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXTextureRecipe>();
+struct FVFXTextureRecipe;
+// ********** End ScriptStruct FVFXTextureRecipe ***************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_288_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXMaterialRecipe ************************************************
+struct Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_288_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXMaterialRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXMaterialRecipe>();
+struct FVFXMaterialRecipe;
+// ********** End ScriptStruct FVFXMaterialRecipe **************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_355_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics; \
+// ********** Begin ScriptStruct FVFXPerSpawnInfo **************************************************
+struct Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_355_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXPerSpawnInfo_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXPerSpawnInfo>();
+struct FVFXPerSpawnInfo;
+// ********** End ScriptStruct FVFXPerSpawnInfo ****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_382_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXCurveKey_Statics; \
+// ********** Begin ScriptStruct FVFXCurveKey ******************************************************
+struct Z_Construct_UScriptStruct_FVFXCurveKey_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_382_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXCurveKey_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXCurveKey>();
+struct FVFXCurveKey;
+// ********** End ScriptStruct FVFXCurveKey ********************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_394_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXColorKey_Statics; \
+// ********** Begin ScriptStruct FVFXColorKey ******************************************************
+struct Z_Construct_UScriptStruct_FVFXColorKey_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_394_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXColorKey_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXColorKey>();
+struct FVFXColorKey;
+// ********** End ScriptStruct FVFXColorKey ********************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_406_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXCurveRecipe ***************************************************
+struct Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_406_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXCurveRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXCurveRecipe>();
+struct FVFXCurveRecipe;
+// ********** End ScriptStruct FVFXCurveRecipe *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_421_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXForceRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXForceRecipe ***************************************************
+struct Z_Construct_UScriptStruct_FVFXForceRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_421_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXForceRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXForceRecipe>();
+struct FVFXForceRecipe;
+// ********** End ScriptStruct FVFXForceRecipe *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_448_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXRenderRecipe **************************************************
+struct Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_448_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXRenderRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXRenderRecipe>();
+struct FVFXRenderRecipe;
+// ********** End ScriptStruct FVFXRenderRecipe ****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_472_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXLayerRecipe ***************************************************
+struct Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_472_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXLayerRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXLayerRecipe>();
+struct FVFXLayerRecipe;
+// ********** End ScriptStruct FVFXLayerRecipe *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_538_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXEventRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXEventRecipe ***************************************************
+struct Z_Construct_UScriptStruct_FVFXEventRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_538_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXEventRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXEventRecipe>();
+struct FVFXEventRecipe;
+// ********** End ScriptStruct FVFXEventRecipe *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_565_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics; \
+// ********** Begin ScriptStruct FVFXEmitterSpec ***************************************************
+struct Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_565_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXEmitterSpec_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXEmitterSpec>();
+struct FVFXEmitterSpec;
+// ********** End ScriptStruct FVFXEmitterSpec *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_707_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXEffectSpec_Statics; \
+// ********** Begin ScriptStruct FVFXEffectSpec ****************************************************
+struct Z_Construct_UScriptStruct_FVFXEffectSpec_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_707_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXEffectSpec_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXEffectSpec>();
+struct FVFXEffectSpec;
+// ********** End ScriptStruct FVFXEffectSpec ******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_732_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXRepairReport_Statics; \
+// ********** Begin ScriptStruct FVFXRepairReport **************************************************
+struct Z_Construct_UScriptStruct_FVFXRepairReport_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_732_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXRepairReport_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXRepairReport>();
+struct FVFXRepairReport;
+// ********** End ScriptStruct FVFXRepairReport ****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_750_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXRecipe_Statics; \
+// ********** Begin ScriptStruct FVFXRecipe ********************************************************
+struct Z_Construct_UScriptStruct_FVFXRecipe_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h_750_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXRecipe_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXRecipe>();
+struct FVFXRecipe;
+// ********** End ScriptStruct FVFXRecipe **********************************************************
 
 #undef CURRENT_FILE_ID
-#define CURRENT_FILE_ID FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h
+#define CURRENT_FILE_ID FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXRecipe_h
 
-
+// ********** Begin Enum EVFXArchetype *************************************************************
 #define FOREACH_ENUM_EVFXARCHETYPE(op) \
 	op(EVFXArchetype::Explosion) \
 	op(EVFXArchetype::Tornado) \
@@ -167,8 +226,10 @@ template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXRecipe>();
 
 enum class EVFXArchetype : uint8;
 template<> struct TIsUEnumClass<EVFXArchetype> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXArchetype>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXArchetype>();
+// ********** End Enum EVFXArchetype ***************************************************************
 
+// ********** Begin Enum EVFXMotionModel ***********************************************************
 #define FOREACH_ENUM_EVFXMOTIONMODEL(op) \
 	op(EVFXMotionModel::Radial) \
 	op(EVFXMotionModel::RadialInward) \
@@ -181,8 +242,10 @@ template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXArchetype>();
 
 enum class EVFXMotionModel : uint8;
 template<> struct TIsUEnumClass<EVFXMotionModel> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXMotionModel>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXMotionModel>();
+// ********** End Enum EVFXMotionModel *************************************************************
 
+// ********** Begin Enum EVFXRendererType **********************************************************
 #define FOREACH_ENUM_EVFXRENDERERTYPE(op) \
 	op(EVFXRendererType::Sprite) \
 	op(EVFXRendererType::Ribbon) \
@@ -191,8 +254,10 @@ template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXMotionModel>();
 
 enum class EVFXRendererType : uint8;
 template<> struct TIsUEnumClass<EVFXRendererType> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXRendererType>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXRendererType>();
+// ********** End Enum EVFXRendererType ************************************************************
 
+// ********** Begin Enum EVFXForceType *************************************************************
 #define FOREACH_ENUM_EVFXFORCETYPE(op) \
 	op(EVFXForceType::CurlNoise) \
 	op(EVFXForceType::Noise) \
@@ -204,8 +269,10 @@ template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXRendererType>();
 
 enum class EVFXForceType : uint8;
 template<> struct TIsUEnumClass<EVFXForceType> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXForceType>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXForceType>();
+// ********** End Enum EVFXForceType ***************************************************************
 
+// ********** Begin Enum EVFXEventType *************************************************************
 #define FOREACH_ENUM_EVFXEVENTTYPE(op) \
 	op(EVFXEventType::OnEmitterStart) \
 	op(EVFXEventType::OnEmitterBurst) \
@@ -214,6 +281,7 @@ template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXForceType>();
 
 enum class EVFXEventType : uint8;
 template<> struct TIsUEnumClass<EVFXEventType> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXEventType>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXEventType>();
+// ********** End Enum EVFXEventType ***************************************************************
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

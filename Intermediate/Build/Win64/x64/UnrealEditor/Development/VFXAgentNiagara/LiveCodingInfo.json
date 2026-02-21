@@ -15,6 +15,7 @@
 			"LocalModelServices.cpp.obj",
 			"MaterialCustomBuilder.cpp.obj",
 			"MaterialGenerator.cpp.obj",
+			"MeshyModelServices.cpp.obj",
 			"NiagaraSpecExecutor.cpp.obj",
 			"NiagaraSystemGenerator.cpp.obj",
 			"NiagaraSystemGenerator_Old.cpp.obj",

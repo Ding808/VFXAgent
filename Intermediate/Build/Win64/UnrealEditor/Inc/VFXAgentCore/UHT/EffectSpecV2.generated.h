@@ -5,110 +5,151 @@
 ===========================================================================*/
 
 // IWYU pragma: private, include "EffectSpecV2.h"
-#include "UObject/ObjectMacros.h"
-#include "UObject/ScriptMacros.h"
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 #ifdef VFXAGENTCORE_EffectSpecV2_generated_h
 #error "EffectSpecV2.generated.h already included, missing '#pragma once' in EffectSpecV2.h"
 #endif
 #define VFXAGENTCORE_EffectSpecV2_generated_h
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_33_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics; \
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+// ********** Begin ScriptStruct FTimingEnvelopeV2 *************************************************
+struct Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_33_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FTimingEnvelopeV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FTimingEnvelopeV2>();
+struct FTimingEnvelopeV2;
+// ********** End ScriptStruct FTimingEnvelopeV2 ***************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_66_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMotionDescV2_Statics; \
+// ********** Begin ScriptStruct FMotionDescV2 *****************************************************
+struct Z_Construct_UScriptStruct_FMotionDescV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_66_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMotionDescV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMotionDescV2>();
+struct FMotionDescV2;
+// ********** End ScriptStruct FMotionDescV2 *******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_84_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics; \
+// ********** Begin ScriptStruct FMaterialFeatureSetV2 *********************************************
+struct Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_84_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMaterialFeatureSetV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMaterialFeatureSetV2>();
+struct FMaterialFeatureSetV2;
+// ********** End ScriptStruct FMaterialFeatureSetV2 ***********************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_105_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMaterialSpecV2_Statics; \
+// ********** Begin ScriptStruct FMaterialSpecV2 ***************************************************
+struct Z_Construct_UScriptStruct_FMaterialSpecV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_105_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMaterialSpecV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMaterialSpecV2>();
+struct FMaterialSpecV2;
+// ********** End ScriptStruct FMaterialSpecV2 *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_146_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FLayerSpawnV2_Statics; \
+// ********** Begin ScriptStruct FLayerSpawnV2 *****************************************************
+struct Z_Construct_UScriptStruct_FLayerSpawnV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_146_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FLayerSpawnV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FLayerSpawnV2>();
+struct FLayerSpawnV2;
+// ********** End ScriptStruct FLayerSpawnV2 *******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_156_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FLayerInitV2_Statics; \
+// ********** Begin ScriptStruct FLayerInitV2 ******************************************************
+struct Z_Construct_UScriptStruct_FLayerInitV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_156_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FLayerInitV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FLayerInitV2>();
+struct FLayerInitV2;
+// ********** End ScriptStruct FLayerInitV2 ********************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_167_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FLayerUpdateV2_Statics; \
+// ********** Begin ScriptStruct FLayerUpdateV2 ****************************************************
+struct Z_Construct_UScriptStruct_FLayerUpdateV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_167_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FLayerUpdateV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FLayerUpdateV2>();
+struct FLayerUpdateV2;
+// ********** End ScriptStruct FLayerUpdateV2 ******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_179_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FLayerSpecV2_Statics; \
+// ********** Begin ScriptStruct FLayerSpecV2 ******************************************************
+struct Z_Construct_UScriptStruct_FLayerSpecV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_179_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FLayerSpecV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FLayerSpecV2>();
+struct FLayerSpecV2;
+// ********** End ScriptStruct FLayerSpecV2 ********************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_224_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FEventBindingV2_Statics; \
+// ********** Begin ScriptStruct FEventBindingV2 ***************************************************
+struct Z_Construct_UScriptStruct_FEventBindingV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_224_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FEventBindingV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FEventBindingV2>();
+struct FEventBindingV2;
+// ********** End ScriptStruct FEventBindingV2 *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_239_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics; \
+// ********** Begin ScriptStruct FNiagaraFeatureRequirementsV2 *************************************
+struct Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_239_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FNiagaraFeatureRequirementsV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FNiagaraFeatureRequirementsV2>();
+struct FNiagaraFeatureRequirementsV2;
+// ********** End ScriptStruct FNiagaraFeatureRequirementsV2 ***************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_257_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics; \
+// ********** Begin ScriptStruct FCameraReadabilityV2 **********************************************
+struct Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_257_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FCameraReadabilityV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FCameraReadabilityV2>();
+struct FCameraReadabilityV2;
+// ********** End ScriptStruct FCameraReadabilityV2 ************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_271_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FEffectStyleV2_Statics; \
+// ********** Begin ScriptStruct FEffectStyleV2 ****************************************************
+struct Z_Construct_UScriptStruct_FEffectStyleV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_271_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FEffectStyleV2_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FEffectStyleV2>();
+struct FEffectStyleV2;
+// ********** End ScriptStruct FEffectStyleV2 ******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_289_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FEffectSpecV2_Statics; \
+// ********** Begin ScriptStruct FEffectSpecV2 *****************************************************
+struct Z_Construct_UScriptStruct_FEffectSpecV2_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h_289_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FEffectSpecV2_Statics; \
 	static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FEffectSpecV2>();
+struct FEffectSpecV2;
+// ********** End ScriptStruct FEffectSpecV2 *******************************************************
 
 #undef CURRENT_FILE_ID
-#define CURRENT_FILE_ID FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h
+#define CURRENT_FILE_ID FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV2_h
 
-
+// ********** Begin Enum EVFXBehaviorArchetype *****************************************************
 #define FOREACH_ENUM_EVFXBEHAVIORARCHETYPE(op) \
 	op(EVFXBehaviorArchetype::Explosion) \
 	op(EVFXBehaviorArchetype::Magic) \
@@ -121,8 +162,10 @@ template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FEffectSpecV2>();
 
 enum class EVFXBehaviorArchetype : uint8;
 template<> struct TIsUEnumClass<EVFXBehaviorArchetype> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXBehaviorArchetype>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXBehaviorArchetype>();
+// ********** End Enum EVFXBehaviorArchetype *******************************************************
 
+// ********** Begin Enum EMotionVerbV2 *************************************************************
 #define FOREACH_ENUM_EMOTIONVERBV2(op) \
 	op(EMotionVerbV2::Explode) \
 	op(EMotionVerbV2::Implode) \
@@ -139,8 +182,10 @@ template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXBehaviorArchetype>();
 
 enum class EMotionVerbV2 : uint8;
 template<> struct TIsUEnumClass<EMotionVerbV2> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EMotionVerbV2>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EMotionVerbV2>();
+// ********** End Enum EMotionVerbV2 ***************************************************************
 
+// ********** Begin Enum ELayerRoleV2 **************************************************************
 #define FOREACH_ENUM_ELAYERROLEV2(op) \
 	op(ELayerRoleV2::CoreBlast) \
 	op(ELayerRoleV2::SecondaryFill) \
@@ -154,8 +199,10 @@ template<> VFXAGENTCORE_API UEnum* StaticEnum<EMotionVerbV2>();
 
 enum class ELayerRoleV2 : uint8;
 template<> struct TIsUEnumClass<ELayerRoleV2> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<ELayerRoleV2>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<ELayerRoleV2>();
+// ********** End Enum ELayerRoleV2 ****************************************************************
 
+// ********** Begin Enum EEventTypeV2 **************************************************************
 #define FOREACH_ENUM_EEVENTTYPEV2(op) \
 	op(EEventTypeV2::OnDeath) \
 	op(EEventTypeV2::OnCollision) \
@@ -165,6 +212,7 @@ template<> VFXAGENTCORE_API UEnum* StaticEnum<ELayerRoleV2>();
 
 enum class EEventTypeV2 : uint8;
 template<> struct TIsUEnumClass<EEventTypeV2> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EEventTypeV2>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EEventTypeV2>();
+// ********** End Enum EEventTypeV2 ****************************************************************
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

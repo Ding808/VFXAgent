@@ -70,6 +70,13 @@ public:
 	UPROPERTY(EditAnywhere, config, Category = "Providers", meta=(DisplayName="ImageTo3D API Key", PasswordField="true"))
 	FString ImageTo3DApiKey = "";
 
+	// Meshy API Settings
+	UPROPERTY(EditAnywhere, config, Category = "Providers|Meshy", meta=(DisplayName="Meshy API Key", PasswordField="true"))
+	FString MeshyApiKey = "";
+
+	UPROPERTY(EditAnywhere, config, Category = "Providers|Meshy", meta=(DisplayName="Meshy Endpoint"))
+	FString MeshyEndpoint = "https://api.meshy.ai/v1";
+
 	// Niagara module script paths for collision event handling
 	UPROPERTY(EditAnywhere, config, Category = "Niagara|Events", meta=(DisplayName="Collision Module Script Path"))
 	FString CollisionModuleScriptPath = "/Niagara/Modules/Collision/Collision.Collision";

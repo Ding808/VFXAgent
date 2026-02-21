@@ -5,103 +5,141 @@
 ===========================================================================*/
 
 // IWYU pragma: private, include "VFXDirectorTypes.h"
-#include "UObject/ObjectMacros.h"
-#include "UObject/ScriptMacros.h"
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 #ifdef VFXAGENTCORE_VFXDirectorTypes_generated_h
 #error "VFXDirectorTypes.generated.h already included, missing '#pragma once' in VFXDirectorTypes.h"
 #endif
 #define VFXAGENTCORE_VFXDirectorTypes_generated_h
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_9_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXColorTheme_Statics; \
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+// ********** Begin ScriptStruct FVFXColorTheme ****************************************************
+struct Z_Construct_UScriptStruct_FVFXColorTheme_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_9_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXColorTheme_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXColorTheme>();
+struct FVFXColorTheme;
+// ********** End ScriptStruct FVFXColorTheme ******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_24_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXStyleSpec_Statics; \
+// ********** Begin ScriptStruct FVFXStyleSpec *****************************************************
+struct Z_Construct_UScriptStruct_FVFXStyleSpec_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_24_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXStyleSpec_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXStyleSpec>();
+struct FVFXStyleSpec;
+// ********** End ScriptStruct FVFXStyleSpec *******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_42_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXPlanEmitter_Statics; \
+// ********** Begin ScriptStruct FVFXPlanEmitter ***************************************************
+struct Z_Construct_UScriptStruct_FVFXPlanEmitter_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_42_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXPlanEmitter_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXPlanEmitter>();
+struct FVFXPlanEmitter;
+// ********** End ScriptStruct FVFXPlanEmitter *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_57_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXPlanEvent_Statics; \
+// ********** Begin ScriptStruct FVFXPlanEvent *****************************************************
+struct Z_Construct_UScriptStruct_FVFXPlanEvent_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_57_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXPlanEvent_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXPlanEvent>();
+struct FVFXPlanEvent;
+// ********** End ScriptStruct FVFXPlanEvent *******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_75_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXPlanLayer_Statics; \
+// ********** Begin ScriptStruct FVFXPlanLayer *****************************************************
+struct Z_Construct_UScriptStruct_FVFXPlanLayer_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_75_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXPlanLayer_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXPlanLayer>();
+struct FVFXPlanLayer;
+// ********** End ScriptStruct FVFXPlanLayer *******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_93_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXPlan_Statics; \
+// ********** Begin ScriptStruct FVFXPlan **********************************************************
+struct Z_Construct_UScriptStruct_FVFXPlan_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_93_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXPlan_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXPlan>();
+struct FVFXPlan;
+// ********** End ScriptStruct FVFXPlan ************************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_138_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXCurvePoint_Statics; \
+// ********** Begin ScriptStruct FVFXCurvePoint ****************************************************
+struct Z_Construct_UScriptStruct_FVFXCurvePoint_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_138_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXCurvePoint_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXCurvePoint>();
+struct FVFXCurvePoint;
+// ********** End ScriptStruct FVFXCurvePoint ******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_156_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXActionValue_Statics; \
+// ********** Begin ScriptStruct FVFXActionValue ***************************************************
+struct Z_Construct_UScriptStruct_FVFXActionValue_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_156_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXActionValue_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXActionValue>();
+struct FVFXActionValue;
+// ********** End ScriptStruct FVFXActionValue *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_192_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXAction_Statics; \
+// ********** Begin ScriptStruct FVFXAction ********************************************************
+struct Z_Construct_UScriptStruct_FVFXAction_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_192_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXAction_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXAction>();
+struct FVFXAction;
+// ********** End ScriptStruct FVFXAction **********************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_258_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXValidationTargets_Statics; \
+// ********** Begin ScriptStruct FVFXValidationTargets *********************************************
+struct Z_Construct_UScriptStruct_FVFXValidationTargets_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_258_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXValidationTargets_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXValidationTargets>();
+struct FVFXValidationTargets;
+// ********** End ScriptStruct FVFXValidationTargets ***********************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_273_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXDirectorPlan_Statics; \
+// ********** Begin ScriptStruct FVFXDirectorPlan **************************************************
+struct Z_Construct_UScriptStruct_FVFXDirectorPlan_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_273_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXDirectorPlan_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXDirectorPlan>();
+struct FVFXDirectorPlan;
+// ********** End ScriptStruct FVFXDirectorPlan ****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_291_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FVFXExecutionReport_Statics; \
+// ********** Begin ScriptStruct FVFXExecutionReport ***********************************************
+struct Z_Construct_UScriptStruct_FVFXExecutionReport_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h_291_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FVFXExecutionReport_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXExecutionReport>();
+struct FVFXExecutionReport;
+// ********** End ScriptStruct FVFXExecutionReport *************************************************
 
 #undef CURRENT_FILE_ID
-#define CURRENT_FILE_ID FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h
+#define CURRENT_FILE_ID FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_VFXDirectorTypes_h
 
-
+// ********** Begin Enum EVFXActionType ************************************************************
 #define FOREACH_ENUM_EVFXACTIONTYPE(op) \
 	op(EVFXActionType::CreateSystem) \
 	op(EVFXActionType::AddEmitterFromTemplate) \
@@ -117,8 +155,10 @@ template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FVFXExecutionRepo
 
 enum class EVFXActionType : uint8;
 template<> struct TIsUEnumClass<EVFXActionType> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXActionType>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXActionType>();
+// ********** End Enum EVFXActionType **************************************************************
 
+// ********** Begin Enum EVFXValueType *************************************************************
 #define FOREACH_ENUM_EVFXVALUETYPE(op) \
 	op(EVFXValueType::None) \
 	op(EVFXValueType::Float) \
@@ -132,6 +172,7 @@ template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXActionType>();
 
 enum class EVFXValueType : uint8;
 template<> struct TIsUEnumClass<EVFXValueType> { enum { Value = true }; };
-template<> VFXAGENTCORE_API UEnum* StaticEnum<EVFXValueType>();
+template<> VFXAGENTCORE_NON_ATTRIBUTED_API UEnum* StaticEnum<EVFXValueType>();
+// ********** End Enum EVFXValueType ***************************************************************
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

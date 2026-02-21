@@ -5,25 +5,48 @@
 ===========================================================================*/
 
 #include "UObject/GeneratedCppIncludes.h"
-#include "VFXAgentEditor/Public/MockLLMProvider.h"
+#include "MockLLMProvider.h"
+
 PRAGMA_DISABLE_DEPRECATION_WARNINGS
+static_assert(!UE_WITH_CONSTINIT_UOBJECT, "This generated code can only be compiled with !UE_WITH_CONSTINIT_OBJECT");
 void EmptyLinkFunctionForGeneratedCodeMockLLMProvider() {}
 
-// Begin Cross Module References
+// ********** Begin Cross Module References ********************************************************
 COREUOBJECT_API UClass* Z_Construct_UClass_UObject();
 UPackage* Z_Construct_UPackage__Script_VFXAgentEditor();
 VFXAGENTEDITOR_API UClass* Z_Construct_UClass_UMockLLMProvider();
 VFXAGENTEDITOR_API UClass* Z_Construct_UClass_UMockLLMProvider_NoRegister();
-// End Cross Module References
+// ********** End Cross Module References **********************************************************
 
-// Begin Class UMockLLMProvider
-void UMockLLMProvider::StaticRegisterNativesUMockLLMProvider()
+// ********** Begin Class UMockLLMProvider *********************************************************
+FClassRegistrationInfo Z_Registration_Info_UClass_UMockLLMProvider;
+UClass* UMockLLMProvider::GetPrivateStaticClass()
 {
+	using TClass = UMockLLMProvider;
+	if (!Z_Registration_Info_UClass_UMockLLMProvider.InnerSingleton)
+	{
+		GetPrivateStaticClassBody(
+			TClass::StaticPackage(),
+			TEXT("MockLLMProvider"),
+			Z_Registration_Info_UClass_UMockLLMProvider.InnerSingleton,
+			StaticRegisterNativesUMockLLMProvider,
+			sizeof(TClass),
+			alignof(TClass),
+			TClass::StaticClassFlags,
+			TClass::StaticClassCastFlags(),
+			TClass::StaticConfigName(),
+			(UClass::ClassConstructorType)InternalConstructor<TClass>,
+			(UClass::ClassVTableHelperCtorCallerType)InternalVTableHelperCtorCaller<TClass>,
+			UOBJECT_CPPCLASS_STATICFUNCTIONS_FORCLASS(TClass),
+			&TClass::Super::StaticClass,
+			&TClass::WithinClass::StaticClass
+		);
+	}
+	return Z_Registration_Info_UClass_UMockLLMProvider.InnerSingleton;
 }
-IMPLEMENT_CLASS_NO_AUTO_REGISTRATION(UMockLLMProvider);
 UClass* Z_Construct_UClass_UMockLLMProvider_NoRegister()
 {
-	return UMockLLMProvider::StaticClass();
+	return UMockLLMProvider::GetPrivateStaticClass();
 }
 struct Z_Construct_UClass_UMockLLMProvider_Statics
 {
@@ -33,12 +56,15 @@ struct Z_Construct_UClass_UMockLLMProvider_Statics
 		{ "ModuleRelativePath", "Public/MockLLMProvider.h" },
 	};
 #endif // WITH_METADATA
+
+// ********** Begin Class UMockLLMProvider constinit property declarations *************************
+// ********** End Class UMockLLMProvider constinit property declarations ***************************
 	static UObject* (*const DependentSingletons[])();
 	static constexpr FCppClassTypeInfoStatic StaticCppClassTypeInfo = {
 		TCppClassTypeTraits<UMockLLMProvider>::IsAbstract,
 	};
 	static const UECodeGen_Private::FClassParams ClassParams;
-};
+}; // struct Z_Construct_UClass_UMockLLMProvider_Statics
 UObject* (*const Z_Construct_UClass_UMockLLMProvider_Statics::DependentSingletons[])() = {
 	(UObject* (*)())Z_Construct_UClass_UObject,
 	(UObject* (*)())Z_Construct_UPackage__Script_VFXAgentEditor,
@@ -59,6 +85,9 @@ const UECodeGen_Private::FClassParams Z_Construct_UClass_UMockLLMProvider_Static
 	0x001000A0u,
 	METADATA_PARAMS(UE_ARRAY_COUNT(Z_Construct_UClass_UMockLLMProvider_Statics::Class_MetaDataParams), Z_Construct_UClass_UMockLLMProvider_Statics::Class_MetaDataParams)
 };
+void UMockLLMProvider::StaticRegisterNativesUMockLLMProvider()
+{
+}
 UClass* Z_Construct_UClass_UMockLLMProvider()
 {
 	if (!Z_Registration_Info_UClass_UMockLLMProvider.OuterSingleton)
@@ -67,25 +96,24 @@ UClass* Z_Construct_UClass_UMockLLMProvider()
 	}
 	return Z_Registration_Info_UClass_UMockLLMProvider.OuterSingleton;
 }
-template<> VFXAGENTEDITOR_API UClass* StaticClass<UMockLLMProvider>()
-{
-	return UMockLLMProvider::StaticClass();
-}
 UMockLLMProvider::UMockLLMProvider(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer) {}
-DEFINE_VTABLE_PTR_HELPER_CTOR(UMockLLMProvider);
+DEFINE_VTABLE_PTR_HELPER_CTOR_NS(, UMockLLMProvider);
 UMockLLMProvider::~UMockLLMProvider() {}
-// End Class UMockLLMProvider
+// ********** End Class UMockLLMProvider ***********************************************************
 
-// Begin Registration
-struct Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h_Statics
+// ********** Begin Registration *******************************************************************
+struct Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h__Script_VFXAgentEditor_Statics
 {
 	static constexpr FClassRegisterCompiledInInfo ClassInfo[] = {
-		{ Z_Construct_UClass_UMockLLMProvider, UMockLLMProvider::StaticClass, TEXT("UMockLLMProvider"), &Z_Registration_Info_UClass_UMockLLMProvider, CONSTRUCT_RELOAD_VERSION_INFO(FClassReloadVersionInfo, sizeof(UMockLLMProvider), 417268716U) },
+		{ Z_Construct_UClass_UMockLLMProvider, UMockLLMProvider::StaticClass, TEXT("UMockLLMProvider"), &Z_Registration_Info_UClass_UMockLLMProvider, CONSTRUCT_RELOAD_VERSION_INFO(FClassReloadVersionInfo, sizeof(UMockLLMProvider), 881788419U) },
 	};
-};
-static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h_4024395999(TEXT("/Script/VFXAgentEditor"),
-	Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h_Statics::ClassInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h_Statics::ClassInfo),
+}; // Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h__Script_VFXAgentEditor_Statics 
+static FRegisterCompiledInInfo Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h__Script_VFXAgentEditor_3691876363{
+	TEXT("/Script/VFXAgentEditor"),
+	Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h__Script_VFXAgentEditor_Statics::ClassInfo, UE_ARRAY_COUNT(Z_CompiledInDeferFile_FID_e__VFXAgent_VFXAgent_Source_VFXAgentEditor_Public_MockLLMProvider_h__Script_VFXAgentEditor_Statics::ClassInfo),
 	nullptr, 0,
-	nullptr, 0);
-// End Registration
+	nullptr, 0,
+};
+// ********** End Registration *********************************************************************
+
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

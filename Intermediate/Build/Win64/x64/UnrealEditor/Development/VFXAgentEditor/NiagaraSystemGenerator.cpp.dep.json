@@ -1,11 +1,11 @@
 {
     "Version": "1.2",
     "Data": {
-        "Source": "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagenteditor\\private\\niagarasystemgenerator.cpp",
+        "Source": "e:\\vfxagent\\vfxagent\\source\\vfxagenteditor\\private\\niagarasystemgenerator.cpp",
         "ProvidedModule": "",
-        "PCH": "f:\\tst\\testing\\intermediate\\build\\win64\\x64\\testingeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "PCH": "d:\\ue_5.7\\engine\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\unrealed\\sharedpch.unrealed.cpp20.h.pch",
         "Includes": [
-            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagenteditor\\definitions.vfxagenteditor.h"
+            "e:\\vfxagent\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagenteditor\\definitions.vfxagenteditor.h"
         ],
         "ImportedModules": [],
         "ImportedHeaderUnits": []

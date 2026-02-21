@@ -5,129 +5,178 @@
 ===========================================================================*/
 
 // IWYU pragma: private, include "EffectSpecV1.h"
-#include "UObject/ObjectMacros.h"
-#include "UObject/ScriptMacros.h"
 
-PRAGMA_DISABLE_DEPRECATION_WARNINGS
 #ifdef VFXAGENTCORE_EffectSpecV1_generated_h
 #error "EffectSpecV1.generated.h already included, missing '#pragma once' in EffectSpecV1.h"
 #endif
 #define VFXAGENTCORE_EffectSpecV1_generated_h
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_9_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMaterialHLSLInput_Statics; \
+#include "UObject/ObjectMacros.h"
+#include "UObject/ScriptMacros.h"
+
+PRAGMA_DISABLE_DEPRECATION_WARNINGS
+
+// ********** Begin ScriptStruct FMaterialHLSLInput ************************************************
+struct Z_Construct_UScriptStruct_FMaterialHLSLInput_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_9_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMaterialHLSLInput_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMaterialHLSLInput>();
+struct FMaterialHLSLInput;
+// ********** End ScriptStruct FMaterialHLSLInput **************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_21_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMaterialHLSLTextureInput_Statics; \
+// ********** Begin ScriptStruct FMaterialHLSLTextureInput *****************************************
+struct Z_Construct_UScriptStruct_FMaterialHLSLTextureInput_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_21_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMaterialHLSLTextureInput_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMaterialHLSLTextureInput>();
+struct FMaterialHLSLTextureInput;
+// ********** End ScriptStruct FMaterialHLSLTextureInput *******************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_30_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMaterialHLSLOutputs_Statics; \
+// ********** Begin ScriptStruct FMaterialHLSLOutputs **********************************************
+struct Z_Construct_UScriptStruct_FMaterialHLSLOutputs_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_30_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMaterialHLSLOutputs_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMaterialHLSLOutputs>();
+struct FMaterialHLSLOutputs;
+// ********** End ScriptStruct FMaterialHLSLOutputs ************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_40_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMaterialHLSLCustom_Statics; \
+// ********** Begin ScriptStruct FMaterialHLSLCustom ***********************************************
+struct Z_Construct_UScriptStruct_FMaterialHLSLCustom_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_40_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMaterialHLSLCustom_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMaterialHLSLCustom>();
+struct FMaterialHLSLCustom;
+// ********** End ScriptStruct FMaterialHLSLCustom *************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_53_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMaterialSpecV1_Statics; \
+// ********** Begin ScriptStruct FMaterialSpecV1 ***************************************************
+struct Z_Construct_UScriptStruct_FMaterialSpecV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_53_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMaterialSpecV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMaterialSpecV1>();
+struct FMaterialSpecV1;
+// ********** End ScriptStruct FMaterialSpecV1 *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_67_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FLayerSpawnSpecV1_Statics; \
+// ********** Begin ScriptStruct FLayerSpawnSpecV1 *************************************************
+struct Z_Construct_UScriptStruct_FLayerSpawnSpecV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_67_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FLayerSpawnSpecV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FLayerSpawnSpecV1>();
+struct FLayerSpawnSpecV1;
+// ********** End ScriptStruct FLayerSpawnSpecV1 ***************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_77_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FLayerInitSpecV1_Statics; \
+// ********** Begin ScriptStruct FLayerInitSpecV1 **************************************************
+struct Z_Construct_UScriptStruct_FLayerInitSpecV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_77_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FLayerInitSpecV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FLayerInitSpecV1>();
+struct FLayerInitSpecV1;
+// ********** End ScriptStruct FLayerInitSpecV1 ****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_87_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FLayerUpdateSpecV1_Statics; \
+// ********** Begin ScriptStruct FLayerUpdateSpecV1 ************************************************
+struct Z_Construct_UScriptStruct_FLayerUpdateSpecV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_87_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FLayerUpdateSpecV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FLayerUpdateSpecV1>();
+struct FLayerUpdateSpecV1;
+// ********** End ScriptStruct FLayerUpdateSpecV1 **************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_97_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FTextureRequestV1_Statics; \
+// ********** Begin ScriptStruct FTextureRequestV1 *************************************************
+struct Z_Construct_UScriptStruct_FTextureRequestV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_97_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FTextureRequestV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FTextureRequestV1>();
+struct FTextureRequestV1;
+// ********** End ScriptStruct FTextureRequestV1 ***************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_107_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FModelRequestV1_Statics; \
+// ********** Begin ScriptStruct FModelRequestV1 ***************************************************
+struct Z_Construct_UScriptStruct_FModelRequestV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_107_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FModelRequestV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FModelRequestV1>();
+struct FModelRequestV1;
+// ********** End ScriptStruct FModelRequestV1 *****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_115_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FMotionSpecV1_Statics; \
+// ********** Begin ScriptStruct FMotionSpecV1 *****************************************************
+struct Z_Construct_UScriptStruct_FMotionSpecV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_115_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FMotionSpecV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FMotionSpecV1>();
+struct FMotionSpecV1;
+// ********** End ScriptStruct FMotionSpecV1 *******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_122_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FQualityBudgetV1_Statics; \
+// ********** Begin ScriptStruct FQualityBudgetV1 **************************************************
+struct Z_Construct_UScriptStruct_FQualityBudgetV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_122_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FQualityBudgetV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FQualityBudgetV1>();
+struct FQualityBudgetV1;
+// ********** End ScriptStruct FQualityBudgetV1 ****************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_130_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FLayerSpecV1_Statics; \
+// ********** Begin ScriptStruct FLayerSpecV1 ******************************************************
+struct Z_Construct_UScriptStruct_FLayerSpecV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_130_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FLayerSpecV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FLayerSpecV1>();
+struct FLayerSpecV1;
+// ********** End ScriptStruct FLayerSpecV1 ********************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_149_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FEffectStyleV1_Statics; \
+// ********** Begin ScriptStruct FEffectStyleV1 ****************************************************
+struct Z_Construct_UScriptStruct_FEffectStyleV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_149_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FEffectStyleV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FEffectStyleV1>();
+struct FEffectStyleV1;
+// ********** End ScriptStruct FEffectStyleV1 ******************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_160_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FExternalAssetsV1_Statics; \
+// ********** Begin ScriptStruct FExternalAssetsV1 *************************************************
+struct Z_Construct_UScriptStruct_FExternalAssetsV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_160_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FExternalAssetsV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FExternalAssetsV1>();
+struct FExternalAssetsV1;
+// ********** End ScriptStruct FExternalAssetsV1 ***************************************************
 
-#define FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_168_GENERATED_BODY \
-	friend struct Z_Construct_UScriptStruct_FEffectSpecV1_Statics; \
+// ********** Begin ScriptStruct FEffectSpecV1 *****************************************************
+struct Z_Construct_UScriptStruct_FEffectSpecV1_Statics;
+#define FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h_168_GENERATED_BODY \
+	friend struct ::Z_Construct_UScriptStruct_FEffectSpecV1_Statics; \
 	VFXAGENTCORE_API static class UScriptStruct* StaticStruct();
 
 
-template<> VFXAGENTCORE_API UScriptStruct* StaticStruct<struct FEffectSpecV1>();
+struct FEffectSpecV1;
+// ********** End ScriptStruct FEffectSpecV1 *******************************************************
 
 #undef CURRENT_FILE_ID
-#define CURRENT_FILE_ID FID_TST_Testing_Plugins_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h
-
+#define CURRENT_FILE_ID FID_e__VFXAgent_VFXAgent_Source_VFXAgentCore_Public_EffectSpecV1_h
 
 PRAGMA_ENABLE_DEPRECATION_WARNINGS

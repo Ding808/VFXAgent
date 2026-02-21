@@ -302,15 +302,15 @@ UMaterial* UMaterialGenerator::BuildProceduralParentMaterial(const FVFXMaterialR
 
 	UMaterialExpressionScalarParameter* EmissiveStrength = NewObject<UMaterialExpressionScalarParameter>(Material);
 	EmissiveStrength->ParameterName = TEXT("EmissiveStrength");
-	EmissiveStrength->DefaultValue = Recipe.EmissiveStrength;
+	EmissiveStrength->DefaultValue = FMath::Max(Recipe.EmissiveStrength, 50.0f); // Boost default emissive
 
 	UMaterialExpressionScalarParameter* SoftParticleStrength = NewObject<UMaterialExpressionScalarParameter>(Material);
 	SoftParticleStrength->ParameterName = TEXT("SoftParticleStrength");
-	SoftParticleStrength->DefaultValue = 0.15f;
+	SoftParticleStrength->DefaultValue = 0.8f; // Increase soft particle effect
 
 	UMaterialExpressionScalarParameter* SoftParticleDistance = NewObject<UMaterialExpressionScalarParameter>(Material);
 	SoftParticleDistance->ParameterName = TEXT("SoftParticleDistance");
-	SoftParticleDistance->DefaultValue = 10.0f;
+	SoftParticleDistance->DefaultValue = 50.0f; // Increase soft particle distance
 
 	UMaterialExpressionScalarParameter* FresnelIntensity = NewObject<UMaterialExpressionScalarParameter>(Material);
 	FresnelIntensity->ParameterName = TEXT("FresnelIntensity");
@@ -464,7 +464,7 @@ void UMaterialGenerator::ApplyColorParameters(
 
 	// Set emissive color
 	Material->SetVectorParameterValueEditorOnly(FName("EmissiveColor"), Recipe.EmissiveColor);
-	Material->SetScalarParameterValueEditorOnly(FName("EmissiveStrength"), Recipe.EmissiveStrength);
+	Material->SetScalarParameterValueEditorOnly(FName("EmissiveStrength"), FMath::Max(Recipe.EmissiveStrength, 50.0f)); // Boost default emissive
 
 	// Set opacity
 	Material->SetScalarParameterValueEditorOnly(FName("Opacity"), Recipe.Opacity);

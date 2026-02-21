@@ -1,14 +1,14 @@
 {
     "Version": "1.2",
     "Data": {
-        "Source": "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentniagara\\private\\vfxagentniagaramodule.cpp",
+        "Source": "e:\\vfxagent\\vfxagent\\source\\vfxagentniagara\\private\\vfxagentniagaramodule.cpp",
         "ProvidedModule": "",
-        "PCH": "f:\\tst\\testing\\intermediate\\build\\win64\\x64\\testingeditor\\development\\unrealed\\sharedpch.unrealed.project.valapi.cpp20.h.pch",
+        "PCH": "d:\\ue_5.7\\engine\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\unrealed\\sharedpch.unrealed.cpp20.h.pch",
         "Includes": [
-            "f:\\tst\\testing\\plugins\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentniagara\\definitions.vfxagentniagara.h",
-            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentniagara\\public\\vfxagentniagaramodule.h",
-            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentcore\\public\\vfxagentlog.h",
-            "f:\\tst\\testing\\plugins\\vfxagent\\source\\vfxagentniagara\\public\\vfxtemplateregistry.h"
+            "e:\\vfxagent\\vfxagent\\intermediate\\build\\win64\\x64\\unrealeditor\\development\\vfxagentniagara\\definitions.vfxagentniagara.h",
+            "e:\\vfxagent\\vfxagent\\source\\vfxagentniagara\\public\\vfxagentniagaramodule.h",
+            "e:\\vfxagent\\vfxagent\\source\\vfxagentcore\\public\\vfxagentlog.h",
+            "e:\\vfxagent\\vfxagent\\source\\vfxagentniagara\\public\\vfxtemplateregistry.h"
         ],
         "ImportedModules": [],
         "ImportedHeaderUnits": []

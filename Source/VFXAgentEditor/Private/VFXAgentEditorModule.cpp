@@ -4,10 +4,13 @@
 #include "ToolMenus.h"
 #include "LevelEditor.h"
 #include "Widgets/Docking/SDockTab.h"
+#include "Framework/Docking/TabManager.h"
 #include "Widgets/Layout/SBorder.h"
 #include "Widgets/SWindow.h"
 #include "Styling/AppStyle.h"
 #include "Modules/ModuleManager.h"
+#include "WorkspaceMenuStructure.h"
+#include "WorkspaceMenuStructureModule.h"
 
 #define LOCTEXT_NAMESPACE "FVFXAgentEditorModule"
 
@@ -16,6 +19,10 @@ const FName VFXAgentTabName(TEXT("VFXAgent"));
 void FVFXAgentEditorModule::StartupModule()
 {
 	UE_LOG(LogVFXAgent, Log, TEXT("VFXAgentEditor Module Started"));
+
+	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(VFXAgentTabName, FOnSpawnTab::CreateRaw(this, &FVFXAgentEditorModule::OnSpawnPluginTab))
+		.SetDisplayName(LOCTEXT("FVFXAgentTabTitle", "VFX Agent"))
+		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
 	// Register menus
 	if (FModuleManager::Get().IsModuleLoaded("ToolMenus"))
@@ -33,6 +40,8 @@ void FVFXAgentEditorModule::StartupModule()
 void FVFXAgentEditorModule::ShutdownModule()
 {
 	UE_LOG(LogVFXAgent, Log, TEXT("VFXAgentEditor Module Shutdown"));
+
+	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(VFXAgentTabName);
 
 	// Unregister menus
 	if (FModuleManager::Get().IsModuleLoaded("ToolMenus"))
@@ -62,7 +71,7 @@ void FVFXAgentEditorModule::RegisterMenus()
 			FText::FromString("VFX Agent"),
 			FText::FromString("Open the VFX Agent panel"),
 			FSlateIcon(),
-			FUIAction(FExecuteAction::CreateRaw(this, &FVFXAgentEditorModule::OpenVFXAgentPanel))
+			FUIAction(FExecuteAction::CreateRaw(this, &FVFXAgentEditorModule::PluginButtonClicked))
 		);
 	}
 }
@@ -75,29 +84,21 @@ void FVFXAgentEditorModule::UnregisterMenus()
 	}
 }
 
-void FVFXAgentEditorModule::OpenVFXAgentPanel()
+TSharedRef<SDockTab> FVFXAgentEditorModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	UE_LOG(LogVFXAgent, Log, TEXT("Opening VFXAgent Panel"));
-
-	// Create the VFX Agent chat window
-	TSharedRef<SWindow> Window = SNew(SWindow)
-		.Title(FText::FromString("VFX Agent"))
-		.ClientSize(FVector2D(520, 720))
-		.SizingRule(ESizingRule::UserSized)
-		.AutoCenter(EAutoCenter::PreferredWorkArea)
-		.IsInitiallyMaximized(false)
-		.HasCloseButton(true)
-		.FocusWhenFirstShown(true)
-		.ActivationPolicy(EWindowActivationPolicy::Always)
-		.SupportsMinimize(true)
-		.SupportsMaximize(true)
+	return SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab)
 		[
 			SNew(SVFXAgentPanel)
 		];
-
-	FSlateApplication::Get().AddWindow(Window);
-	VFXAgentWindow = Window;
 }
+
+void FVFXAgentEditorModule::PluginButtonClicked()
+{
+	FGlobalTabmanager::Get()->TryInvokeTab(VFXAgentTabName);
+}
+
+#undef LOCTEXT_NAMESPACE
 
 #undef LOCTEXT_NAMESPACE
 

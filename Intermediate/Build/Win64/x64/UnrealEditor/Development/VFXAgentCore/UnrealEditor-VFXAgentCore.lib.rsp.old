@@ -7,8 +7,12 @@
 /IGNORE:4221
 /NODEFAULTLIB
 "F:\TST\Testing\Intermediate\Build\Win64\x64\TestingEditor\Development\UnrealEd\SharedPCH.UnrealEd.Project.ValApi.Cpp20.h.obj"
-"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\Module.VFXAgentCore.cpp.obj"
+"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\Module.VFXAgentCore.1.cpp.obj"
+"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\Module.VFXAgentCore.2.cpp.obj"
+"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\BehaviorArchetypeLibrary.cpp.obj"
 "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\EffectSpecParser.cpp.obj"
+"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\EffectSpecV2Parser.cpp.obj"
+"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\EffectSpecV2Validator.cpp.obj"
 "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\EffectSpecValidator.cpp.obj"
 "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\HttpLLMProvider.cpp.obj"
 "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\ModelServices.cpp.obj"
@@ -16,5 +20,6 @@
 "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\VFXAgentCoreModule.cpp.obj"
 "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\VFXAgentLog.cpp.obj"
 "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\VFXDirectorJson.cpp.obj"
+"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\VFXMultiCandidatePipeline.cpp.obj"
 "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\Default.rc2.res"
 /OUT:"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentCore\UnrealEditor-VFXAgentCore.lib"

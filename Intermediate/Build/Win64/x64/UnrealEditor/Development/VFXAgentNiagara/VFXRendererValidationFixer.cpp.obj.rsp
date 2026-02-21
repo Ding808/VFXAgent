@@ -1,17 +1,16 @@
-"F:\TST\Testing\Plugins\VFXAgent\Source\VFXAgentNiagara\Private\VFXRendererValidationFixer.cpp"
-/FI"F:\TST\Testing\Intermediate\Build\Win64\x64\TestingEditor\Development\UnrealEd\SharedPCH.UnrealEd.Project.ValApi.Cpp20.h"
-/FI"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\Definitions.VFXAgentNiagara.h"
-/Yu"F:\TST\Testing\Intermediate\Build\Win64\x64\TestingEditor\Development\UnrealEd\SharedPCH.UnrealEd.Project.ValApi.Cpp20.h"
-/Fp"F:\TST\Testing\Intermediate\Build\Win64\x64\TestingEditor\Development\UnrealEd\SharedPCH.UnrealEd.Project.ValApi.Cpp20.h.pch"
-/Fo"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\VFXRendererValidationFixer.cpp.obj"
-/experimental:log "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\VFXRendererValidationFixer.cpp.sarif"
-/sourceDependencies "F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\VFXRendererValidationFixer.cpp.dep.json"
-@"F:\TST\Testing\Plugins\VFXAgent\Intermediate\Build\Win64\x64\UnrealEditor\Development\VFXAgentNiagara\VFXAgentNiagara.Shared.rsp"
-/d2ssa-cfg-question-
-/Zc:inline
+"e:/VFXAgent/VFXAgent/Source/VFXAgentNiagara/Private/VFXRendererValidationFixer.cpp"
+@"e:/VFXAgent/VFXAgent/Intermediate/Build/Win64/x64/UnrealEditor/Development/VFXAgentNiagara/VFXAgentNiagara.Shared.rsp"
+/FI"../Intermediate/Build/Win64/x64/UnrealEditor/Development/UnrealEd/SharedPCH.UnrealEd.Cpp20.h"
+/FI"e:/VFXAgent/VFXAgent/Intermediate/Build/Win64/x64/UnrealEditor/Development/VFXAgentNiagara/Definitions.VFXAgentNiagara.h"
+/Yu"../Intermediate/Build/Win64/x64/UnrealEditor/Development/UnrealEd/SharedPCH.UnrealEd.Cpp20.h"
+/Fp"../Intermediate/Build/Win64/x64/UnrealEditor/Development/UnrealEd/SharedPCH.UnrealEd.Cpp20.h.pch"
+/Fo"e:/VFXAgent/VFXAgent/Intermediate/Build/Win64/x64/UnrealEditor/Development/VFXAgentNiagara/VFXRendererValidationFixer.cpp.obj"
+/experimental:log "e:/VFXAgent/VFXAgent/Intermediate/Build/Win64/x64/UnrealEditor/Development/VFXAgentNiagara/VFXRendererValidationFixer.cpp.sarif"
+/sourceDependencies "e:/VFXAgent/VFXAgent/Intermediate/Build/Win64/x64/UnrealEditor/Development/VFXAgentNiagara/VFXRendererValidationFixer.cpp.dep.json"
 /nologo
 /Oi
 /FC
+/diagnostics:caret
 /c
 /Gw
 /Gy
@@ -21,6 +20,8 @@
 /permissive-
 /Zc:strictStrings-
 /Zc:__cplusplus
+/Zc:inline
+/Zc:preprocessor
 /D_CRT_STDIO_LEGACY_WIDE_SPECIFIERS=1
 /D_SILENCE_STDEXT_HASH_DEPRECATION_WARNINGS=1
 /D_WINDLL
@@ -39,15 +40,16 @@
 /fp:fast
 /Zo
 /Zp8
+/W4
 /we4456
 /we4458
 /we4459
-/we4668
 /wd4244
 /wd4838
+/we4668
+/wd4267
+/wd4100
 /TP
 /GR-
-/W4
 /std:c++20
-/Zc:preprocessor
 /wd5054

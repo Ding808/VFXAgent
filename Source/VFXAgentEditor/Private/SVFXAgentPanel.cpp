@@ -42,6 +42,7 @@
 #include "AssetBuildPipelineV2.h"
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "Editor.h"
+#include "ScopedTransaction.h"
 #include "Async/Async.h"
 #include "ISettingsModule.h"
 #include "Widgets/Images/SImage.h"
@@ -257,6 +258,16 @@ private:
 // ============================================================================
 void SVFXAgentPanel::Construct(const FArguments& InArgs)
 {
+    AvailableModes.Add(MakeShared<FString>(TEXT("Agent")));
+    AvailableModes.Add(MakeShared<FString>(TEXT("Ask")));
+    SelectedMode = AvailableModes[0];
+
+    AvailableModels.Add(MakeShared<FString>(TEXT("gpt-4o")));
+    AvailableModels.Add(MakeShared<FString>(TEXT("gpt-5")));
+    AvailableModels.Add(MakeShared<FString>(TEXT("gemini-3.1-pro")));
+    AvailableModels.Add(MakeShared<FString>(TEXT("claude-3.5-sonnet")));
+    SelectedModel = AvailableModels[0];
+
     RefreshLLMSettingsFromConfig();
 
     ChildSlot
@@ -298,6 +309,50 @@ void SVFXAgentPanel::Construct(const FArguments& InArgs)
         TEXT("Type what you want and press Enter to send! (Shift+Enter for newline)"));
 }
 
+TSharedRef<SWidget> SVFXAgentPanel::OnGenerateModeComboWidget(TSharedPtr<FString> InItem)
+{
+    return SNew(STextBlock).Text(FText::FromString(*InItem));
+}
+
+void SVFXAgentPanel::OnModeSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
+{
+    if (NewSelection.IsValid())
+    {
+        SelectedMode = NewSelection;
+    }
+}
+
+FText SVFXAgentPanel::GetSelectedModeText() const
+{
+    return SelectedMode.IsValid() ? FText::FromString(*SelectedMode) : FText::FromString(TEXT("Agent"));
+}
+
+TSharedRef<SWidget> SVFXAgentPanel::OnGenerateModelComboWidget(TSharedPtr<FString> InItem)
+{
+    return SNew(STextBlock).Text(FText::FromString(*InItem));
+}
+
+void SVFXAgentPanel::OnModelSelectionChanged(TSharedPtr<FString> NewSelection, ESelectInfo::Type SelectInfo)
+{
+    if (NewSelection.IsValid())
+    {
+        SelectedModel = NewSelection;
+        // Update settings
+        UVFXAgentSettings* Settings = GetMutableDefault<UVFXAgentSettings>();
+        if (Settings)
+        {
+            Settings->LLMModel = *NewSelection;
+            Settings->SaveConfig();
+            RefreshLLMSettingsFromConfig();
+        }
+    }
+}
+
+FText SVFXAgentPanel::GetSelectedModelText() const
+{
+    return SelectedModel.IsValid() ? FText::FromString(*SelectedModel) : FText::FromString(TEXT("gpt-4o"));
+}
+
 TSharedRef<SWidget> SVFXAgentPanel::BuildHeader()
 {
     return SNew(SBorder)
@@ -317,15 +372,43 @@ TSharedRef<SWidget> SVFXAgentPanel::BuildHeader()
                 .Font(FCoreStyle::Get().GetFontStyle("HeadingExtraSmall"))
             ]
 
-            // Model info
+            // Mode Selector
             + SHorizontalBox::Slot()
-            .FillWidth(1.0f)
+            .AutoWidth()
             .VAlign(VAlign_Center)
             .Padding(12, 0, 0, 0)
             [
-                SAssignNew(ModelInfoText, STextBlock)
-                .Text(FText::FromString(GetModelDisplayName()))
-                .ColorAndOpacity(FSlateColor::UseSubduedForeground())
+                SAssignNew(ModeComboBox, SComboBox<TSharedPtr<FString>>)
+                .OptionsSource(&AvailableModes)
+                .OnGenerateWidget(this, &SVFXAgentPanel::OnGenerateModeComboWidget)
+                .OnSelectionChanged(this, &SVFXAgentPanel::OnModeSelectionChanged)
+                [
+                    SNew(STextBlock)
+                    .Text(this, &SVFXAgentPanel::GetSelectedModeText)
+                ]
+            ]
+
+            // Model Selector
+            + SHorizontalBox::Slot()
+            .AutoWidth()
+            .VAlign(VAlign_Center)
+            .Padding(8, 0, 0, 0)
+            [
+                SAssignNew(ModelComboBox, SComboBox<TSharedPtr<FString>>)
+                .OptionsSource(&AvailableModels)
+                .OnGenerateWidget(this, &SVFXAgentPanel::OnGenerateModelComboWidget)
+                .OnSelectionChanged(this, &SVFXAgentPanel::OnModelSelectionChanged)
+                [
+                    SNew(STextBlock)
+                    .Text(this, &SVFXAgentPanel::GetSelectedModelText)
+                ]
+            ]
+
+            // Spacer
+            + SHorizontalBox::Slot()
+            .FillWidth(1.0f)
+            [
+                SNew(SSpacer)
             ]
 
             // Status indicator
@@ -998,6 +1081,12 @@ void SVFXAgentPanel::ProcessUserMessage(const FString& Message)
 {
     LastPrompt = Message;
 
+    if (SelectedMode.IsValid() && SelectedMode->Equals(TEXT("Ask")))
+    {
+        ExecuteAsk(Message);
+        return;
+    }
+
     // Check if we have media attachments
     bool bHasMedia = false;
     FString MediaPath;
@@ -1028,6 +1117,40 @@ void SVFXAgentPanel::ProcessUserMessage(const FString& Message)
     {
         ExecuteGenerate(Message);
     }
+}
+
+void SVFXAgentPanel::ExecuteAsk(const FString& Prompt)
+{
+    AddThinkingBubble();
+    UpdateStatusDisplay();
+    AddThinkingStep(TEXT("Asking AI..."));
+
+    if (!LLMProviderObject || !LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
+    {
+        CompleteThinkingBubble(TEXT(""));
+        AddErrorBubble(TEXT("Ask mode requires an HTTP LLM provider. Please configure one in Settings."));
+        return;
+    }
+
+    UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
+    bRequestInFlight = true;
+    UpdateStatusDisplay();
+
+    HttpProvider->AskAsync(Prompt, [this](bool bSuccess, const FString& Response, const FString& Error)
+    {
+        bRequestInFlight = false;
+        UpdateStatusDisplay();
+
+        if (!bSuccess)
+        {
+            CompleteThinkingBubble(TEXT(""));
+            AddErrorBubble(FString::Printf(TEXT("Ask failed: %s"), *Error));
+            return;
+        }
+
+        CompleteThinkingBubble(TEXT(""));
+        AddAgentBubble(Response);
+    });
 }
 
 bool SVFXAgentPanel::InferIsModifyRequest(const FString& Prompt) const
@@ -1250,9 +1373,6 @@ void SVFXAgentPanel::ExecuteModify(const FString& Prompt)
 
         AddThinkingStep(TEXT("Recipe updated, rebuilding Niagara System..."));
 
-        const FString OutputPath = BuildDefaultOutputPath();
-        const FString AssetName = BuildDefaultAssetName(LastPrompt);
-
         UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
         if (Generator)
         {
@@ -1270,19 +1390,63 @@ void SVFXAgentPanel::ExecuteModify(const FString& Prompt)
                 }
             }
 
-            UNiagaraSystem* System = Generator->GenerateNiagaraSystem(AssetName, OutputPath, FinalRecipe, TemplatePath);
-            if (System)
+            UNiagaraSystem* ExistingSystem = nullptr;
+            if (!ReferencedNiagaraSystemPath.IsEmpty())
             {
-                LastGeneratedSystemPath = OutputPath / AssetName;
-                CompleteThinkingBubble(TEXT(""));
-                AddAssetLinkBubble(LastGeneratedSystemPath,
-                    FString::Printf(TEXT("Modified effect rebuilt successfully!\n\nAsset: %s\nEmitters: %d"),
-                    *LastGeneratedSystemPath, FinalRecipe.Emitters.Num()));
+                ExistingSystem = Cast<UNiagaraSystem>(StaticLoadObject(UNiagaraSystem::StaticClass(), nullptr, *ReferencedNiagaraSystemPath));
+            }
+            else if (!LastGeneratedSystemPath.IsEmpty())
+            {
+                ExistingSystem = Cast<UNiagaraSystem>(StaticLoadObject(UNiagaraSystem::StaticClass(), nullptr, *LastGeneratedSystemPath));
+            }
+
+            if (ExistingSystem)
+            {
+                // Modify existing system with Undo support
+                GEditor->BeginTransaction(FText::FromString(TEXT("VFX Agent Modification")));
+                ExistingSystem->Modify();
+
+                bool bSuccess = Generator->UpdateNiagaraSystem(ExistingSystem, FinalRecipe);
+                
+                if (bSuccess)
+                {
+                    ExistingSystem->RequestCompile(true);
+                    ExistingSystem->WaitForCompilationComplete(true, true);
+                    ExistingSystem->PostEditChange();
+
+                    GEditor->EndTransaction();
+                    CompleteThinkingBubble(TEXT(""));
+                    AddAssetLinkBubble(ExistingSystem->GetPathName(),
+                        FString::Printf(TEXT("Modified existing effect successfully!\n\nAsset: %s\nEmitters: %d"),
+                        *ExistingSystem->GetPathName(), FinalRecipe.Emitters.Num()));
+                }
+                else
+                {
+                    GEditor->CancelTransaction(0);
+                    CompleteThinkingBubble(TEXT(""));
+                    AddErrorBubble(TEXT("Failed to update the existing Niagara System."));
+                }
             }
             else
             {
-                CompleteThinkingBubble(TEXT(""));
-                AddErrorBubble(TEXT("Failed to rebuild the Niagara System after modification."));
+                // Generate new system
+                const FString OutputPath = BuildDefaultOutputPath();
+                const FString AssetName = BuildDefaultAssetName(LastPrompt);
+
+                UNiagaraSystem* System = Generator->GenerateNiagaraSystem(AssetName, OutputPath, FinalRecipe, TemplatePath);
+                if (System)
+                {
+                    LastGeneratedSystemPath = OutputPath / AssetName;
+                    CompleteThinkingBubble(TEXT(""));
+                    AddAssetLinkBubble(LastGeneratedSystemPath,
+                        FString::Printf(TEXT("Modified effect rebuilt successfully!\n\nAsset: %s\nEmitters: %d"),
+                        *LastGeneratedSystemPath, FinalRecipe.Emitters.Num()));
+                }
+                else
+                {
+                    CompleteThinkingBubble(TEXT(""));
+                    AddErrorBubble(TEXT("Failed to rebuild the Niagara System after modification."));
+                }
             }
         }
         else

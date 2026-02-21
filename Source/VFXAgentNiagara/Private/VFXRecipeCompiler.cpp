@@ -107,13 +107,20 @@ static void ApplyArchetypeRules(const FVFXIntent& Intent, FVFXRecipe& Recipe, TA
 			FVFXForceRecipe GravityForce;
 			GravityForce.Type = EVFXForceType::Gravity;
 			GravityForce.Direction = FVector(0, 0, -1);
-			GravityForce.Strength = 1.0f;
+			GravityForce.Strength = 1.5f; // Stronger gravity for explosion debris
 
 			bool bHasGravity = Layer.Forces.ContainsByPredicate([](const FVFXForceRecipe& F) { return F.Type == EVFXForceType::Gravity; });
 			if (!bHasGravity && Layer.Forces.Num() < 10)
 			{
 				Layer.Forces.Add(GravityForce);
 				OutWarnings.Add(FString::Printf(TEXT("[EXPLOSION] Layer '%s': Added gravity force"), *Layer.Name));
+			}
+			
+			// Boost initial velocity for explosion
+			if (Layer.InitialVelocity.Size() < 500.0f)
+			{
+				Layer.InitialVelocity *= 2.0f;
+				OutWarnings.Add(FString::Printf(TEXT("[EXPLOSION] Layer '%s': Boosted initial velocity"), *Layer.Name));
 			}
 		}
 	}
@@ -126,9 +133,9 @@ static void ApplyArchetypeRules(const FVFXIntent& Intent, FVFXRecipe& Recipe, TA
 		for (FVFXLayerRecipe& Layer : Recipe.Layers)
 		{
 			// Ensure upward initial velocity
-			if (Layer.InitialVelocity.Z < 50.0f)
+			if (Layer.InitialVelocity.Z < 150.0f)
 			{
-				Layer.InitialVelocity.Z = FMath::Max(50.0f, Layer.InitialVelocity.Z);
+				Layer.InitialVelocity.Z = FMath::Max(150.0f, Layer.InitialVelocity.Z); // Boost upward velocity
 				OutWarnings.Add(FString::Printf(TEXT("[FIRE] Layer '%s': Enforcing upward velocity"), *Layer.Name));
 			}
 
@@ -139,10 +146,22 @@ static void ApplyArchetypeRules(const FVFXIntent& Intent, FVFXRecipe& Recipe, TA
 				{
 					if (Force.Type == EVFXForceType::Gravity)
 					{
-						Force.Strength *= 0.2f; // Reduce gravity impact
+						Force.Strength *= 0.1f; // Reduce gravity impact even more
 						OutWarnings.Add(FString::Printf(TEXT("[FIRE] Layer '%s': Reduced gravity influence"), *Layer.Name));
 					}
 				}
+			}
+			
+			// Ensure curl noise for fire turbulence
+			bool bHasCurlNoise = Layer.Forces.ContainsByPredicate([](const FVFXForceRecipe& F) { return F.Type == EVFXForceType::CurlNoise; });
+			if (!bHasCurlNoise)
+			{
+				FVFXForceRecipe CurlNoiseForce;
+				CurlNoiseForce.Type = EVFXForceType::CurlNoise;
+				CurlNoiseForce.Strength = 45.0f;
+				CurlNoiseForce.Frequency = 2.5f;
+				Layer.Forces.Add(CurlNoiseForce);
+				OutWarnings.Add(FString::Printf(TEXT("[FIRE] Layer '%s': Added curl noise for turbulence"), *Layer.Name));
 			}
 		}
 	}
