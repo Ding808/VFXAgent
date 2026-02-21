@@ -24,7 +24,7 @@
 		{
 			"Name": "VFXAgentCore",
 			"Type": "Runtime",
-			"LoadingPhase": "PreDefault"
+			"LoadingPhase": "Default"
 		},
 		{
 			"Name": "VFXAgentNiagara",

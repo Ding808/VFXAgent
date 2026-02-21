@@ -64,7 +64,8 @@ public class VFXAgentEditor : ModuleRules
 				"Sequencer",
 				"Settings",
 				"ImageWrapper",
-				"WorkspaceMenuStructure"
+				"WorkspaceMenuStructure",
+				"Projects"
 			}
 			);
 		

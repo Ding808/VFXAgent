@@ -1,6 +1,7 @@
 #include "VFXModuleInserter.h"
 #include "VFXAgentLog.h"
 #include "NiagaraEmitter.h"
+#include "NiagaraSystem.h"
 #include "NiagaraScript.h"
 #include "UObject/UnrealType.h"
 #include "Misc/Paths.h"
@@ -71,6 +72,18 @@ bool FVFXModuleInserter::InsertModuleByPath(UNiagaraEmitter* Emitter, const FStr
 
 	Emitter->Modify();
 	Emitter->PostEditChange();
+	Emitter->MarkPackageDirty();
+
+	if (UNiagaraSystem* OwnerSystem = Emitter->GetTypedOuter<UNiagaraSystem>())
+	{
+		OwnerSystem->MarkPackageDirty();
+#if WITH_EDITOR
+		OwnerSystem->RequestCompile(true);
+		OwnerSystem->WaitForCompilationComplete(true, true);
+#endif
+	}
+
+	UE_LOG(LogVFXAgent, Verbose, TEXT("InsertModuleByPath succeeded for '%s' and triggered dirty/recompile refresh"), *ModulePath);
 	return true;
 }
 
@@ -132,6 +145,8 @@ bool FVFXModuleInserter::InsertScriptWithOrdering(UNiagaraEmitter* Emitter, cons
 			SetStructObjectField(ElemPtr, StructType, TEXT("GeneratorScript"), Script);
 			SetStructObjectField(ElemPtr, StructType, TEXT("EventScript"), Script);
 		}
+
+		UE_LOG(LogVFXAgent, Verbose, TEXT("InsertScriptWithOrdering uses script-prop injection; UE5.5 stack graph pin wiring should be validated in editor if module inputs are missing."));
 	}
 
 	return true;

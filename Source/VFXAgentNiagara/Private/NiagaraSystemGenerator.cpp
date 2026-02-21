@@ -15,6 +15,38 @@
 #include "Misc/ConfigCacheIni.h"
 #include "UObject/UnrealType.h"
 
+static FString SanitizeGeneratedName(const FString& SourceString, const FString& Fallback)
+{
+    FString Sanitized = SourceString;
+    Sanitized = Sanitized.Replace(TEXT(" "), TEXT("_"));
+
+    FString Clean;
+    Clean.Reserve(Sanitized.Len());
+    for (const TCHAR Ch : Sanitized)
+    {
+        if (FChar::IsAlnum(Ch) || Ch == TEXT('_'))
+        {
+            Clean.AppendChar(Ch);
+        }
+        else
+        {
+            Clean.AppendChar(TEXT('_'));
+        }
+    }
+
+    while (Clean.Contains(TEXT("__")))
+    {
+        Clean = Clean.Replace(TEXT("__"), TEXT("_"));
+    }
+
+    Clean.TrimStartAndEndInline();
+    if (Clean.IsEmpty())
+    {
+        return Fallback;
+    }
+    return Clean;
+}
+
 // NOTE: Removed automatic repair/retry logic that appended "_Fixed" to the system name.
 // Generation now performs a single Create + Save/Compile + SelfCheck pass.
 
@@ -24,10 +56,11 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     const FVFXRecipe& Recipe,
     const FString& TemplateSystemPath)
 {
-    UE_LOG(LogVFXAgent, Log, TEXT("Starting Recipe-Driven Niagara Generation for: %s"), *SystemName);
+    const FString SafeSystemName = SanitizeGeneratedName(SystemName, TEXT("GeneratedSystem"));
+    UE_LOG(LogVFXAgent, Log, TEXT("Starting Recipe-Driven Niagara Generation for: %s (sanitized=%s)"), *SystemName, *SafeSystemName);
 
     TArray<FString> Warnings;
-    FVFXEffectSpec Spec = FRecipeCompiler::Compile(SystemName, OutputPath, Recipe, TemplateSystemPath, Warnings);
+    FVFXEffectSpec Spec = FRecipeCompiler::Compile(SafeSystemName, OutputPath, Recipe, TemplateSystemPath, Warnings);
 
     if (Warnings.Num() > 0)
     {
@@ -42,7 +75,7 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     UNiagaraSystem* ResultSystem = FSystemAssembler::Assemble(Spec, Report);
     if (!ResultSystem)
     {
-        UE_LOG(LogVFXAgent, Error, TEXT("Failed to assemble system from recipe: %s"), *SystemName);
+        UE_LOG(LogVFXAgent, Error, TEXT("Failed to assemble system from recipe: %s"), *SafeSystemName);
         return nullptr;
     }
 

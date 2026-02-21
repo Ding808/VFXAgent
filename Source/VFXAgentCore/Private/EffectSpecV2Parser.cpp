@@ -1,4 +1,5 @@
 #include "EffectSpecV2Parser.h"
+#include "VFXAgentLog.h"
 #include "Dom/JsonObject.h"
 #include "Serialization/JsonReader.h"
 #include "Serialization/JsonSerializer.h"
@@ -245,15 +246,37 @@ static FLayerSpecV2 ParseLayer(const TSharedPtr<FJsonObject>& LObj)
 // ---------------------------------------------------------------------------
 bool FEffectSpecV2Parser::ParseFromJson(const FString& Json, FEffectSpecV2& OutSpec, FString& OutError)
 {
-	// Strip markdown code fences
+	// Strip markdown code fences (```json ... ```)
 	FString Clean = Json;
 	Clean.TrimStartAndEndInline();
-	if (Clean.StartsWith(TEXT("```")))
+	const FString Lower = Clean.ToLower();
+	const int32 FenceStart = Lower.Find(TEXT("```json"), ESearchCase::IgnoreCase, ESearchDir::FromStart);
+	if (FenceStart != INDEX_NONE)
+	{
+		int32 ContentStart = Clean.Find(TEXT("\n"), ESearchCase::CaseSensitive, ESearchDir::FromStart, FenceStart);
+		if (ContentStart != INDEX_NONE)
+		{
+			Clean = Clean.Mid(ContentStart + 1);
+		}
+		int32 FenceEnd = Clean.Find(TEXT("```"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
+		if (FenceEnd != INDEX_NONE)
+		{
+			Clean = Clean.Left(FenceEnd);
+		}
+		Clean.TrimStartAndEndInline();
+	}
+	else if (Clean.StartsWith(TEXT("```")))
 	{
 		int32 Nl = Clean.Find(TEXT("\n"), ESearchCase::IgnoreCase, ESearchDir::FromStart, 3);
-		if (Nl != INDEX_NONE) Clean = Clean.Mid(Nl + 1);
+		if (Nl != INDEX_NONE)
+		{
+			Clean = Clean.Mid(Nl + 1);
+		}
 		int32 Back = Clean.Find(TEXT("```"), ESearchCase::IgnoreCase, ESearchDir::FromEnd);
-		if (Back != INDEX_NONE) Clean = Clean.Left(Back);
+		if (Back != INDEX_NONE)
+		{
+			Clean = Clean.Left(Back);
+		}
 		Clean.TrimStartAndEndInline();
 	}
 
@@ -261,6 +284,9 @@ bool FEffectSpecV2Parser::ParseFromJson(const FString& Json, FEffectSpecV2& OutS
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Clean);
 	if (!FJsonSerializer::Deserialize(Reader, Root) || !Root.IsValid())
 	{
+		const int32 PreviewLen = FMath::Min(100, Json.Len());
+		const FString Preview = Json.Left(PreviewLen);
+		UE_LOG(LogVFXAgent, Error, TEXT("EffectSpecV2Parser JSON parse failed. Raw preview(100)='%s'"), *Preview);
 		OutError = TEXT("Invalid JSON");
 		return false;
 	}

@@ -44,6 +44,55 @@ static void SetEmitterRequiresPersistentIDs(UNiagaraEmitter* Emitter, bool bEnab
 static void ApplyIntentModuleRules(UNiagaraSystem* System, const FString& EmitterName, const FVFXIntent& Intent, const FTemplateSelectionResult& Selection);
 static void AddMinimalModuleChain(UNiagaraSystem* System, const FString& EmitterName, EVFXRendererType RendererType);
 
+static FString SanitizeNiagaraIdentifier(const FString& SourceString, const FString& Fallback)
+{
+    FString Sanitized = SourceString;
+    Sanitized = Sanitized.Replace(TEXT(" "), TEXT("_"));
+
+    FString Clean;
+    Clean.Reserve(Sanitized.Len());
+    for (const TCHAR Ch : Sanitized)
+    {
+        if (FChar::IsAlnum(Ch) || Ch == TEXT('_'))
+        {
+            Clean.AppendChar(Ch);
+        }
+        else
+        {
+            Clean.AppendChar(TEXT('_'));
+        }
+    }
+
+    while (Clean.Contains(TEXT("__")))
+    {
+        Clean = Clean.Replace(TEXT("__"), TEXT("_"));
+    }
+
+    Clean.TrimStartAndEndInline();
+    return Clean.IsEmpty() ? Fallback : Clean;
+}
+
+static void MarkSystemDirtyAndFullRecompile(UNiagaraSystem* System, const TCHAR* Context)
+{
+    if (!System)
+    {
+        return;
+    }
+
+    System->MarkPackageDirty();
+    if (UPackage* Pkg = System->GetOutermost())
+    {
+        Pkg->MarkPackageDirty();
+    }
+
+#if WITH_EDITOR
+    System->RequestCompile(true);
+    System->WaitForCompilationComplete(true, true);
+#endif
+
+    UE_LOG(LogVFXAgent, Verbose, TEXT("[%s] MarkPackageDirty + FullRecompile completed for '%s'"), Context, *System->GetName());
+}
+
 static FString GetVFXAgentSetting(const TCHAR* Key, const FString& DefaultValue)
 {
     FString Value;
@@ -1913,10 +1962,12 @@ bool FNiagaraSpecExecutor::AddModuleToEmitter(UNiagaraSystem* System, const FStr
 {
     if (!System) return false;
 
+    const FString SafeEmitterName = SanitizeNiagaraIdentifier(EmitterName, TEXT("Emitter"));
+
     FNiagaraEmitterHandle* Handle = nullptr;
     for (FNiagaraEmitterHandle& H : System->GetEmitterHandles())
     {
-        if (H.GetName() == FName(*EmitterName))
+        if (H.GetName() == FName(*EmitterName) || H.GetName() == FName(*SafeEmitterName))
         {
             Handle = &H;
             break;
@@ -1956,12 +2007,18 @@ bool FNiagaraSpecExecutor::AddModuleToEmitter(UNiagaraSystem* System, const FStr
 
     EmitterInstance->Modify();
     EmitterInstance->PostEditChange();
+    if (bInserted)
+    {
+        MarkSystemDirtyAndFullRecompile(System, TEXT("AddModuleToEmitter"));
+    }
     return bInserted;
 }
 
 bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const FString& TemplatePath, const FString& EmitterName)
 {
     if (!System) return false;
+
+    const FString SafeEmitterName = SanitizeNiagaraIdentifier(EmitterName, TEXT("Emitter"));
 
     const bool bDisallowTemplates = GetVFXAgentSettingBool(TEXT("bDisallowTemplates"), false);
     if (bDisallowTemplates)
@@ -1974,8 +2031,8 @@ bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const 
     const FString ObjectPath = NormalizeTemplateObjectPath(TemplatePath);
     if (ObjectPath.IsEmpty())
     {
-        UE_LOG(LogVFXAgent, Warning, TEXT("Template path is empty for emitter '%s'. Creating basic emitter instead."), *EmitterName);
-        return AddBasicEmitterToSystem(System, EmitterName);
+        UE_LOG(LogVFXAgent, Warning, TEXT("Template path is empty for emitter '%s'. Creating basic emitter instead."), *SafeEmitterName);
+        return AddBasicEmitterToSystem(System, SafeEmitterName);
     }
 
     // First try loading as a Niagara System (system templates contain emitters)
@@ -2004,28 +2061,24 @@ bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const 
             {
                 if (SystemHandle.GetId() == HandleId)
                 {
-                    SystemHandle.SetName(FName(*EmitterName), *System);
+                    SystemHandle.SetName(FName(*SafeEmitterName), *System);
                     SystemHandle.SetIsEnabled(true, *System, true);
                     break;
                 }
             }
 #else
-            System->AddEmitterHandle(*TemplateEmitter, FName(*EmitterName), VersionGuid);
+            System->AddEmitterHandle(*TemplateEmitter, FName(*SafeEmitterName), VersionGuid);
 #endif
             
             // Restore original value on template (though it's likely a loaded asset and this may not matter)
             TemplateEmitter->bIsInheritable = bOriginalInheritable;
             
-            System->MarkPackageDirty();
-            if (UPackage* Pkg = System->GetOutermost())
-            {
-                Pkg->MarkPackageDirty();
-            }
+            MarkSystemDirtyAndFullRecompile(System, TEXT("AddEmitterFromTemplate"));
             return System->GetEmitterHandles().Num() > 0;
         }
 
         UE_LOG(LogVFXAgent, Warning, TEXT("Template system/emitter not found: %s. Creating basic emitter instead."), *ObjectPath);
-        return AddBasicEmitterToSystem(System, EmitterName);
+        return AddBasicEmitterToSystem(System, SafeEmitterName);
     }
 
     // Handle System templates - iterate through their emitters
@@ -2046,13 +2099,13 @@ bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const 
             {
                 if (SystemHandle.GetId() == HandleId)
                 {
-                    SystemHandle.SetName(FName(*EmitterName), *System);
+                    SystemHandle.SetName(FName(*SafeEmitterName), *System);
                     SystemHandle.SetIsEnabled(true, *System, true);
                     break;
                 }
             }
 #else
-            System->AddEmitterHandle(*Source.Emitter, FName(*EmitterName), Source.Version);
+            System->AddEmitterHandle(*Source.Emitter, FName(*SafeEmitterName), Source.Version);
 #endif
             
             // Restore original value
@@ -2061,11 +2114,7 @@ bool FNiagaraSpecExecutor::AddEmitterFromTemplate(UNiagaraSystem* System, const 
         }
     }
 
-    System->MarkPackageDirty();
-    if (UPackage* Pkg = System->GetOutermost())
-    {
-        Pkg->MarkPackageDirty();
-    }
+    MarkSystemDirtyAndFullRecompile(System, TEXT("AddEmitterFromTemplate"));
 
     return System->GetEmitterHandles().Num() > 0;
 }
@@ -2074,11 +2123,16 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
 {
     if (!System) return;
 
+    const FString SafeEmitterName = SanitizeNiagaraIdentifier(EmitterName, TEXT("Emitter"));
+
     // Find the handle
     FNiagaraEmitterHandle* Handle = nullptr;
     for (FNiagaraEmitterHandle& H : System->GetEmitterHandles())
     {
-        if (H.GetName() == FName(*EmitterName) || H.GetName() == FName(*(EmitterName + "0"))) // Name might be suffixed
+        if (H.GetName() == FName(*EmitterName)
+            || H.GetName() == FName(*SafeEmitterName)
+            || H.GetName() == FName(*(EmitterName + "0"))
+            || H.GetName() == FName(*(SafeEmitterName + "0"))) // Name might be suffixed
         {
             Handle = &H;
             break;
@@ -2500,6 +2554,9 @@ void FNiagaraSpecExecutor::ConfigureEmitter(UNiagaraSystem* System, const FStrin
     // Reorder update stacks using phase-based topo sort
     SortEmitterModuleStack(EmitterInstance, TEXT("UpdateScriptProps"));
     SortEmitterModuleStack(EmitterInstance, TEXT("ParticleUpdateScriptProps"));
+
+    // Ensure spawn_rate and other rapid-iteration params become visible in UE5.5 Niagara UI immediately.
+    MarkSystemDirtyAndFullRecompile(System, TEXT("ConfigureEmitter"));
 }
 
 bool FNiagaraSpecExecutor::ConfigureCollisionEventHandler(UNiagaraSystem* System, const FString& SourceEmitterName, const FString& TargetEmitterName, const FVFXEventRecipe& Event)

@@ -56,7 +56,8 @@ public class VFXAgentNiagara : ModuleRules
 				"VFXAgentCore",
 				"MaterialEditor",    // For material generation
 				"RenderCore",        // For texture generation
-				"RHI"                // For texture operations
+				"RHI",               // For texture operations
+				"Projects"
 			}
 			);
 		

@@ -11,14 +11,44 @@
 #include "Modules/ModuleManager.h"
 #include "WorkspaceMenuStructure.h"
 #include "WorkspaceMenuStructureModule.h"
+#include "Interfaces/IPluginManager.h"
+#include "Misc/Paths.h"
+#include "UObject/UObjectArray.h"
 
 #define LOCTEXT_NAMESPACE "FVFXAgentEditorModule"
 
 const FName VFXAgentTabName(TEXT("VFXAgent"));
 
+static void LogModuleStartupDiagnostics(const TCHAR* ModuleName)
+{
+	const FString ModuleNameStr(ModuleName);
+	FString ModuleFilename;
+	if (FModuleManager::Get().QueryModule(ModuleNameStr, ModuleFilename))
+	{
+		UE_LOG(LogVFXAgent, Log, TEXT("[%s] QueryModule filename: %s"), ModuleName, *ModuleFilename);
+	}
+	else
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("[%s] QueryModule failed, module may not be registered yet"), ModuleName);
+	}
+
+	if (const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("VFXAgent")))
+	{
+		const FString PluginDir = Plugin->GetBaseDir();
+		const FString ExpectedDll = FPaths::Combine(PluginDir, TEXT("Binaries/Win64"), FString::Printf(TEXT("UnrealEditor-%s.dll"), ModuleName));
+		UE_LOG(LogVFXAgent, Log, TEXT("[%s] PluginDir=%s"), ModuleName, *PluginDir);
+		UE_LOG(LogVFXAgent, Log, TEXT("[%s] ExpectedDLL=%s Exists=%s"), ModuleName, *ExpectedDll, FPaths::FileExists(ExpectedDll) ? TEXT("true") : TEXT("false"));
+	}
+	else
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("[%s] Plugin 'VFXAgent' not found in IPluginManager"), ModuleName);
+	}
+}
+
 void FVFXAgentEditorModule::StartupModule()
 {
 	UE_LOG(LogVFXAgent, Log, TEXT("VFXAgentEditor Module Started"));
+	LogModuleStartupDiagnostics(TEXT("VFXAgentEditor"));
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(VFXAgentTabName, FOnSpawnTab::CreateRaw(this, &FVFXAgentEditorModule::OnSpawnPluginTab))
 		.SetDisplayName(LOCTEXT("FVFXAgentTabTitle", "VFX Agent"))
@@ -40,6 +70,19 @@ void FVFXAgentEditorModule::StartupModule()
 void FVFXAgentEditorModule::ShutdownModule()
 {
 	UE_LOG(LogVFXAgent, Log, TEXT("VFXAgentEditor Module Shutdown"));
+
+	if (SpawnedTab.IsValid())
+	{
+		SpawnedTab.Pin()->RequestCloseTab();
+		SpawnedTab.Reset();
+	}
+	PanelWidget.Reset();
+
+	if (!UObjectInitialized())
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("Skipping tab/menu unregistration because UObject subsystem is not initialized."));
+		return;
+	}
 
 	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(VFXAgentTabName);
 
@@ -86,11 +129,13 @@ void FVFXAgentEditorModule::UnregisterMenus()
 
 TSharedRef<SDockTab> FVFXAgentEditorModule::OnSpawnPluginTab(const FSpawnTabArgs& SpawnTabArgs)
 {
-	return SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
-		[
-			SNew(SVFXAgentPanel)
-		];
+	TSharedRef<SDockTab> Tab = SNew(SDockTab)
+		.TabRole(ETabRole::NomadTab);
+
+	PanelWidget = SNew(SVFXAgentPanel);
+	Tab->SetContent(PanelWidget.ToSharedRef());
+	SpawnedTab = Tab;
+	return Tab;
 }
 
 void FVFXAgentEditorModule::PluginButtonClicked()

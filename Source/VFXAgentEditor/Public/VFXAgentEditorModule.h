@@ -17,4 +17,6 @@ private:
 	void PluginButtonClicked();
 
 	FDelegateHandle ToolMenusStartupHandle;
+	TWeakPtr<class SDockTab> SpawnedTab;
+	TSharedPtr<class SVFXAgentPanel> PanelWidget;
 };
