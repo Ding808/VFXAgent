@@ -29,7 +29,7 @@
 		{
 			"Name": "VFXAgentNiagara",
 			"Type": "Editor",
-			"LoadingPhase": "Default",
+			"LoadingPhase": "PostDefault",
 			"AdditionalDependencies": [
 				"Engine",
 				"Renderer"

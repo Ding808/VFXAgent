@@ -48,7 +48,10 @@ struct FMotionModuleDescriptor
 	FString DisplayName;         // Human-readable name
 	EModulePhase Phase;          // Where to insert in stack
 	int32 Priority;              // Insertion priority
-	TMap<FString, float> DefaultParams; // Default parameter values
+	TMap<FString, float> DefaultParams;         // Float default parameter values
+	TMap<FString, int32> DefaultParamsInt;      // Int default parameter values
+	TMap<FString, bool> DefaultParamsBool;      // Bool default parameter values
+	TMap<FString, FVector> DefaultParamsVector; // Vector default parameter values (Vec3)
 	bool bRequired;              // Must be present for this motion
 	bool bIncompatibleWithGravity; // Can't coexist with gravity
 	bool bIncompatibleWithCone;    // Can't coexist with cone velocity

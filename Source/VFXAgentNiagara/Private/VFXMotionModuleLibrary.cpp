@@ -63,6 +63,8 @@ void FVFXMotionModuleLibrary::InitializeMotionConfigs()
 		VortexModule.Priority = 10;
 		VortexModule.bRequired = true;
 		VortexModule.DefaultParams.Add(TEXT("VortexStrength"), 500.0f);
+		VortexModule.DefaultParamsVector.Add(TEXT("VortexAxis"), FVector(0.0f, 0.0f, 1.0f));
+		VortexModule.DefaultParamsBool.Add(TEXT("bLocalSpace"), false);
 		Config.RequiredModules.Add(VortexModule);
 
 		FMotionModuleDescriptor AttractorModule;
@@ -72,6 +74,8 @@ void FVFXMotionModuleLibrary::InitializeMotionConfigs()
 		AttractorModule.Priority = 8;
 		AttractorModule.bRequired = true;
 		AttractorModule.DefaultParams.Add(TEXT("AttractorStrength"), 800.0f);
+		AttractorModule.DefaultParamsVector.Add(TEXT("AttractorPosition"), FVector::ZeroVector);
+		AttractorModule.DefaultParamsBool.Add(TEXT("bLocalSpace"), false);
 		Config.RequiredModules.Add(AttractorModule);
 		
 		FMotionModuleDescriptor CurlModule;
@@ -81,6 +85,8 @@ void FVFXMotionModuleLibrary::InitializeMotionConfigs()
 		CurlModule.Priority = 5;
 		CurlModule.bRequired = false;
 		CurlModule.DefaultParams.Add(TEXT("NoiseStrength"), 100.0f);
+		CurlModule.DefaultParamsVector.Add(TEXT("NoiseOffset"), FVector::ZeroVector);
+		CurlModule.DefaultParamsBool.Add(TEXT("bLocalSpace"), false);
 		Config.RequiredModules.Add(CurlModule);
 		
 		MotionConfigs.Add(EMotionArchetype::OrbitAroundAxis, Config);
@@ -139,6 +145,8 @@ void FVFXMotionModuleLibrary::InitializeMotionConfigs()
 		AttractorModule.bRequired = true;
 		AttractorModule.bIncompatibleWithGravity = true;
 		AttractorModule.DefaultParams.Add(TEXT("AttractorStrength"), 1000.0f);
+		AttractorModule.DefaultParamsVector.Add(TEXT("AttractorPosition"), FVector::ZeroVector);
+		AttractorModule.DefaultParamsBool.Add(TEXT("bLocalSpace"), false);
 		Config.RequiredModules.Add(AttractorModule);
 		
 		MotionConfigs.Add(EMotionArchetype::RadialInward, Config);
@@ -173,6 +181,8 @@ void FVFXMotionModuleLibrary::InitializeMotionConfigs()
 		CurlModule.Priority = 5;
 		CurlModule.bRequired = true;
 		CurlModule.DefaultParams.Add(TEXT("NoiseStrength"), 150.0f);
+		CurlModule.DefaultParamsVector.Add(TEXT("NoiseOffset"), FVector::ZeroVector);
+		CurlModule.DefaultParamsBool.Add(TEXT("bLocalSpace"), false);
 		Config.RequiredModules.Add(CurlModule);
 		
 		FMotionModuleDescriptor DragModule;
@@ -266,6 +276,8 @@ void FVFXMotionModuleLibrary::InitializeMotionConfigs()
 		CurlModule.Priority = 10;
 		CurlModule.bRequired = true;
 		CurlModule.DefaultParams.Add(TEXT("NoiseStrength"), 300.0f);
+		CurlModule.DefaultParamsVector.Add(TEXT("NoiseOffset"), FVector::ZeroVector);
+		CurlModule.DefaultParamsBool.Add(TEXT("bLocalSpace"), false);
 		Config.RequiredModules.Add(CurlModule);
 		
 		MotionConfigs.Add(EMotionArchetype::Turbulent, Config);

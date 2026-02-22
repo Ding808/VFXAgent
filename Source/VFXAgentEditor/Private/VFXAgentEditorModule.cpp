@@ -25,7 +25,7 @@ static void LogModuleStartupDiagnostics(const TCHAR* ModuleName)
 	FString ModuleFilename;
 	if (FModuleManager::Get().QueryModule(ModuleNameStr, ModuleFilename))
 	{
-		UE_LOG(LogVFXAgent, Log, TEXT("[%s] QueryModule filename: %s"), ModuleName, *ModuleFilename);
+		UE_LOG(LogVFXAgent, Log, TEXT("[%s] QueryModule filename(abs): %s"), ModuleName, *FPaths::ConvertRelativePathToFull(ModuleFilename));
 	}
 	else
 	{
@@ -36,8 +36,8 @@ static void LogModuleStartupDiagnostics(const TCHAR* ModuleName)
 	{
 		const FString PluginDir = Plugin->GetBaseDir();
 		const FString ExpectedDll = FPaths::Combine(PluginDir, TEXT("Binaries/Win64"), FString::Printf(TEXT("UnrealEditor-%s.dll"), ModuleName));
-		UE_LOG(LogVFXAgent, Log, TEXT("[%s] PluginDir=%s"), ModuleName, *PluginDir);
-		UE_LOG(LogVFXAgent, Log, TEXT("[%s] ExpectedDLL=%s Exists=%s"), ModuleName, *ExpectedDll, FPaths::FileExists(ExpectedDll) ? TEXT("true") : TEXT("false"));
+		UE_LOG(LogVFXAgent, Log, TEXT("[%s] PluginDir(abs)=%s"), ModuleName, *FPaths::ConvertRelativePathToFull(PluginDir));
+		UE_LOG(LogVFXAgent, Log, TEXT("[%s] ExpectedDLL(abs)=%s Exists=%s"), ModuleName, *FPaths::ConvertRelativePathToFull(ExpectedDll), FPaths::FileExists(ExpectedDll) ? TEXT("true") : TEXT("false"));
 	}
 	else
 	{
@@ -71,6 +71,12 @@ void FVFXAgentEditorModule::ShutdownModule()
 {
 	UE_LOG(LogVFXAgent, Log, TEXT("VFXAgentEditor Module Shutdown"));
 
+	if (ToolMenusStartupHandle.IsValid())
+	{
+		UToolMenus::UnRegisterStartupCallback(ToolMenusStartupHandle);
+		ToolMenusStartupHandle.Reset();
+	}
+
 	if (SpawnedTab.IsValid())
 	{
 		SpawnedTab.Pin()->RequestCloseTab();
@@ -89,12 +95,6 @@ void FVFXAgentEditorModule::ShutdownModule()
 	// Unregister menus
 	if (FModuleManager::Get().IsModuleLoaded("ToolMenus"))
 	{
-		if (ToolMenusStartupHandle.IsValid())
-		{
-			UToolMenus::UnRegisterStartupCallback(ToolMenusStartupHandle);
-			ToolMenusStartupHandle.Reset();
-		}
-
 		UnregisterMenus();
 	}
 }

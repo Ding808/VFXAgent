@@ -5,6 +5,12 @@
 
 class UNiagaraEmitter;
 class UNiagaraScript;
+class UNiagaraScriptSourceBase;
+class UNiagaraGraph;
+class UNiagaraNodeOutput;
+class UNiagaraNodeFunctionCall;
+class UEdGraphPin;
+struct FNiagaraTypeDefinition;
 
 struct FModuleInsertResult
 {
@@ -30,14 +36,16 @@ public:
 	/**
 	 * Insert a single module by script path
 	 */
-	static bool InsertModuleByPath(UNiagaraEmitter* Emitter, const FString& ModulePath, EModulePhase Phase, int32 Priority, FString& OutError);
+	static bool InsertModuleByPath(UNiagaraEmitter* Emitter, const FMotionModuleDescriptor& Module, FString& OutError);
 
 private:
 	static FString NormalizeModulePath(const FString& InPath);
 	static UNiagaraScript* LoadScript(const FString& ModulePath);
-	static bool InsertScriptWithOrdering(UNiagaraEmitter* Emitter, const FName& ArrayPropName, UNiagaraScript* Script, EModulePhase Phase);
-	static int32 FindInsertIndexForPhase(UNiagaraEmitter* Emitter, const FName& ArrayPropName, EModulePhase Phase);
-	static UNiagaraScript* GetScriptFromEntry(void* ElemPtr, UStruct* StructType);
-	static bool SetStructObjectField(void* StructPtr, UStruct* StructType, const FName& FieldName, UObject* Value);
+	static bool InsertScriptViaGraphSource(UNiagaraEmitter* Emitter, UNiagaraScript* Script, const FMotionModuleDescriptor& Module, FString& OutError);
+	static void ApplyDefaultParamsToModuleNode(UNiagaraNodeFunctionCall* ModuleNode, const FMotionModuleDescriptor& Module);
+	static ENiagaraScriptUsage ResolveScriptUsageForInsert(const FString& ModulePath, EModulePhase Phase);
+	static UNiagaraNodeOutput* FindBestOutputNode(UNiagaraGraph* Graph, ENiagaraScriptUsage PreferredUsage);
+	static FNiagaraParameterHandle MakeAliasedInputHandle(const FString& RawInputName, UNiagaraNodeFunctionCall* ModuleNode);
+	static UEdGraphPin* ResolveOrCreateOverridePin(UNiagaraNodeFunctionCall* ModuleNode, const FString& RawInputName, const FNiagaraTypeDefinition& ValueTypeDef);
 	static FName GetStackNameForPhase(EModulePhase Phase);
 };

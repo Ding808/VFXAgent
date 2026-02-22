@@ -18,37 +18,26 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Factories/Factory.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/Paths.h"
 
-static FString SanitizeNameForNiagara(const FString& SourceString, const FString& Fallback)
+static FString GetSafeName(const FString& InName, const FString& Fallback)
 {
-	FString Sanitized = SourceString;
-	Sanitized = Sanitized.Replace(TEXT(" "), TEXT("_"));
+	FString Safe = InName;
+	Safe = Safe.Replace(TEXT(" "), TEXT("_"));
+	Safe = FPaths::MakeValidFileName(Safe, TEXT("_"));
+	Safe.TrimStartAndEndInline();
 
-	FString Clean;
-	Clean.Reserve(Sanitized.Len());
-	for (const TCHAR Ch : Sanitized)
-	{
-		if (FChar::IsAlnum(Ch) || Ch == TEXT('_'))
-		{
-			Clean.AppendChar(Ch);
-		}
-		else
-		{
-			Clean.AppendChar(TEXT('_'));
-		}
-	}
-
-	while (Clean.Contains(TEXT("__")))
-	{
-		Clean = Clean.Replace(TEXT("__"), TEXT("_"));
-	}
-
-	Clean.TrimStartAndEndInline();
-	if (Clean.IsEmpty())
+	if (Safe.IsEmpty())
 	{
 		return Fallback;
 	}
-	return Clean;
+
+	while (Safe.Contains(TEXT("__")))
+	{
+		Safe = Safe.Replace(TEXT("__"), TEXT("_"));
+	}
+
+	return Safe;
 }
 
 void FVFXNiagaraSpecBuilder::LogBuildAction(FNiagaraBuildContext& Context, const FString& Action)
@@ -81,7 +70,7 @@ UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpec(const FVFXEffectSpec& Spec
 	
 	// Create system asset
 	const FString SystemPath = Spec.OutputPath.IsEmpty() ? TEXT("/Game/GeneratedVFX") : Spec.OutputPath;
-	const FString SystemName = SanitizeNameForNiagara(Spec.Name.IsEmpty() ? TEXT("GeneratedSystem") : Spec.Name, TEXT("GeneratedSystem"));
+	const FString SystemName = GetSafeName(Spec.Name.IsEmpty() ? TEXT("GeneratedSystem") : Spec.Name, TEXT("GeneratedSystem"));
 	
 	UNiagaraSystem* System = NewObject<UNiagaraSystem>(
 		GetTransientPackage(),
@@ -134,7 +123,7 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitter(
 	// STEP 2: Create emitter (from template or scratch)
 	UNiagaraEmitter* Emitter = nullptr;
 	
-	const FString SafeEmitterName = SanitizeNameForNiagara(EmitterSpec.Name, TEXT("Emitter"));
+	const FString SafeEmitterName = GetSafeName(EmitterSpec.Name, TEXT("Emitter"));
 
 	if (SelectionResult.Strategy == EConstructionStrategy::BuildFromScratch)
 	{
@@ -415,7 +404,7 @@ UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpecV2(const FEffectSpecV2& Spe
 	OutContext.Spec = Spec;
 	OutContext.bSuccess = false;
 
-	FString SystemName = SanitizeNameForNiagara(Spec.EffectName, TEXT("VFXGen_V2"));
+	FString SystemName = GetSafeName(Spec.EffectName, TEXT("VFXGen_V2"));
 	if (SystemName.IsEmpty()) SystemName = TEXT("VFXGen_V2");
     
 	UNiagaraSystem* System = NewObject<UNiagaraSystem>(
@@ -443,7 +432,7 @@ UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpecV2(const FEffectSpecV2& Spe
 				EmitterVersion = FGuid::NewGuid(); // Fallback if no version exists
 			}
 
-			const FString SafeLayerName = SanitizeNameForNiagara(Layer.Name, TEXT("Layer"));
+			const FString SafeLayerName = GetSafeName(Layer.Name, TEXT("Layer"));
 			FNiagaraEmitterHandle Handle = System->AddEmitterHandle(*Emitter, FName(*SafeLayerName), EmitterVersion);
 			Handle.SetIsEnabled(true, *System, true);
 			LogBuildActionV2(OutContext, FString::Printf(TEXT("Added Emitter: %s"), *SafeLayerName));
@@ -456,7 +445,7 @@ UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpecV2(const FEffectSpecV2& Spe
 
 UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitterV2(const FLayerSpecV2& Layer, FNiagaraBuildContextV2& Context)
 {
-	const FString SafeLayerName = SanitizeNameForNiagara(Layer.Name, TEXT("Layer"));
+	const FString SafeLayerName = GetSafeName(Layer.Name, TEXT("Layer"));
 	UNiagaraEmitter* Emitter = CreateFromScratch(SafeLayerName);
 	if (!Emitter) return nullptr;
 
@@ -468,7 +457,7 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitterV2(const FLayerSpecV2& Laye
 	
 	// 1. Prepare Material Recipe
 	FVFXMaterialRecipe MatRecipe;
-	MatRecipe.Name = SanitizeNameForNiagara(FString::Printf(TEXT("M_%s_%s"), *SafeLayerName, *FGuid::NewGuid().ToString().Left(4)), TEXT("M_VFX_Mat"));
+	MatRecipe.Name = GetSafeName(FString::Printf(TEXT("M_%s_%s"), *SafeLayerName, *FGuid::NewGuid().ToString().Left(4)), TEXT("M_VFX_Mat"));
 	
 	// Map Shading Model
 	MatRecipe.bIsUnlit = (Layer.Material.Shading.ToLower() == TEXT("unlit"));
@@ -596,7 +585,7 @@ void FVFXNiagaraSpecBuilder::ConfigureEmitterMotionV2(UNiagaraEmitter* Emitter, 
 	{
 		SpawnModule.DisplayName = TEXT("Spawn Burst Instant");
 		SpawnModule.ModulePath = TEXT("/Niagara/Modules/Emitter/SpawnBurstInstant.SpawnBurstInstant");
-		SpawnModule.DefaultParams.Add(TEXT("SpawnCount"), (float)Layer.MaxParticles); 
+		SpawnModule.DefaultParamsInt.Add(TEXT("SpawnCount"), Layer.MaxParticles);
 	}
 	else
 	{
@@ -622,6 +611,7 @@ void FVFXNiagaraSpecBuilder::ConfigureEmitterMotionV2(UNiagaraEmitter* Emitter, 
 		VelModule.DisplayName = TEXT("Add Velocity");
 		VelModule.ModulePath = TEXT("/Niagara/Modules/Velocity/AddVelocity.AddVelocity");
 		VelModule.Phase = EModulePhase::Forces;
+		VelModule.DefaultParamsVector.Add(TEXT("Velocity"), Layer.Init.Velocity);
 		Modules.Add(VelModule);
 	}
 	else if (Layer.Motion.Verb == EMotionVerbV2::Orbit || Layer.Motion.Verb == EMotionVerbV2::Spiral)
