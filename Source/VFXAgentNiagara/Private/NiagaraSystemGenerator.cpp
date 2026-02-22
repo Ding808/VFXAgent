@@ -14,6 +14,12 @@
 #include "Modules/ModuleManager.h"
 #include "Misc/ConfigCacheIni.h"
 #include "UObject/UnrealType.h"
+#include "ScopedTransaction.h"
+#include "Runtime/Launch/Resources/Version.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#include "NiagaraEmitter.h"
+#endif
 
 static FString SanitizeGeneratedName(const FString& SourceString, const FString& Fallback)
 {
@@ -71,6 +77,9 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     }
 
     UE_LOG(LogVFXAgent, Log, TEXT("Generating System (single attempt)"));
+    
+    FScopedTransaction Transaction(FText::FromString("Generating Niagara System"));
+    
     FVFXRepairReport Report;
     UNiagaraSystem* ResultSystem = FSystemAssembler::Assemble(Spec, Report);
     if (!ResultSystem)
@@ -78,6 +87,11 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
         UE_LOG(LogVFXAgent, Error, TEXT("Failed to assemble system from recipe: %s"), *SafeSystemName);
         return nullptr;
     }
+    
+    // Ensure the system is marked as standalone to prevent GC during generation
+    ResultSystem->SetFlags(RF_Public | RF_Standalone);
+    
+    ResultSystem->Modify();
 
     // Assign materials from the library (no material generation)
     AssignMaterialsFromLibrary(Recipe, ResultSystem);
@@ -284,37 +298,20 @@ void UNiagaraSystemGenerator::AssignMaterialsFromLibrary(
         EmitterKeywords.Add(Emitter.Name.ToLower(), BuildKeywords(Emitter.Name + TEXT(" ") + Emitter.RendererType));
     }
 
-    // Helper to retrieve renderer properties from a UNiagaraEmitter using reflection.
-    auto GetEmitterRenderers = [](UNiagaraEmitter* Emitter)
-    {
-        TArray<UNiagaraRendererProperties*> Result;
-        if (!Emitter) return Result;
-        const FName PossibleNames[] = { TEXT("RendererProperties"), TEXT("Renderers") };
-        for (const FName& Name : PossibleNames)
-        {
-            FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), Name);
-            if (!ArrayProp) continue;
-            FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
-            FObjectPropertyBase* InnerObjProp = CastField<FObjectPropertyBase>(ArrayProp->Inner);
-            if (!InnerObjProp) break;
-            for (int32 i = 0; i < Helper.Num(); ++i)
-            {
-                void* ElemPtr = Helper.GetRawPtr(i);
-                UObject* Obj = InnerObjProp->GetObjectPropertyValue(ElemPtr);
-                if (UNiagaraRendererProperties* RP = Cast<UNiagaraRendererProperties>(Obj))
-                {
-                    Result.Add(RP);
-                }
-            }
-            break;
-        }
-        return Result;
-    };
-
     auto ApplyMaterialToEmitter = [&](UNiagaraEmitter* Emitter, UMaterialInterface* Material)
     {
         if (!Emitter || !Material) return;
-        TArray<UNiagaraRendererProperties*> Renderers = GetEmitterRenderers(Emitter);
+        
+        TArray<UNiagaraRendererProperties*> Renderers;
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+        if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
+        {
+            Renderers = EmitterData->GetRenderers();
+        }
+#else
+        Renderers = Emitter->GetRenderers();
+#endif
+
         for (UNiagaraRendererProperties* Prop : Renderers)
         {
             if (!Prop) continue;
@@ -327,6 +324,13 @@ void UNiagaraSystemGenerator::AssignMaterialsFromLibrary(
                 Ribbon->Material = Material;
             }
         }
+        
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+        if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
+        {
+            // EmitterData->Modify(); // FVersionedNiagaraEmitterData is a struct, not a UObject
+        }
+#endif
         Emitter->Modify();
         Emitter->PostEditChange();
     };

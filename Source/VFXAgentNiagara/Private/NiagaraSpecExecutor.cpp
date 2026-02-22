@@ -175,7 +175,7 @@ static void AddMinimalModuleChain(UNiagaraSystem* System, const FString& Emitter
         if (!bOk)
         {
             FPipelineLog::Get().Push(EPipelineLogLevel::Warning, EPipelineStage::Niagara,
-                FString::Printf(TEXT("Failed to add module: %s"), *Entry.Path));
+                FString::Printf(TEXT("Failed to add module: %s"), Entry.Path));
         }
     }
 }
@@ -1948,13 +1948,17 @@ static void SetEmitterLocalSpace(UNiagaraEmitter* Emitter, bool bLocalSpace)
 UNiagaraSystem* FNiagaraSpecExecutor::CreateNiagaraSystemAsset(const FString& TargetPath, const FString& SystemName)
 {
     IAssetTools& AssetTools = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-    FString PackageName = FPaths::Combine(TargetPath, SystemName);
+    
+    // Ensure the system name does not contain whitespace or invalid characters
+    FString SafeSystemName = SanitizeNiagaraIdentifier(SystemName, TEXT("GeneratedSystem"));
+    
+    FString PackageName = FPaths::Combine(TargetPath, SafeSystemName);
     
     // Create a new Niagara System using the Factory
     UFactory* Factory = NewObject<UFactory>(GetTransientPackage(), FindObject<UClass>(nullptr, TEXT("/Script/NiagaraEditor.NiagaraSystemFactoryNew")));
     if (!Factory) return nullptr;
 
-    UObject* NewAsset = AssetTools.CreateAsset(SystemName, TargetPath, UNiagaraSystem::StaticClass(), Factory);
+    UObject* NewAsset = AssetTools.CreateAsset(SafeSystemName, TargetPath, UNiagaraSystem::StaticClass(), Factory);
     return Cast<UNiagaraSystem>(NewAsset);
 }
 
@@ -2759,16 +2763,19 @@ bool FNiagaraSpecExecutor::SaveCompileAndSelfCheck(UNiagaraSystem* System, FVFXR
         Pkg->MarkPackageDirty();
     }
 
-    // Step 3: Request a FORCED full recompile (bForce = true is critical)
+    // Step 3: Wait for any background compilation to finish before requesting a new one
+    System->WaitForCompilationComplete(true, true);
+
+    // Step 4: Request a FORCED full recompile (bForce = true is critical)
     System->RequestCompile(true);
     
-    // Step 4: Wait for the compilation to complete - blocking call
+    // Step 5: Wait for the compilation to complete - blocking call
     System->WaitForCompilationComplete(true, true);
     
-    // Step 5: Invalidate cached data to force refresh
+    // Step 6: Invalidate cached data to force refresh
     System->InvalidateCachedData();
     
-    // Step 6: Save the package
+    // Step 7: Save the package
     FString PackageName = System->GetOutermost()->GetName();
     FSavePackageArgs SaveArgs;
     SaveArgs.TopLevelFlags = RF_Public | RF_Standalone;

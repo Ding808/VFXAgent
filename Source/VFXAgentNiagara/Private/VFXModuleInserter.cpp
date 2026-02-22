@@ -9,6 +9,11 @@
 #include "NiagaraEmitter.h"
 #include "NiagaraSystem.h"
 #include "NiagaraScript.h"
+#include "Runtime/Launch/Resources/Version.h"
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+#include "NiagaraEmitter.h"
+#endif
 
 static bool SetStructObjectField(void* StructPtr, UStruct* StructType, const FName& FieldName, UObject* Value)
 {
@@ -105,6 +110,13 @@ bool FVFXModuleInserter::InsertModuleByPath(UNiagaraEmitter* Emitter, const FMot
 		return false;
 	}
 
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
+	{
+		// EmitterData->Modify(); // FVersionedNiagaraEmitterData is a struct, not a UObject
+	}
+#endif
+
 	Emitter->Modify();
 	Emitter->PostEditChange();
 	Emitter->MarkPackageDirty();
@@ -183,7 +195,21 @@ bool FVFXModuleInserter::InsertScriptViaGraphSource(UNiagaraEmitter* Emitter, UN
 	}
 
 	const FName StackPropName = GetStackNameForPhase(Module.Phase);
+	
+	void* TargetContainer = Emitter;
 	FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), StackPropName);
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	if (!ArrayProp)
+	{
+		if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
+		{
+			TargetContainer = EmitterData;
+			ArrayProp = FindFProperty<FArrayProperty>(FVersionedNiagaraEmitterData::StaticStruct(), StackPropName);
+		}
+	}
+#endif
+
 	if (!ArrayProp)
 	{
 		OutError = FString::Printf(TEXT("Emitter does not expose stack property: %s"), *StackPropName.ToString());
@@ -197,7 +223,7 @@ bool FVFXModuleInserter::InsertScriptViaGraphSource(UNiagaraEmitter* Emitter, UN
 		return false;
 	}
 
-	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
 
 	for (int32 Index = 0; Index < Helper.Num(); ++Index)
 	{
