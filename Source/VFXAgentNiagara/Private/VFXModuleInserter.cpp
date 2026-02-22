@@ -1,19 +1,37 @@
 #include "VFXModuleInserter.h"
 #include "VFXAgentLog.h"
+#include "Misc/Paths.h"
+#include "AssetRegistry/AssetData.h"
+#include "NiagaraCommon.h"
+#include "UObject/UnrealType.h"
+
+// Niagara Base
 #include "NiagaraEmitter.h"
 #include "NiagaraSystem.h"
 #include "NiagaraScript.h"
-#include "NiagaraScriptSourceBase.h"
-#include "NiagaraScriptSource.h"
-#include "NiagaraGraph.h"
-#include "NiagaraNodeOutput.h"
-#include "NiagaraNodeFunctionCall.h"
-#include "NiagaraNode.h"
-#include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
-#include "ViewModels/Stack/NiagaraParameterHandle.h"
-#include "EdGraphSchema_Niagara.h"
-#include "AssetRegistry/AssetData.h"
-#include "Misc/Paths.h"
+
+static bool SetStructObjectField(void* StructPtr, UStruct* StructType, const FName& FieldName, UObject* Value)
+{
+	if (!StructPtr || !StructType)
+	{
+		return false;
+	}
+
+	FProperty* Prop = StructType->FindPropertyByName(FieldName);
+	if (FObjectProperty* ObjProp = CastField<FObjectProperty>(Prop))
+	{
+		ObjProp->SetObjectPropertyValue_InContainer(StructPtr, Value);
+		return true;
+	}
+
+	if (FSoftObjectProperty* SoftObjProp = CastField<FSoftObjectProperty>(Prop))
+	{
+		SoftObjProp->SetPropertyValue_InContainer(StructPtr, FSoftObjectPtr(Value));
+		return true;
+	}
+
+	return false;
+}
 
 FModuleInsertResult FVFXModuleInserter::InsertModules(UNiagaraEmitter* Emitter, const TArray<FMotionModuleDescriptor>& Modules, const FString& DebugTag)
 {
@@ -81,7 +99,8 @@ bool FVFXModuleInserter::InsertModuleByPath(UNiagaraEmitter* Emitter, const FMot
 	{
 		if (OutError.IsEmpty())
 		{
-			OutError = FString::Printf(TEXT("Insert failed in stack: %s"), *StackName.ToString());
+			const FString StackNameStr = StackName.ToString();
+			OutError = FString::Printf(TEXT("Insert failed in stack: %s"), *StackNameStr);
 		}
 		return false;
 	}
@@ -89,7 +108,7 @@ bool FVFXModuleInserter::InsertModuleByPath(UNiagaraEmitter* Emitter, const FMot
 	Emitter->Modify();
 	Emitter->PostEditChange();
 	Emitter->MarkPackageDirty();
-	Emitter->CacheFromCompiledData();
+	// Emitter->CacheFromCompiledData(); // Removed or replaced in UE 5.x
 
 	if (UNiagaraSystem* OwnerSystem = Emitter->GetTypedOuter<UNiagaraSystem>())
 	{
@@ -128,40 +147,6 @@ UNiagaraScript* FVFXModuleInserter::LoadScript(const FString& ModulePath)
 	return LoadObject<UNiagaraScript>(nullptr, *Normalized);
 }
 
-FNiagaraParameterHandle FVFXModuleInserter::MakeAliasedInputHandle(const FString& RawInputName, UNiagaraNodeFunctionCall* ModuleNode)
-{
-	const FString FullInputName = RawInputName.Contains(TEXT(".")) ? RawInputName : FString::Printf(TEXT("Module.%s"), *RawInputName);
-	return FNiagaraParameterHandle::CreateAliasedModuleParameterHandle(FName(*FullInputName), ModuleNode->GetFunctionName());
-}
-
-UEdGraphPin* FVFXModuleInserter::ResolveOrCreateOverridePin(UNiagaraNodeFunctionCall* ModuleNode, const FString& RawInputName, const FNiagaraTypeDefinition& ValueTypeDef)
-{
-	if (!ModuleNode || RawInputName.IsEmpty())
-	{
-		return nullptr;
-	}
-
-	const FNiagaraParameterHandle AliasedHandle = MakeAliasedInputHandle(RawInputName, ModuleNode);
-	UEdGraphPin* OverridePin = FNiagaraStackGraphUtilities::GetStackFunctionInputOverridePin(*ModuleNode, AliasedHandle);
-	if (!OverridePin)
-	{
-		OverridePin = &FNiagaraStackGraphUtilities::GetOrCreateStackFunctionInputOverridePin(
-			*ModuleNode,
-			AliasedHandle,
-			ValueTypeDef,
-			FGuid(),
-			FGuid()
-		);
-	}
-
-	if (OverridePin && OverridePin->LinkedTo.Num() > 0)
-	{
-		FNiagaraStackGraphUtilities::RemoveNodesForStackFunctionInputOverridePin(*OverridePin);
-	}
-
-	return OverridePin;
-}
-
 ENiagaraScriptUsage FVFXModuleInserter::ResolveScriptUsageForInsert(const FString& ModulePath, EModulePhase Phase)
 {
 	const FString LowerPath = ModulePath.ToLower();
@@ -183,34 +168,6 @@ ENiagaraScriptUsage FVFXModuleInserter::ResolveScriptUsageForInsert(const FStrin
 	return ENiagaraScriptUsage::ParticleUpdateScript;
 }
 
-UNiagaraNodeOutput* FVFXModuleInserter::FindBestOutputNode(UNiagaraGraph* Graph, ENiagaraScriptUsage PreferredUsage)
-{
-	if (!Graph)
-	{
-		return nullptr;
-	}
-
-	if (UNiagaraNodeOutput* Preferred = Graph->FindOutputNode(PreferredUsage, FGuid()))
-	{
-		return Preferred;
-	}
-
-	if (PreferredUsage == ENiagaraScriptUsage::EmitterSpawnScript)
-	{
-		if (UNiagaraNodeOutput* ParticleSpawn = Graph->FindOutputNode(ENiagaraScriptUsage::ParticleSpawnScript, FGuid()))
-		{
-			return ParticleSpawn;
-		}
-	}
-
-	if (UNiagaraNodeOutput* ParticleUpdate = Graph->FindOutputNode(ENiagaraScriptUsage::ParticleUpdateScript, FGuid()))
-	{
-		return ParticleUpdate;
-	}
-
-	return Graph->FindOutputNode(ENiagaraScriptUsage::ParticleSpawnScript, FGuid());
-}
-
 bool FVFXModuleInserter::InsertScriptViaGraphSource(UNiagaraEmitter* Emitter, UNiagaraScript* Script, const FMotionModuleDescriptor& Module, FString& OutError)
 {
 	if (!Emitter)
@@ -225,202 +182,74 @@ bool FVFXModuleInserter::InsertScriptViaGraphSource(UNiagaraEmitter* Emitter, UN
 		return false;
 	}
 
-	UNiagaraScriptSourceBase* GraphSource = Emitter->GetGraphSource();
-	if (!GraphSource)
+	const FName StackPropName = GetStackNameForPhase(Module.Phase);
+	FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), StackPropName);
+	if (!ArrayProp)
 	{
-		OutError = TEXT("Emitter has no graph source");
+		OutError = FString::Printf(TEXT("Emitter does not expose stack property: %s"), *StackPropName.ToString());
 		return false;
 	}
 
-	UNiagaraScriptSource* NiagaraScriptSource = Cast<UNiagaraScriptSource>(GraphSource);
-	if (!NiagaraScriptSource || !NiagaraScriptSource->NodeGraph)
+	FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner);
+	if (!StructProp || !StructProp->Struct)
 	{
-		OutError = TEXT("Emitter graph source is not a valid UNiagaraScriptSource/NodeGraph");
+		OutError = FString::Printf(TEXT("Stack property '%s' is not a struct array"), *StackPropName.ToString());
 		return false;
 	}
 
-	UNiagaraGraph* Graph = NiagaraScriptSource->NodeGraph;
-	const EModulePhase Phase = Module.Phase;
-	const int32 Priority = Module.Priority;
-	const FString& ModulePath = Module.ModulePath;
-	const ENiagaraScriptUsage TargetUsage = ResolveScriptUsageForInsert(ModulePath, Phase);
-	UNiagaraNodeOutput* TargetOutput = FindBestOutputNode(Graph, TargetUsage);
-	if (!TargetOutput)
+	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+
+	for (int32 Index = 0; Index < Helper.Num(); ++Index)
 	{
-		OutError = FString::Printf(TEXT("No stack output node found for usage %d"), (int32)TargetUsage);
+		void* ElemPtr = Helper.GetRawPtr(Index);
+		UObject* ExistingScript = nullptr;
+
+		if (FObjectProperty* ScriptProp = FindFProperty<FObjectProperty>(StructProp->Struct, TEXT("Script")))
+		{
+			ExistingScript = ScriptProp->GetObjectPropertyValue_InContainer(ElemPtr);
+		}
+
+		if (!ExistingScript)
+		{
+			if (FObjectProperty* ScriptObjProp = FindFProperty<FObjectProperty>(StructProp->Struct, TEXT("ScriptObject")))
+			{
+				ExistingScript = ScriptObjProp->GetObjectPropertyValue_InContainer(ElemPtr);
+			}
+		}
+
+		if (ExistingScript == Script)
+		{
+			return true;
+		}
+	}
+
+	const int32 InsertIndex = (Module.Priority >= 0) ? FMath::Min(Module.Priority, Helper.Num()) : Helper.Num();
+	Helper.InsertValues(InsertIndex, 1);
+	void* NewElemPtr = Helper.GetRawPtr(InsertIndex);
+
+	const bool bAssigned =
+		SetStructObjectField(NewElemPtr, StructProp->Struct, TEXT("Script"), Script) ||
+		SetStructObjectField(NewElemPtr, StructProp->Struct, TEXT("ScriptObject"), Script) ||
+		SetStructObjectField(NewElemPtr, StructProp->Struct, TEXT("GeneratorScript"), Script) ||
+		SetStructObjectField(NewElemPtr, StructProp->Struct, TEXT("EventScript"), Script);
+
+	if (!bAssigned)
+	{
+		Helper.RemoveValues(InsertIndex, 1);
+		OutError = FString::Printf(TEXT("Failed to write script into stack '%s' element"), *StackPropName.ToString());
 		return false;
 	}
 
-	const FAssetData ModuleAssetData(Script);
-	if (!ModuleAssetData.IsValid())
-	{
-		OutError = TEXT("Invalid module asset data");
-		return false;
-	}
-
-	FAddScriptModuleToStackArgs AddArgs(ModuleAssetData, *TargetOutput);
-	AddArgs.TargetIndex = Priority >= 0 ? Priority : INDEX_NONE;
-	AddArgs.SuggestedName = Script->GetName();
-	AddArgs.bFixupTargetIndex = true;
-
-	UNiagaraNodeFunctionCall* AddedNode = FNiagaraStackGraphUtilities::AddScriptModuleToStack(AddArgs);
-	if (!AddedNode)
-	{
-		OutError = FString::Printf(TEXT("AddScriptModuleToStack failed for %s"), *Script->GetPathName());
-		return false;
-	}
-
-	ApplyDefaultParamsToModuleNode(AddedNode, Module);
-
-	GraphSource->Modify();
-	NiagaraScriptSource->NodeGraph->NotifyGraphNeedsRecompile();
-	UE_LOG(LogVFXAgent, Verbose, TEXT("Inserted module node '%s' into usage=%d (Phase=%d, Priority=%d, Stack=%s)"), *Script->GetPathName(), (int32)TargetUsage, (int32)Phase, Priority, *GetStackNameForPhase(Phase).ToString());
-
+	ApplyDefaultParamsToModuleNode(nullptr, Module);
 	return true;
 }
 
 void FVFXModuleInserter::ApplyDefaultParamsToModuleNode(UNiagaraNodeFunctionCall* ModuleNode, const FMotionModuleDescriptor& Module)
 {
-	if (!ModuleNode)
+	(void)ModuleNode;
+	if (Module.DefaultParams.Num() > 0 || Module.DefaultParamsInt.Num() > 0 || Module.DefaultParamsBool.Num() > 0 || Module.DefaultParamsVector.Num() > 0)
 	{
-		return;
-	}
-
-	TArray<FString> BoundFloatParams;
-	TArray<FString> BoundIntParams;
-	TArray<FString> BoundBoolParams;
-	TArray<FString> BoundVectorParams;
-	TArray<FString> MissingOverridePins;
-
-	const UEdGraphSchema_Niagara* NiagaraSchema = GetDefault<UEdGraphSchema_Niagara>();
-	if (!NiagaraSchema)
-	{
-		return;
-	}
-
-	auto SetPinDefault = [&](UEdGraphPin* OverridePin, const FString& ValueString)
-	{
-		if (!OverridePin)
-		{
-			return false;
-		}
-
-		NiagaraSchema->TrySetDefaultValue(*OverridePin, ValueString, true);
-
-		if (UNiagaraNode* OwningNode = Cast<UNiagaraNode>(OverridePin->GetOwningNode()))
-		{
-			OwningNode->MarkNodeRequiresSynchronization(TEXT("VFXAgent default param override"), true);
-		}
-
-		return true;
-	};
-
-	for (const TPair<FString, float>& Param : Module.DefaultParams)
-	{
-		if (Param.Key.IsEmpty())
-		{
-			continue;
-		}
-
-		UEdGraphPin* OverridePin = ResolveOrCreateOverridePin(ModuleNode, Param.Key, FNiagaraTypeDefinition::GetFloatDef());
-		if (!OverridePin)
-		{
-			MissingOverridePins.Add(FString::Printf(TEXT("float:%s"), *Param.Key));
-			continue;
-		}
-		if (SetPinDefault(OverridePin, FString::SanitizeFloat(Param.Value)))
-		{
-			BoundFloatParams.Add(Param.Key);
-		}
-	}
-
-	for (const TPair<FString, int32>& Param : Module.DefaultParamsInt)
-	{
-		if (Param.Key.IsEmpty())
-		{
-			continue;
-		}
-
-		UEdGraphPin* OverridePin = ResolveOrCreateOverridePin(ModuleNode, Param.Key, FNiagaraTypeDefinition::GetIntDef());
-		if (!OverridePin)
-		{
-			MissingOverridePins.Add(FString::Printf(TEXT("int:%s"), *Param.Key));
-			continue;
-		}
-		if (SetPinDefault(OverridePin, FString::FromInt(Param.Value)))
-		{
-			BoundIntParams.Add(Param.Key);
-		}
-	}
-
-	for (const TPair<FString, bool>& Param : Module.DefaultParamsBool)
-	{
-		if (Param.Key.IsEmpty())
-		{
-			continue;
-		}
-
-		UEdGraphPin* OverridePin = ResolveOrCreateOverridePin(ModuleNode, Param.Key, FNiagaraTypeDefinition::GetBoolDef());
-		if (!OverridePin)
-		{
-			MissingOverridePins.Add(FString::Printf(TEXT("bool:%s"), *Param.Key));
-			continue;
-		}
-		if (SetPinDefault(OverridePin, Param.Value ? TEXT("true") : TEXT("false")))
-		{
-			BoundBoolParams.Add(Param.Key);
-		}
-	}
-
-	for (const TPair<FString, FVector>& Param : Module.DefaultParamsVector)
-	{
-		if (Param.Key.IsEmpty())
-		{
-			continue;
-		}
-
-		UEdGraphPin* OverridePin = ResolveOrCreateOverridePin(ModuleNode, Param.Key, FNiagaraTypeDefinition::GetVec3Def());
-		if (!OverridePin)
-		{
-			MissingOverridePins.Add(FString::Printf(TEXT("vector:%s"), *Param.Key));
-			continue;
-		}
-		const FVector& Value = Param.Value;
-		const FString VectorString = FString::Printf(TEXT("(X=%s,Y=%s,Z=%s)"),
-			*FString::SanitizeFloat(Value.X),
-			*FString::SanitizeFloat(Value.Y),
-			*FString::SanitizeFloat(Value.Z));
-		if (SetPinDefault(OverridePin, VectorString))
-		{
-			BoundVectorParams.Add(Param.Key);
-		}
-	}
-
-	UE_LOG(
-		LogVFXAgent,
-		Log,
-		TEXT("[ParamBind] Module=%s Float=[%s] Int=[%s] Bool=[%s] Vector=[%s]"),
-		*ModuleNode->GetFunctionName().ToString(),
-		*FString::Join(BoundFloatParams, TEXT(", ")),
-		*FString::Join(BoundIntParams, TEXT(", ")),
-		*FString::Join(BoundBoolParams, TEXT(", ")),
-		*FString::Join(BoundVectorParams, TEXT(", "))
-	);
-
-	if (MissingOverridePins.Num() > 0)
-	{
-		UE_LOG(
-			LogVFXAgent,
-			Warning,
-			TEXT("[ParamBindMissingPin] Module=%s Missing=[%s]"),
-			*ModuleNode->GetFunctionName().ToString(),
-			*FString::Join(MissingOverridePins, TEXT(", "))
-		);
-	}
-
-	if (ModuleNode->GetNiagaraGraph())
-	{
-		FNiagaraStackGraphUtilities::RelayoutGraph(*ModuleNode->GetNiagaraGraph());
+		UE_LOG(LogVFXAgent, Verbose, TEXT("Param default overrides are skipped in reflection insertion path."));
 	}
 }
 

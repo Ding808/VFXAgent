@@ -7,10 +7,10 @@
 static void LogModuleStartupDiagnostics(const TCHAR* ModuleName)
 {
 	const FString ModuleNameStr(ModuleName);
-	FString ModuleFilename;
-	if (FModuleManager::Get().QueryModule(ModuleNameStr, ModuleFilename))
+	FModuleStatus ModuleStatus;
+	if (FModuleManager::Get().QueryModule(FName(*ModuleNameStr), ModuleStatus))
 	{
-		UE_LOG(LogVFXAgent, Log, TEXT("[%s] QueryModule filename: %s"), ModuleName, *ModuleFilename);
+		UE_LOG(LogVFXAgent, Log, TEXT("[%s] QueryModule filename: %s"), ModuleName, *ModuleStatus.FilePath);
 	}
 	else
 	{

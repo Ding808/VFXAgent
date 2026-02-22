@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "NiagaraCommon.h"
 #include "VFXMotionModuleLibrary.h"
 
 class UNiagaraEmitter;
@@ -44,8 +45,5 @@ private:
 	static bool InsertScriptViaGraphSource(UNiagaraEmitter* Emitter, UNiagaraScript* Script, const FMotionModuleDescriptor& Module, FString& OutError);
 	static void ApplyDefaultParamsToModuleNode(UNiagaraNodeFunctionCall* ModuleNode, const FMotionModuleDescriptor& Module);
 	static ENiagaraScriptUsage ResolveScriptUsageForInsert(const FString& ModulePath, EModulePhase Phase);
-	static UNiagaraNodeOutput* FindBestOutputNode(UNiagaraGraph* Graph, ENiagaraScriptUsage PreferredUsage);
-	static FNiagaraParameterHandle MakeAliasedInputHandle(const FString& RawInputName, UNiagaraNodeFunctionCall* ModuleNode);
-	static UEdGraphPin* ResolveOrCreateOverridePin(UNiagaraNodeFunctionCall* ModuleNode, const FString& RawInputName, const FNiagaraTypeDefinition& ValueTypeDef);
 	static FName GetStackNameForPhase(EModulePhase Phase);
 };

@@ -24,7 +24,7 @@ static FString GetSafeName(const FString& InName, const FString& Fallback)
 {
 	FString Safe = InName;
 	Safe = Safe.Replace(TEXT(" "), TEXT("_"));
-	Safe = FPaths::MakeValidFileName(Safe, TEXT("_"));
+	Safe = FPaths::MakeValidFileName(Safe, TEXT('_'));
 	Safe.TrimStartAndEndInline();
 
 	if (Safe.IsEmpty())

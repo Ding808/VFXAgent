@@ -175,7 +175,7 @@ static void AddMinimalModuleChain(UNiagaraSystem* System, const FString& Emitter
         if (!bOk)
         {
             FPipelineLog::Get().Push(EPipelineLogLevel::Warning, EPipelineStage::Niagara,
-                FString::Printf(TEXT("Failed to add module: %s"), Entry.Path));
+                FString::Printf(TEXT("Failed to add module: %s"), *Entry.Path));
         }
     }
 }
