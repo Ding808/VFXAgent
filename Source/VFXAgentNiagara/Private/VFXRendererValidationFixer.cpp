@@ -8,6 +8,39 @@
 #include "NiagaraMeshRendererProperties.h"
 #include "Materials/MaterialInterface.h"
 #include "UObject/UnrealType.h"
+#include "Runtime/Launch/Resources/Version.h"
+
+static bool ResolveRendererArrayProperty(UNiagaraEmitter* Emitter, void*& OutContainer, FArrayProperty*& OutArrayProp)
+{
+	OutContainer = Emitter;
+	OutArrayProp = nullptr;
+
+	if (!Emitter)
+	{
+		return false;
+	}
+
+	OutArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), TEXT("RendererProperties"));
+	if (OutArrayProp)
+	{
+		return true;
+	}
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+	if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
+	{
+		OutContainer = EmitterData;
+		OutArrayProp = FindFProperty<FArrayProperty>(FVersionedNiagaraEmitterData::StaticStruct(), TEXT("RendererProperties"));
+		if (OutArrayProp)
+		{
+			return true;
+		}
+	}
+#endif
+
+	OutContainer = nullptr;
+	return false;
+}
 
 static UMaterialInterface* GetMaterialFromStruct(void* StructPtr, UStruct* Struct)
 {
@@ -357,13 +390,13 @@ TArray<UNiagaraRendererProperties*> FVFXRendererValidationFixer::GetRenderers(UN
 	
 	if (!Emitter)
 		return Renderers;
-	
-	// Access RendererProperties array
-	FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), TEXT("RendererProperties"));
-	if (!ArrayProp)
+
+	void* TargetContainer = nullptr;
+	FArrayProperty* ArrayProp = nullptr;
+	if (!ResolveRendererArrayProperty(Emitter, TargetContainer, ArrayProp) || !TargetContainer || !ArrayProp)
 		return Renderers;
-	
-	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+
+	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
 	
 	for (int32 i = 0; i < Helper.Num(); ++i)
 	{
@@ -384,12 +417,13 @@ void FVFXRendererValidationFixer::RemoveRenderer(UNiagaraEmitter* Emitter, UNiag
 {
 	if (!Emitter || !RendererToRemove)
 		return;
-	
-	FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), TEXT("RendererProperties"));
-	if (!ArrayProp)
+
+	void* TargetContainer = nullptr;
+	FArrayProperty* ArrayProp = nullptr;
+	if (!ResolveRendererArrayProperty(Emitter, TargetContainer, ArrayProp) || !TargetContainer || !ArrayProp)
 		return;
-	
-	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+
+	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
 	
 	for (int32 i = Helper.Num() - 1; i >= 0; --i)
 	{
@@ -423,10 +457,11 @@ UNiagaraRendererProperties* FVFXRendererValidationFixer::AddSpriteRenderer(UNiag
 	SpriteRenderer->Material = Material;
 	
 	// Add to RendererProperties array
-	FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), TEXT("RendererProperties"));
-	if (ArrayProp)
+	void* TargetContainer = nullptr;
+	FArrayProperty* ArrayProp = nullptr;
+	if (ResolveRendererArrayProperty(Emitter, TargetContainer, ArrayProp) && TargetContainer && ArrayProp)
 	{
-		FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+		FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
 		const int32 NewIndex = Helper.AddValue();
 		
 		if (FObjectPropertyBase* ObjProp = CastField<FObjectPropertyBase>(ArrayProp->Inner))

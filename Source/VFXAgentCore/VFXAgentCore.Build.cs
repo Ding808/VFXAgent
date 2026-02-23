@@ -37,17 +37,15 @@ public class VFXAgentCore : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
-				"CoreUObject",
-				"Engine",
-				"HTTP",
-				"Json",
-				"JsonUtilities",
-				"Sequencer",
 				"AssetRegistry",
 				"Projects"
 			}
 			);
+
+		if (Target.bBuildEditor)
+		{
+			PrivateDependencyModuleNames.Add("Sequencer");
+		}
 		
 		
 		DynamicallyLoadedModuleNames.AddRange(

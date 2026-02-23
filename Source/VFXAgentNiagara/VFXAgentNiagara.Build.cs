@@ -27,7 +27,6 @@ public class VFXAgentNiagara : ModuleRules
 				"Core",
 				"CoreUObject",
 				"Engine",
-				"NiagaraCore",
 				"Niagara",
 				"VFXAgentCore"
 			}
@@ -37,15 +36,10 @@ public class VFXAgentNiagara : ModuleRules
 		PrivateDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
-				"CoreUObject",
-				"Engine",
 				"HTTP",
 				"Json",
 				"JsonUtilities",
 				"Renderer",
-				"NiagaraCore",
-				"Niagara",
 				"NiagaraEditor",
 				"UnrealEd",
 				"AssetTools",
@@ -53,7 +47,6 @@ public class VFXAgentNiagara : ModuleRules
 				"ImageWrapper",
 				"EditorSubsystem",   // For UAssetEditorSubsystem
 				"Sequencer",
-				"VFXAgentCore",
 				"MaterialEditor",    // For material generation
 				"RenderCore",        // For texture generation
 				"RHI",               // For texture operations

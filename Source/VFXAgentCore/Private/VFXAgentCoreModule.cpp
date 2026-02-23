@@ -17,6 +17,12 @@ static void LogModuleStartupDiagnostics(const TCHAR* ModuleName)
 		UE_LOG(LogVFXAgent, Warning, TEXT("[%s] QueryModule failed, module may not be registered yet"), ModuleName);
 	}
 
+	if (!FModuleManager::Get().IsModuleLoaded(TEXT("Projects")))
+	{
+		UE_LOG(LogVFXAgent, Verbose, TEXT("[%s] Projects module is not loaded yet; skipping plugin-path diagnostics"), ModuleName);
+		return;
+	}
+
 	if (const TSharedPtr<IPlugin> Plugin = IPluginManager::Get().FindPlugin(TEXT("VFXAgent")))
 	{
 		const FString PluginDir = Plugin->GetBaseDir();

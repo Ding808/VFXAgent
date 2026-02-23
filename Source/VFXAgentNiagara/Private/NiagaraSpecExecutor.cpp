@@ -43,6 +43,7 @@ static FString NormalizeTemplateObjectPath(const FString& InPath);
 static void SetEmitterRequiresPersistentIDs(UNiagaraEmitter* Emitter, bool bEnabled);
 static void ApplyIntentModuleRules(UNiagaraSystem* System, const FString& EmitterName, const FVFXIntent& Intent, const FTemplateSelectionResult& Selection);
 static void AddMinimalModuleChain(UNiagaraSystem* System, const FString& EmitterName, EVFXRendererType RendererType);
+static bool ResolveEmitterArrayProperty(UNiagaraEmitter* Emitter, const FName& ArrayPropName, void*& OutContainer, FArrayProperty*& OutArrayProp);
 
 static FString SanitizeNiagaraIdentifier(const FString& SourceString, const FString& Fallback)
 {
@@ -183,9 +184,15 @@ static void AddMinimalModuleChain(UNiagaraSystem* System, const FString& Emitter
 static bool HasAnyModules(UNiagaraEmitter* Emitter, const FName& ArrayPropName)
 {
     if (!Emitter) return false;
-    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
-    if (!ArrayProp) return false;
-    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+
+    void* TargetContainer = nullptr;
+    FArrayProperty* ArrayProp = nullptr;
+    if (!ResolveEmitterArrayProperty(Emitter, ArrayPropName, TargetContainer, ArrayProp) || !TargetContainer || !ArrayProp)
+    {
+        return false;
+    }
+
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
     return Helper.Num() > 0;
 }
 
@@ -319,6 +326,38 @@ static bool SetStructObjectField(void* StructPtr, UStruct* StructType, const FNa
     return false;
 }
 
+static bool ResolveEmitterArrayProperty(UNiagaraEmitter* Emitter, const FName& ArrayPropName, void*& OutContainer, FArrayProperty*& OutArrayProp)
+{
+    OutContainer = Emitter;
+    OutArrayProp = nullptr;
+
+    if (!Emitter)
+    {
+        return false;
+    }
+
+    OutArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), ArrayPropName);
+    if (OutArrayProp)
+    {
+        return true;
+    }
+
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+    if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
+    {
+        OutContainer = EmitterData;
+        OutArrayProp = FindFProperty<FArrayProperty>(FVersionedNiagaraEmitterData::StaticStruct(), ArrayPropName);
+        if (OutArrayProp)
+        {
+            return true;
+        }
+    }
+#endif
+
+    OutContainer = nullptr;
+    return false;
+}
+
 struct FModuleInsertOptions
 {
     FString Mode;      // First | Last | Phase | Anchor
@@ -371,9 +410,14 @@ static bool IsRelativeBefore(const FString& Value)
 
 static int32 FindPhaseBoundaryIndex(UNiagaraEmitter* Emitter, const FName& ArrayPropName, EModulePhase Phase, bool bBefore)
 {
-    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
-    if (!ArrayProp) return INDEX_NONE;
-    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+    void* TargetContainer = nullptr;
+    FArrayProperty* ArrayProp = nullptr;
+    if (!ResolveEmitterArrayProperty(Emitter, ArrayPropName, TargetContainer, ArrayProp) || !TargetContainer || !ArrayProp)
+    {
+        return INDEX_NONE;
+    }
+
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
 
     int32 FirstIndex = INDEX_NONE;
     int32 LastIndex = INDEX_NONE;
@@ -419,9 +463,14 @@ static int32 FindInsertIndexForPhase(UNiagaraEmitter* Emitter, const FName& Arra
     if (Index != INDEX_NONE) return Index;
 
     // If no matching phase exists, insert before the first module with a higher phase index
-    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
-    if (!ArrayProp) return INDEX_NONE;
-    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+    void* TargetContainer = nullptr;
+    FArrayProperty* ArrayProp = nullptr;
+    if (!ResolveEmitterArrayProperty(Emitter, ArrayPropName, TargetContainer, ArrayProp) || !TargetContainer || !ArrayProp)
+    {
+        return INDEX_NONE;
+    }
+
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
     if (FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner))
     {
         UStruct* StructType = StructProp->Struct;
@@ -443,10 +492,15 @@ static int32 FindInsertIndexForPhase(UNiagaraEmitter* Emitter, const FName& Arra
 static bool InsertScriptWithOrdering(UNiagaraEmitter* Emitter, const FName& ArrayPropName, UNiagaraScript* Script, const FModuleInsertOptions& Options)
 {
     if (!Emitter || !Script) return false;
-    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
-    if (!ArrayProp) return false;
 
-    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+    void* TargetContainer = nullptr;
+    FArrayProperty* ArrayProp = nullptr;
+    if (!ResolveEmitterArrayProperty(Emitter, ArrayPropName, TargetContainer, ArrayProp) || !TargetContainer || !ArrayProp)
+    {
+        return false;
+    }
+
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
 
     // Avoid duplicates
     if (FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner))
@@ -683,10 +737,11 @@ static bool TopoSortModules(const TArray<FModuleNode>& Nodes, const TMap<FString
 static void SortEmitterModuleStack(UNiagaraEmitter* Emitter, const FName& ArrayPropName)
 {
     if (!Emitter) return;
-    FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), ArrayPropName);
-    if (!ArrayProp) return;
+    void* TargetContainer = nullptr;
+    FArrayProperty* ArrayProp = nullptr;
+    if (!ResolveEmitterArrayProperty(Emitter, ArrayPropName, TargetContainer, ArrayProp) || !TargetContainer || !ArrayProp) return;
 
-    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(Emitter));
+    FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
     if (Helper.Num() <= 1) return;
 
     FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner);
@@ -2650,10 +2705,13 @@ bool FNiagaraSpecExecutor::ConfigureCollisionEventHandler(UNiagaraSystem* System
     SetEmitterRequiresPersistentIDs(SourceEmitter, true);
 
     // Patch handler source linkage and spawn counts
-    FArrayProperty* HandlerArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), TEXT("EventHandlerScriptProps"));
-    if (HandlerArrayProp)
+    void* HandlerContainer = nullptr;
+    FArrayProperty* HandlerArrayProp = nullptr;
+    if (ResolveEmitterArrayProperty(TargetEmitter, TEXT("EventHandlerScriptProps"), HandlerContainer, HandlerArrayProp)
+        && HandlerContainer
+        && HandlerArrayProp)
     {
-        FScriptArrayHelper HandlerHelper(HandlerArrayProp, HandlerArrayProp->ContainerPtrToValuePtr<void>(TargetEmitter));
+        FScriptArrayHelper HandlerHelper(HandlerArrayProp, HandlerArrayProp->ContainerPtrToValuePtr<void>(HandlerContainer));
         if (FStructProperty* StructProp = CastField<FStructProperty>(HandlerArrayProp->Inner))
         {
             UStruct* StructType = StructProp->Struct;
@@ -2679,10 +2737,13 @@ bool FNiagaraSpecExecutor::ConfigureCollisionEventHandler(UNiagaraSystem* System
     }
 
     // Configure event generator props (if exposed)
-    FArrayProperty* GeneratorArrayProp = FindFProperty<FArrayProperty>(UNiagaraEmitter::StaticClass(), TEXT("EventGeneratorProps"));
-    if (GeneratorArrayProp)
+    void* GeneratorContainer = nullptr;
+    FArrayProperty* GeneratorArrayProp = nullptr;
+    if (ResolveEmitterArrayProperty(SourceEmitter, TEXT("EventGeneratorProps"), GeneratorContainer, GeneratorArrayProp)
+        && GeneratorContainer
+        && GeneratorArrayProp)
     {
-        FScriptArrayHelper GenHelper(GeneratorArrayProp, GeneratorArrayProp->ContainerPtrToValuePtr<void>(SourceEmitter));
+        FScriptArrayHelper GenHelper(GeneratorArrayProp, GeneratorArrayProp->ContainerPtrToValuePtr<void>(GeneratorContainer));
         if (FStructProperty* StructProp = CastField<FStructProperty>(GeneratorArrayProp->Inner))
         {
             UStruct* StructType = StructProp->Struct;
@@ -2763,17 +2824,18 @@ bool FNiagaraSpecExecutor::SaveCompileAndSelfCheck(UNiagaraSystem* System, FVFXR
         Pkg->MarkPackageDirty();
     }
 
-    // Step 3: Wait for any background compilation to finish before requesting a new one
-    System->WaitForCompilationComplete(true, true);
-
-    // Step 4: Request a FORCED full recompile (bForce = true is critical)
+    // Step 3: Request a FORCED full recompile (bForce = true is critical)
     System->RequestCompile(true);
     
-    // Step 5: Wait for the compilation to complete - blocking call
+    // Step 4: Wait for the compilation to complete - blocking call
     System->WaitForCompilationComplete(true, true);
     
-    // Step 6: Invalidate cached data to force refresh
+    // Step 5: Invalidate cached data to force refresh
     System->InvalidateCachedData();
+
+    // Step 6: Request+wait once more so invalidated data is guaranteed recompiled
+    System->RequestCompile(true);
+    System->WaitForCompilationComplete(true, true);
     
     // Step 7: Save the package
     FString PackageName = System->GetOutermost()->GetName();

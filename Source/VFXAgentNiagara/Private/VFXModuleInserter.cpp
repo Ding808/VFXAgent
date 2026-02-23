@@ -284,10 +284,10 @@ FName FVFXModuleInserter::GetStackNameForPhase(EModulePhase Phase)
 	switch (Phase)
 	{
 		case EModulePhase::PreSim:
-			return TEXT("SpawnScriptProps");
+			return TEXT("ParticleSpawnScriptProps");
 		case EModulePhase::EventWrite:
 			return TEXT("EventHandlerScriptProps");
 		default:
-			return TEXT("UpdateScriptProps");
+			return TEXT("ParticleUpdateScriptProps");
 	}
 }

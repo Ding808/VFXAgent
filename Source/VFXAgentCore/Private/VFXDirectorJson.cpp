@@ -4,7 +4,7 @@
 #include "Serialization/JsonSerializer.h"
 #include "JsonObjectConverter.h"
 
-static bool ParseJsonObject(const FString& JsonText, TSharedPtr<FJsonObject>& OutObj, FString& OutError)
+static bool ParseDirectorJsonObject(const FString& JsonText, TSharedPtr<FJsonObject>& OutObj, FString& OutError)
 {
 	TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(JsonText);
 	if (!FJsonSerializer::Deserialize(Reader, OutObj) || !OutObj.IsValid())
@@ -190,7 +190,7 @@ bool FVFXDirectorJson::ParseActionValue(const TSharedPtr<FJsonValue>& JsonValue,
 bool FVFXDirectorJson::ParseDirectorJson(const FString& JsonText, FVFXDirectorPlan& OutPlan, FString& OutError)
 {
 	TSharedPtr<FJsonObject> Root;
-	if (!ParseJsonObject(JsonText, Root, OutError))
+	if (!ParseDirectorJsonObject(JsonText, Root, OutError))
 	{
 		return false;
 	}
