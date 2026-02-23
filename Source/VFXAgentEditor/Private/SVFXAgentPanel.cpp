@@ -1335,7 +1335,8 @@ void SVFXAgentPanel::ExecuteGenerate(const FString& Prompt)
                         }
 
                         AddThinkingStep(TEXT("Executing Python script..."));
-                        const bool bExecSuccess = FVFXPythonExecutor::ExecutePythonScript(CleanCode);
+                        FString PyExecError;
+                        const bool bExecSuccess = FVFXPythonExecutor::ExecutePythonScript(CleanCode, PyExecError);
 
                         if (bExecSuccess)
                         {
@@ -1350,10 +1351,9 @@ void SVFXAgentPanel::ExecuteGenerate(const FString& Prompt)
                         else
                         {
                             CompleteThinkingBubble(TEXT(""));
-                            AddErrorBubble(
-                                TEXT("Python script execution failed.\n"
-                                     "Check the Output Log for Python tracebacks.\n"
-                                     "Ensure 'Python Editor Script Plugin' is enabled (Edit \u2192 Plugins)."));
+                            AddErrorBubble(FString::Printf(
+                                TEXT("Python script execution failed:\n%s"),
+                                *PyExecError));
                         }
                     });
                 }
@@ -1744,7 +1744,8 @@ void SVFXAgentPanel::ExecuteRecipePipeline(const FString& Prompt, const FString&
             }
 
             // Execute the Python script — this creates the Niagara asset in-engine
-            const bool bExecSuccess = FVFXPythonExecutor::ExecutePythonScript(CleanCode);
+            FString PyExecError;
+            const bool bExecSuccess = FVFXPythonExecutor::ExecutePythonScript(CleanCode, PyExecError);
             bRequestInFlight = false;
             UpdateStatusDisplay();
 
@@ -1761,13 +1762,9 @@ void SVFXAgentPanel::ExecuteRecipePipeline(const FString& Prompt, const FString&
             {
                 FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Python script execution failed."));
                 CompleteThinkingBubble(TEXT(""));
-                AddErrorBubble(
-                    TEXT("Python script execution failed.\n"
-                         "Check the Output Log for the Python traceback.\n"
-                         "Common causes:\n"
-                         "  - 'Python Editor Script Plugin' not enabled (Edit → Plugins)\n"
-                         "  - LLM produced invalid Python syntax\n"
-                         "  - Missing unreal module import"));
+                AddErrorBubble(FString::Printf(
+                    TEXT("Python script execution failed:\n%s"),
+                    *PyExecError));
             }
         });
     }

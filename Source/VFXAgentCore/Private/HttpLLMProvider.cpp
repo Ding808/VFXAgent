@@ -204,32 +204,59 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 {
 	// -------------------------------------------------------------------------
 	// Python-First System Prompt - VFXAgent Architecture V3
-	// The LLM no longer outputs JSON. It outputs a directly executable
-	// UE5 Python script that creates the Niagara system via the Python API.
-	// C++ calls FVFXPythonExecutor::ExecutePythonScript() with this string.
+	// Provides verified, working UE5 Python APIs with a concrete template.
+	// The LLM MUST use only the APIs listed here — no hallucination.
 	// -------------------------------------------------------------------------
 	return TEXT(
-		"You are a professional Unreal Engine 5 (UE5) Technical Artist and Niagara VFX expert.\n"
-		"The user's input is a natural-language VFX request.\n"
-		"Your task is to output a directly executable UE5 Python script that generates the requested effect.\n\n"
-		"STRICT RULES:\n"
-		"1. You MUST start the script with: import unreal\n"
-		"2. Use unreal.AssetToolsHelpers.get_asset_tools() to create and register assets.\n"
-		"3. Create a Niagara System with:\n"
-		"   factory = unreal.NiagaraSystemFactoryNew()\n"
-		"   system = unreal.AssetToolsHelpers.get_asset_tools().create_asset(name, path, unreal.NiagaraSystem, factory)\n"
-		"4. Add the built-in empty emitter template to the system:\n"
-		"   /Niagara/DefaultAssets/DefaultEmptyEmitter.DefaultEmptyEmitter\n"
-		"5. Configure emitter parameters (SpawnRate, Lifetime, InitialVelocity, Color, Size, EmissiveStrength, etc.)\n"
-		"6. Save the generated asset to /Game/VFXAgent/Generated/<DescriptiveName>\n"
-		"7. Open the completed asset in the editor:\n"
-		"   unreal.get_editor_subsystem(unreal.AssetEditorSubsystem).open_editor_for_assets([system])\n\n"
-		"OUTPUT FORMAT - CRITICAL:\n"
-		"- Return ONLY raw Python code.\n"
-		"- Do NOT wrap the code in markdown fences (no ```python or ```).\n"
-		"- Do NOT include explanatory text, preamble, or commentary of any kind.\n"
-		"- Your output must be directly passable to a Python interpreter without modification.\n"
-		"- If the request is ambiguous, make reasonable artistic choices and proceed."
+		"You are a professional Unreal Engine 5 Technical Artist generating a Niagara VFX system via Python.\n"
+		"The user will describe an effect. Your job is to output a directly executable Python script.\n\n"
+
+		"=== VERIFIED WORKING UE5 PYTHON APIS (use ONLY these) ===\n\n"
+
+		"# 1. Imports\n"
+		"import unreal\n\n"
+
+		"# 2. Ensure output directory exists\n"
+		"OUTPUT_PATH = \"/Game/VFXAgent/Generated\"\n"
+		"if not unreal.EditorAssetLibrary.does_directory_exist(OUTPUT_PATH):\n"
+		"    unreal.EditorAssetLibrary.make_directory(OUTPUT_PATH)\n\n"
+
+		"# 3. Create a Niagara System asset\n"
+		"asset_tools = unreal.AssetToolsHelpers.get_asset_tools()\n"
+		"factory = unreal.NiagaraSystemFactoryNew()\n"
+		"system = asset_tools.create_asset(\"NS_EffectName\", OUTPUT_PATH, unreal.NiagaraSystem, factory)\n\n"
+
+		"# 4. (Optional) Duplicate an existing emitter asset as a starting point\n"
+		"#    Use only assets known to exist. Safe built-in emitter templates:\n"
+		"#      /Niagara/Templates/NT_SpriteEmitter.NT_SpriteEmitter\n"
+		"#      /Niagara/Templates/NT_GPUSprites.NT_GPUSprites\n"
+		"#    If unsure whether a template exists, SKIP emitter duplication entirely.\n"
+		"# emitter_asset = unreal.load_asset(\"/Niagara/Templates/NT_SpriteEmitter.NT_SpriteEmitter\")\n"
+		"# if emitter_asset:\n"
+		"#     dup = asset_tools.duplicate_asset(\"E_Main\", OUTPUT_PATH, emitter_asset)\n\n"
+
+		"# 5. Save and open the system\n"
+		"if system:\n"
+		"    unreal.EditorAssetLibrary.save_asset(system.get_path_name())\n"
+		"    unreal.get_editor_subsystem(unreal.AssetEditorSubsystem).open_editor_for_assets([system])\n"
+		"    print(\"Created: \" + system.get_path_name())\n"
+		"else:\n"
+		"    print(\"ERROR: Failed to create Niagara System\")\n\n"
+
+		"=== STRICT RULES ===\n"
+		"- Use ONLY the APIs shown above. Do NOT invent methods like add_emitter(), create_emitter(),\n"
+		"  set_parameter(), NiagaraFunctionLibrary, or any other API not shown here.\n"
+		"- Do NOT reference asset paths you are not certain exist on disk.\n"
+		"  Unsafe example: /Niagara/DefaultAssets/DefaultEmptyEmitter (may not exist — DO NOT USE)\n"
+		"  Safe example: /Niagara/Templates/NT_SpriteEmitter (standard engine template)\n"
+		"- The asset name must start with NS_ and be derived from the effect description.\n"
+		"- If the requested effect cannot be built with only the APIs above, create a basic\n"
+		"  empty NiagaraSystem and add a Python comment describing what should be configured manually.\n\n"
+
+		"=== OUTPUT FORMAT ===\n"
+		"- Return ONLY raw Python code — no markdown fences, no commentary, no preamble.\n"
+		"- Your entire output is passed verbatim to exec() inside the UE5 editor.\n"
+		"- First line must be: import unreal\n"
 	);
 }
 
@@ -2132,18 +2159,183 @@ void UHttpLLMProvider::AskAsync(const FString& Prompt, FOnAskComplete OnComplete
 
 // ---------------------------------------------------------------------------
 // RequestPythonScriptAsync - Python-First VFX Generation (Architecture V3)
-// Uses BuildSystemPrompt() so the LLM returns a raw executable UE5 Python
-// script instead of a JSON recipe. Pass result to FVFXPythonExecutor.
+// Sends a plain-text (no response_format:json_object) request so the LLM
+// can return raw executable UE5 Python. Pass result to FVFXPythonExecutor.
 // ---------------------------------------------------------------------------
 void UHttpLLMProvider::RequestPythonScriptAsync(const FString& UserPrompt, FOnPythonScriptComplete OnComplete) const
 {
-	RequestDirectorJsonInternalAsync(UserPrompt, BuildSystemPrompt(),
-		[OnComplete](bool bSuccess, const FString& PythonCode, const FString& Error)
+	if (!OnComplete)
+	{
+		return;
+	}
+
+	FString EffectiveEndpoint = Endpoint;
+	EffectiveEndpoint.TrimStartAndEndInline();
+	if (EffectiveEndpoint.IsEmpty())
+	{
+		OnComplete(false, FString(), TEXT("LLM endpoint is empty"));
+		return;
+	}
+
+	const bool bOpenAIBackend = (Backend == EVFXAgentLLMBackend::OpenAIChatCompletions || Backend == EVFXAgentLLMBackend::OpenAIResponses);
+	if (bOpenAIBackend && IsPlaceholderApiKey(ApiKey))
+	{
+		OnComplete(false, FString(), TEXT("OpenAI API key is missing or placeholder"));
+		return;
+	}
+
+	const FString SystemPrompt = BuildSystemPrompt();
+	const bool bUseResponsesAPI = IsResponsesAPI(Backend, EffectiveEndpoint);
+
+	TSharedPtr<FJsonObject> BodyObj = MakeShared<FJsonObject>();
+	TSharedRef<FJsonObject> BodyRef = BodyObj.ToSharedRef();
+	TMap<FString, FString> ExtraHeaders;
+
+	if (Backend == EVFXAgentLLMBackend::OllamaGenerate)
+	{
+		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("llama2") : Model);
+		BodyRef->SetStringField(TEXT("prompt"), SystemPrompt + TEXT("\n\nUSER_PROMPT:\n") + UserPrompt);
+		BodyRef->SetBoolField(TEXT("stream"), false);
+	}
+	else if (bUseResponsesAPI)
+	{
+		// Responses API — plain text output (no text.format.type=json_object)
+		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
+		BodyRef->SetStringField(TEXT("instructions"), SystemPrompt);
+		BodyRef->SetStringField(TEXT("input"), UserPrompt);
+		if (!ApiKey.IsEmpty())
 		{
-			if (OnComplete)
+			ExtraHeaders.Add(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
+		}
+	}
+	else
+	{
+		// Chat Completions — plain text output (NO response_format:json_object)
+		BodyRef->SetStringField(TEXT("model"), Model.IsEmpty() ? TEXT("gpt-4o-mini") : Model);
+		BodyRef->SetNumberField(TEXT("max_completion_tokens"), 4096);
+
+		TArray<TSharedPtr<FJsonValue>> Messages;
+		{
+			TSharedPtr<FJsonObject> Sys = MakeShared<FJsonObject>();
+			Sys->SetStringField(TEXT("role"), TEXT("system"));
+			Sys->SetStringField(TEXT("content"), SystemPrompt);
+			Messages.Add(MakeShared<FJsonValueObject>(Sys));
+		}
+		{
+			TSharedPtr<FJsonObject> User = MakeShared<FJsonObject>();
+			User->SetStringField(TEXT("role"), TEXT("user"));
+			User->SetStringField(TEXT("content"), UserPrompt);
+			Messages.Add(MakeShared<FJsonValueObject>(User));
+		}
+		BodyRef->SetArrayField(TEXT("messages"), Messages);
+		// Intentionally omitting response_format — Python output is plain text, not JSON.
+
+		if (!ApiKey.IsEmpty())
+		{
+			ExtraHeaders.Add(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *ApiKey));
+		}
+	}
+
+	FString BodyText;
+	{
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&BodyText);
+		FJsonSerializer::Serialize(BodyRef, Writer);
+	}
+
+	FHttpModule& Http = FHttpModule::Get();
+	TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Req = Http.CreateRequest();
+	Req->SetURL(EffectiveEndpoint);
+	Req->SetVerb(TEXT("POST"));
+	Req->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+	Req->SetHeader(TEXT("Accept"), TEXT("application/json"));
+	Req->SetHeader(TEXT("User-Agent"), TEXT("VFXAgent/1.0 (UnrealEngine)"));
+	for (const TPair<FString, FString>& KV : ExtraHeaders)
+	{
+		Req->SetHeader(KV.Key, KV.Value);
+	}
+	Req->SetContentAsString(BodyText);
+	Req->SetTimeout(TimeoutSeconds);
+
+	const bool bResponsesAPI = bUseResponsesAPI;
+	Req->OnProcessRequestComplete().BindLambda([OnComplete, bResponsesAPI]
+		(FHttpRequestPtr Request, FHttpResponsePtr Response, bool bSucceeded)
+	{
+		if (!bSucceeded || !Response.IsValid())
+		{
+			FString Err = BuildHttpFailureMessage(TEXT("RequestPythonScriptAsync"), Request, Response);
+			OnComplete(false, FString(), Err);
+			return;
+		}
+
+		const int32 Code = Response->GetResponseCode();
+		const FString ResponseText = Response->GetContentAsString();
+
+		if (Code < 200 || Code >= 300)
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("LLM returned HTTP %d: %s"), Code, *ResponseText.Left(800)));
+			return;
+		}
+
+		TSharedPtr<FJsonObject> Root;
+		FString JsonErr;
+		if (!ParseJsonObject(ResponseText, Root, JsonErr))
+		{
+			// The model may have returned plain text directly (some local backends).
+			// Treat the whole response as the script.
+			OnComplete(true, ResponseText, FString());
+			return;
+		}
+
+		FString Content;
+
+		// OpenAI Responses API: output[0].content[0].text
+		if (bResponsesAPI)
+		{
+			const TArray<TSharedPtr<FJsonValue>>* OutputArr = nullptr;
+			if (Root->TryGetArrayField(TEXT("output"), OutputArr) && OutputArr && OutputArr->Num() > 0)
 			{
-				OnComplete(bSuccess, PythonCode, Error);
+				TSharedPtr<FJsonObject> Out0 = (*OutputArr)[0]->AsObject();
+				if (Out0.IsValid())
+				{
+					const TArray<TSharedPtr<FJsonValue>>* ContentArr = nullptr;
+					if (Out0->TryGetArrayField(TEXT("content"), ContentArr) && ContentArr && ContentArr->Num() > 0)
+					{
+						TSharedPtr<FJsonObject> C0 = (*ContentArr)[0]->AsObject();
+						if (C0.IsValid())
+						{
+							C0->TryGetStringField(TEXT("text"), Content);
+						}
+					}
+				}
 			}
-		});
+		}
+		else
+		{
+			// Chat Completions: choices[0].message.content
+			const TArray<TSharedPtr<FJsonValue>>* Choices = nullptr;
+			if (Root->TryGetArrayField(TEXT("choices"), Choices) && Choices && Choices->Num() > 0)
+			{
+				TSharedPtr<FJsonObject> Choice0 = (*Choices)[0]->AsObject();
+				if (Choice0.IsValid())
+				{
+					TSharedPtr<FJsonObject> Msg = Choice0->GetObjectField(TEXT("message"));
+					if (Msg.IsValid())
+					{
+						Msg->TryGetStringField(TEXT("content"), Content);
+					}
+				}
+			}
+		}
+
+		if (Content.IsEmpty())
+		{
+			OnComplete(false, FString(), FString::Printf(TEXT("Could not extract content from LLM response: %s"), *ResponseText.Left(400)));
+			return;
+		}
+
+		OnComplete(true, Content, FString());
+	});
+
+	Req->ProcessRequest();
 }
 

@@ -5,32 +5,34 @@
 
 // UE5 Python scripting bridge
 #include "IPythonScriptPlugin.h"
+#include "PythonScriptTypes.h"
 
 // ---------------------------------------------------------------------------
-// ExecutePythonScript
+// ExecutePythonScript (with error capture)
 // ---------------------------------------------------------------------------
-bool FVFXPythonExecutor::ExecutePythonScript(const FString& PythonCode)
+bool FVFXPythonExecutor::ExecutePythonScript(const FString& PythonCode, FString& OutError)
 {
+	OutError.Empty();
+
 	if (PythonCode.IsEmpty())
 	{
-		UE_LOG(LogVFXAgent, Warning, TEXT("VFXPythonExecutor: Received empty Python script — nothing to execute."));
+		OutError = TEXT("Python script is empty.");
+		UE_LOG(LogVFXAgent, Warning, TEXT("VFXPythonExecutor: Received empty Python script."));
 		return false;
 	}
 
 	IPythonScriptPlugin* PythonPlugin = IPythonScriptPlugin::Get();
 	if (!PythonPlugin)
 	{
-		UE_LOG(LogVFXAgent, Error,
-			TEXT("VFXPythonExecutor: IPythonScriptPlugin is unavailable. "
-			     "Please enable 'Python Editor Script Plugin' in Edit → Plugins, then restart the editor."));
+		OutError = TEXT("Python Editor Script Plugin is not loaded. Enable it in Edit \u2192 Plugins, then restart the editor.");
+		UE_LOG(LogVFXAgent, Error, TEXT("VFXPythonExecutor: IPythonScriptPlugin unavailable."));
 		return false;
 	}
 
 	if (!PythonPlugin->IsPythonAvailable())
 	{
-		UE_LOG(LogVFXAgent, Error,
-			TEXT("VFXPythonExecutor: Python runtime is not available in this build configuration. "
-			     "Ensure the plugin is enabled and the editor has been restarted."));
+		OutError = TEXT("Python runtime is not available. Enable 'Python Editor Script Plugin' and restart the editor.");
+		UE_LOG(LogVFXAgent, Error, TEXT("VFXPythonExecutor: Python runtime not available."));
 		return false;
 	}
 
@@ -38,22 +40,56 @@ bool FVFXPythonExecutor::ExecutePythonScript(const FString& PythonCode)
 		TEXT("VFXPythonExecutor: Executing LLM-generated Python script (%d chars)..."),
 		PythonCode.Len());
 
-	const bool bSuccess = PythonPlugin->ExecPythonCommand(*PythonCode);
+	// ExecuteFile mode runs a literal multi-statement Python script (same as exec())
+	FPythonCommandEx Cmd;
+	Cmd.Command = PythonCode;
+	Cmd.ExecutionMode = EPythonCommandExecutionMode::ExecuteFile;
+	Cmd.FileExecutionScope = EPythonFileExecutionScope::Public;
+	const bool bSuccess = PythonPlugin->ExecPythonCommandEx(Cmd);
 
 	if (bSuccess)
 	{
-		UE_LOG(LogVFXAgent, Log,
-			TEXT("VFXPythonExecutor: Python script executed successfully — VFX asset generation complete."));
+		UE_LOG(LogVFXAgent, Log, TEXT("VFXPythonExecutor: Python script executed successfully."));
 	}
 	else
 	{
+		// CommandResult contains the Python traceback / exception string on failure
+		if (!Cmd.CommandResult.IsEmpty())
+		{
+			OutError = Cmd.CommandResult;
+		}
+		else
+		{
+			// Fall back to collecting error entries from LogOutput
+			for (const FPythonLogOutputEntry& Entry : Cmd.LogOutput)
+			{
+				if (Entry.Type == EPythonLogOutputType::Error || Entry.Type == EPythonLogOutputType::Warning)
+				{
+					OutError += Entry.Output + TEXT("\n");
+				}
+			}
+			OutError.TrimEndInline();
+		}
+
+		if (OutError.IsEmpty())
+		{
+			OutError = TEXT("Python execution failed (no traceback captured). Check Output Log for LogPython entries.");
+		}
+
 		UE_LOG(LogVFXAgent, Error,
-			TEXT("VFXPythonExecutor: Python script execution FAILED. "
-			     "Check the Output Log for Python tracebacks. "
-			     "Common causes: invalid asset paths, missing unreal module imports, syntax errors in LLM output."));
+			TEXT("VFXPythonExecutor: Python script FAILED.\n%s"), *OutError);
 	}
 
 	return bSuccess;
+}
+
+// ---------------------------------------------------------------------------
+// ExecutePythonScript (simple bool overload — kept for backward compat)
+// ---------------------------------------------------------------------------
+bool FVFXPythonExecutor::ExecutePythonScript(const FString& PythonCode)
+{
+	FString DiscardedError;
+	return ExecutePythonScript(PythonCode, DiscardedError);
 }
 
 // ---------------------------------------------------------------------------

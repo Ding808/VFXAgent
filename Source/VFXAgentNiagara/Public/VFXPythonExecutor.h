@@ -28,14 +28,18 @@ public:
 	 * Execute a Python script string returned by the LLM.
 	 *
 	 * @param PythonCode  Raw Python source code (no markdown, no code fences).
-	 * @return            True if the script was accepted and executed without
-	 *                    a Python-level exception; false otherwise.
-	 *
-	 * Note: "accepted" means IPythonScriptPlugin::ExecPythonCommand returned
-	 * true. It does NOT guarantee that the generated Niagara asset is
-	 * semantically correct — check the Output Log for runtime errors.
+	 * @return            True if the script ran without a Python-level exception.
 	 */
 	static bool ExecutePythonScript(const FString& PythonCode);
+
+	/**
+	 * Execute a Python script and capture the Python error output.
+	 *
+	 * @param PythonCode  Raw Python source code.
+	 * @param OutError    Populated with the Python traceback on failure.
+	 * @return            True on success.
+	 */
+	static bool ExecutePythonScript(const FString& PythonCode, FString& OutError);
 
 	/**
 	 * Execute a Python script file on disk.
