@@ -50,7 +50,8 @@ public class VFXAgentNiagara : ModuleRules
 				"MaterialEditor",    // For material generation
 				"RenderCore",        // For texture generation
 				"RHI",               // For texture operations
-				"Projects"
+				"Projects",
+				"PythonScriptPlugin" // For executing LLM-generated Python scripts
 			}
 			);
 		

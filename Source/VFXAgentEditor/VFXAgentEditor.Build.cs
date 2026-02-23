@@ -65,7 +65,8 @@ public class VFXAgentEditor : ModuleRules
 				"Settings",
 				"ImageWrapper",
 				"WorkspaceMenuStructure",
-				"Projects"
+				"Projects",
+				"PythonScriptPlugin" // For executing LLM-generated Python scripts
 			}
 			);
 		

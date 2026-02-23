@@ -51,6 +51,15 @@ public:
 	using FOnAskComplete = TFunction<void(bool /*bSuccess*/, const FString& /*Response*/, const FString& /*Error*/)>;
 	void AskAsync(const FString& Prompt, FOnAskComplete OnComplete) const;
 
+	/**
+	 * Python-First VFX Generation (Architecture V3)
+	 * Sends the user prompt with the Python-centric system prompt.
+	 * The LLM returns a raw, directly executable UE5 Python script.
+	 * The caller is responsible for passing the result to FVFXPythonExecutor.
+	 */
+	using FOnPythonScriptComplete = TFunction<void(bool /*bSuccess*/, const FString& /*PythonCode*/, const FString& /*Error*/)>;
+	void RequestPythonScriptAsync(const FString& UserPrompt, FOnPythonScriptComplete OnComplete) const;
+
 	virtual FVFXRecipe GenerateRecipe(const FString& Prompt) override;
 	virtual FVFXRecipe RefineRecipe(const FVFXRecipe& OldRecipe, const FString& RefinementPrompt) override;
 	

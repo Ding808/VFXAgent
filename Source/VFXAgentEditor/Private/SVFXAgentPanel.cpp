@@ -40,6 +40,7 @@
 #include "EffectSpecV2Validator.h"
 #include "BehaviorArchetypeLibrary.h"
 #include "AssetBuildPipelineV2.h"
+#include "VFXPythonExecutor.h"  // Python-first execution (Architecture V3)
 #include "Subsystems/AssetEditorSubsystem.h"
 #include "Editor.h"
 #include "ScopedTransaction.h"
@@ -1667,79 +1668,64 @@ void SVFXAgentPanel::ExecuteRecipePipeline(const FString& Prompt, const FString&
 
     if (LLMProviderObject && LLMProviderObject->IsA(UHttpLLMProvider::StaticClass()))
     {
+        // ----------------------------------------------------------------
+        // VFXAgent Architecture V3: Python-First Generation
+        // The LLM returns a raw UE5 Python script; we execute it directly
+        // via FVFXPythonExecutor instead of parsing a JSON recipe.
+        // ----------------------------------------------------------------
         UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
-        HttpProvider->GenerateRecipeAsync(Prompt, [this, Prompt, AssetName, OutputPath](const FVFXRecipe& Recipe, const FString& Error)
+        HttpProvider->RequestPythonScriptAsync(Prompt,
+            [this, Prompt, AssetName, OutputPath](bool bSuccess, const FString& PythonCode, const FString& Error)
         {
-            if (!Error.IsEmpty())
+            if (!bSuccess || !Error.IsEmpty())
             {
                 bRequestInFlight = false;
                 UpdateStatusDisplay();
                 CompleteThinkingBubble(TEXT(""));
-                AddErrorBubble(FString::Printf(TEXT("Recipe generation failed: %s"), *Error));
+                AddErrorBubble(FString::Printf(TEXT("LLM request failed: %s"), *Error));
                 return;
             }
 
-            AddThinkingStep(FString::Printf(TEXT("Recipe generated: %d emitters"), Recipe.Emitters.Num()));
+            AddThinkingStep(TEXT("LLM returned Python script. Executing..."));
+            FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Executing LLM Python script..."), CachedLLMBackend);
 
-            FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
-            LastRecipe = EnhancedRecipe;
+            // Sanitize: strip markdown fences the LLM may have added
+            const FString CleanCode = FVFXPythonExecutor::SanitizeLLMPythonOutput(PythonCode);
 
-            if (EnhancedRecipe.Emitters.Num() == 0)
+            if (CleanCode.IsEmpty())
             {
                 bRequestInFlight = false;
                 UpdateStatusDisplay();
                 CompleteThinkingBubble(TEXT(""));
-                AddErrorBubble(TEXT("AI returned no emitters. Try a more descriptive prompt."));
+                AddErrorBubble(TEXT("LLM returned an empty Python script. Try a more descriptive prompt."));
                 return;
             }
 
-            AddThinkingStep(TEXT("Building Niagara System..."));
-
-            UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
-            if (!Generator)
-            {
-                bRequestInFlight = false;
-                UpdateStatusDisplay();
-                CompleteThinkingBubble(TEXT(""));
-                AddErrorBubble(TEXT("Failed to create NiagaraSystemGenerator."));
-                return;
-            }
-
-            const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-            const bool bDisallowTemplates = Settings ? Settings->bDisallowTemplates : true;
-            const bool bUseTemplates = !bDisallowTemplates && Settings && Settings->bUseTemplates;
-            const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-
-            FVFXRecipe FinalRecipe = EnhancedRecipe;
-            if (!bUseTemplates)
-            {
-                for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
-                {
-                    Emitter.TemplateName.Empty();
-                }
-            }
-
-            UNiagaraSystem* System = Generator->GenerateNiagaraSystem(AssetName, OutputPath, FinalRecipe, TemplatePath);
+            // Execute the Python script — this creates the Niagara asset in-engine
+            const bool bExecSuccess = FVFXPythonExecutor::ExecutePythonScript(CleanCode);
             bRequestInFlight = false;
             UpdateStatusDisplay();
 
-            if (System)
+            if (bExecSuccess)
             {
-                LastGeneratedSystemPath = OutputPath / AssetName;
-                FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Niagara build completed"));
+                LastGeneratedSystemPath = FString::Printf(TEXT("/Game/VFXAgent/Generated/%s"), *AssetName);
+                FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Python script executed — VFX asset created."));
                 CompleteThinkingBubble(TEXT(""));
                 AddAssetLinkBubble(LastGeneratedSystemPath,
-                    FString::Printf(TEXT("Successfully created Niagara System!\n\nAsset: %s\nEmitters: %d\nLoop: %s\nDuration: %.1fs"),
-                        *LastGeneratedSystemPath, FinalRecipe.Emitters.Num(),
-                        FinalRecipe.bLoop ? TEXT("Yes") : TEXT("No"),
-                        FinalRecipe.Duration));
-                AddAgentBubble(TEXT("You can describe changes to modify this effect, or start a new generation."));
+                    FString::Printf(TEXT("VFX generation complete!\n\nThe Python script ran successfully.\nCheck /Game/VFXAgent/Generated/ for the new Niagara System asset.\n\nGenerated for: %s"), *Prompt));
+                AddAgentBubble(TEXT("You can describe changes to refine this effect, or start a new generation."));
             }
             else
             {
-                FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Niagara build failed"));
+                FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Python script execution failed."));
                 CompleteThinkingBubble(TEXT(""));
-                AddErrorBubble(TEXT("Failed to generate Niagara System. Check the Output Log for details."));
+                AddErrorBubble(
+                    TEXT("Python script execution failed.\n"
+                         "Check the Output Log for the Python traceback.\n"
+                         "Common causes:\n"
+                         "  - 'Python Editor Script Plugin' not enabled (Edit → Plugins)\n"
+                         "  - LLM produced invalid Python syntax\n"
+                         "  - Missing unreal module import"));
             }
         });
     }
