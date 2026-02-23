@@ -20,6 +20,14 @@
 #include "Misc/ConfigCacheIni.h"
 #include "Misc/Paths.h"
 
+// Graph-layer initialisation (NiagaraEditor module, VFXAgentNiagara is an Editor module)
+#include "NiagaraScriptSource.h"
+#include "NiagaraGraph.h"
+#include "NiagaraNodeOutput.h"
+#include "NiagaraNodeInput.h"
+#include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
+#include "NiagaraEditorSettings.h"
+
 static FString GetSafeName(const FString& InName, const FString& Fallback)
 {
 	FString Safe = InName;
@@ -44,6 +52,57 @@ void FVFXNiagaraSpecBuilder::LogBuildAction(FNiagaraBuildContext& Context, const
 {
 	Context.BuildLog.Add(Action);
 	UE_LOG(LogVFXAgent, Log, TEXT("[BUILD] %s"), *Action);
+}
+
+void FVFXNiagaraSpecBuilder::SetupUserParameters(UNiagaraSystem* System, const FVFXEffectSpec& Spec, FNiagaraBuildContext& OutContext)
+{
+	if (!System) return;
+
+	// Helper: add a float User parameter with a default value
+	auto AddUserFloat = [&](const FName ParamName, float DefaultValue)
+	{
+		FNiagaraVariable Var(FNiagaraTypeDefinition::GetFloatDef(), ParamName);
+		System->GetExposedParameters().AddParameter(Var, /*bInitialize=*/true, /*bTriggerRebind=*/false);
+		System->GetExposedParameters().SetParameterValue(DefaultValue, Var);
+	};
+
+	// Helper: add a color (FLinearColor) User parameter
+	auto AddUserColor = [&](const FName ParamName, const FLinearColor& DefaultValue)
+	{
+		FNiagaraVariable Var(FNiagaraTypeDefinition::GetColorDef(), ParamName);
+		System->GetExposedParameters().AddParameter(Var, /*bInitialize=*/true, /*bTriggerRebind=*/false);
+		System->GetExposedParameters().SetParameterValue(DefaultValue, Var);
+	};
+
+	// User.Scale – uniform world-space scale multiplier
+	AddUserFloat(TEXT("User.Scale"), 1.0f);
+
+	// User.Intensity – controls emission strength
+	float Intensity = 1.0f;
+	if (Spec.Materials.Num() > 0)
+	{
+		Intensity = Spec.Materials[0].EmissiveStrength;
+	}
+	AddUserFloat(TEXT("User.Intensity"), Intensity);
+
+	// User.PrimaryColor – main tint / base color
+	FLinearColor PrimaryColor = FLinearColor::White;
+	if (Spec.Materials.Num() > 0)
+	{
+		PrimaryColor = Spec.Materials[0].BaseColor;
+	}
+	AddUserColor(TEXT("User.PrimaryColor"), PrimaryColor);
+
+	// User.EmissiveColor – emissive tint (can differ from base color for stylised effects)
+	FLinearColor EmissiveColor(1.f, 0.5f, 0.f, 1.f); // warm-orange default
+	if (Spec.Materials.Num() > 0)
+	{
+		EmissiveColor = Spec.Materials[0].EmissiveColor;
+	}
+	AddUserColor(TEXT("User.EmissiveColor"), EmissiveColor);
+
+	LogBuildAction(OutContext,
+		TEXT("SetupUserParameters: exposed User.Scale, User.Intensity, User.PrimaryColor, User.EmissiveColor"));
 }
 
 UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpec(const FVFXEffectSpec& Spec, FNiagaraBuildContext& OutContext)
@@ -85,7 +144,10 @@ UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpec(const FVFXEffectSpec& Spec
 	}
 	
 	LogBuildAction(OutContext, FString::Printf(TEXT("Created system: %s"), *SystemName));
-	
+
+	// Expose user-facing parameters so the effect can be tinted / scaled at runtime
+	SetupUserParameters(System, Spec, OutContext);
+
 	// Build each emitter
 	for (const FVFXEmitterSpec& EmitterSpec : Spec.Emitters)
 	{
@@ -166,14 +228,28 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitter(
 		LogBuildAction(OutContext, TEXT("Warning: Motion behavior application had issues"));
 	}
 	
-	// STEP 5: Validate renderers
-	// Try to load/create a default material
+	// STEP 5: Validate renderers – ensure at least one renderer with a valid Niagara material
 	UMaterialInterface* DefaultMaterial = nullptr;
-	// Note: FVFXEmitterSpec doesn't have MaterialIndex, using first material if available
-	if (OutContext.Spec.Materials.Num() > 0)
+
+	// Prefer Niagara's built-in default sprite material over the plain engine default
+	static const TCHAR* NiagaraDefaultMatPaths[] = {
+		TEXT("/Niagara/DefaultAssets/DefaultSpriteMaterial.DefaultSpriteMaterial"),
+		TEXT("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial"),
+		nullptr
+	};
+	for (int32 i = 0; NiagaraDefaultMatPaths[i] && !DefaultMaterial; ++i)
 	{
-		// Try to load a basic particle material
-		DefaultMaterial = LoadObject<UMaterialInterface>(nullptr, TEXT("/Engine/EngineMaterials/DefaultMaterial"));
+		DefaultMaterial = LoadObject<UMaterialInterface>(nullptr, NiagaraDefaultMatPaths[i]);
+	}
+
+	// Also honour any material specified in the spec
+	if (OutContext.Spec.Materials.Num() > 0 && !OutContext.Spec.Materials[0].Name.IsEmpty())
+	{
+		if (UMaterialInterface* SpecMat = LoadObject<UMaterialInterface>(
+			nullptr, *OutContext.Spec.Materials[0].Name))
+		{
+			DefaultMaterial = SpecMat;
+		}
 	}
 	
 	if (!ValidateAndFixRenderers(Emitter, DefaultMaterial, OutContext))
@@ -264,30 +340,59 @@ bool FVFXNiagaraSpecBuilder::ApplyMotionBehavior(
 	}
 	
 	LogBuildAction(OutContext, FString::Printf(
-		TEXT("Applying motion behavior: %s"),
-		*MotionConfig.Description
+		TEXT("Applying motion behavior: %s (%d modules)"),
+		*MotionConfig.Description,
+		MotionConfig.RequiredModules.Num()
 	));
 	
-	// Note: Actually inserting modules requires reflection into Niagara's module system
-	// For now, log what should be inserted
+	// Log each module that will be inserted
 	for (const FMotionModuleDescriptor& ModuleDesc : MotionConfig.RequiredModules)
 	{
 		LogBuildAction(OutContext, FString::Printf(
-			TEXT("  Should insert: %s (Phase=%d, Priority=%d, Required=%s)"),
+			TEXT("  Insert: %s (Phase=%d, Priority=%d, Required=%s)"),
 			*ModuleDesc.DisplayName,
 			(int32)ModuleDesc.Phase,
 			ModuleDesc.Priority,
 			ModuleDesc.bRequired ? TEXT("YES") : TEXT("NO")
 		));
-		
-		// TODO: Actually load and insert the module
-		// This requires:
-		// 1. Load module script: UNiagaraScript* Module = LoadObject<UNiagaraScript>(nullptr, *ModuleDesc.ModulePath);
-		// 2. Insert into appropriate stack with proper ordering
-		// 3. Set default parameters from ModuleDesc.DefaultParams
 	}
-	
-	return true;
+
+	// Actually insert the modules via graph-layer stack utilities
+	FModuleInsertResult InsertResult = FVFXModuleInserter::InsertModules(
+		Emitter,
+		MotionConfig.RequiredModules,
+		TEXT("V1_ApplyMotionBehavior"));
+
+	LogBuildAction(OutContext, FString::Printf(
+		TEXT("  Module insertion result: %d inserted, %d failed"),
+		InsertResult.ModulesInserted,
+		InsertResult.FailedModules.Num()
+	));
+
+	if (InsertResult.FailedModules.Num() > 0)
+	{
+		LogBuildAction(OutContext, FString::Printf(
+			TEXT("  Failed modules: %s"),
+			*FString::Join(InsertResult.FailedModules, TEXT(", "))
+		));
+	}
+
+	// Return true even if some non-required modules failed; only fail hard if a required one failed
+	bool bAllRequiredOK = true;
+	for (const FMotionModuleDescriptor& Mod : MotionConfig.RequiredModules)
+	{
+		if (Mod.bRequired)
+		{
+			const FString Name = Mod.DisplayName.IsEmpty() ? Mod.ModulePath : Mod.DisplayName;
+			if (InsertResult.FailedModules.Contains(Name))
+			{
+				bAllRequiredOK = false;
+				LogBuildAction(OutContext, FString::Printf(TEXT("  REQUIRED module failed: %s"), *Name));
+			}
+		}
+	}
+
+	return bAllRequiredOK;
 }
 
 bool FVFXNiagaraSpecBuilder::ValidateAndFixRenderers(
@@ -376,17 +481,132 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::CreateFromTemplate(const FString& Templ
 
 UNiagaraEmitter* FVFXNiagaraSpecBuilder::CreateFromScratch(const FString& EmitterName)
 {
-	// Create minimal emitter
+	// ── Step 1: Try to duplicate Niagara's own "DefaultEmptyEmitter" asset ──────
+	// This gives us a properly initialised graph with all necessary output nodes.
+	if (const UNiagaraEditorSettings* EditorSettings = GetDefault<UNiagaraEditorSettings>())
+	{
+		const FSoftObjectPath& DefaultEmptyPath = EditorSettings->DefaultEmptyEmitter;
+		if (DefaultEmptyPath.IsValid() && DefaultEmptyPath.IsAsset())
+		{
+			if (UNiagaraEmitter* TemplateEmitter = Cast<UNiagaraEmitter>(DefaultEmptyPath.TryLoad()))
+			{
+				UNiagaraEmitter* NewEmitter = DuplicateObject<UNiagaraEmitter>(
+					TemplateEmitter,
+					GetTransientPackage(),
+					*EmitterName);
+				if (NewEmitter)
+				{
+					NewEmitter->SetFlags(RF_Public | RF_Standalone | RF_Transactional);
+					NewEmitter->SetUniqueEmitterName(EmitterName);
+					UE_LOG(LogVFXAgent, Log, TEXT("CreateFromScratch: duplicated DefaultEmptyEmitter → '%s'"), *EmitterName);
+					return NewEmitter;
+				}
+			}
+		}
+	}
+
+	// ── Step 2: Fallback – create a bare UNiagaraEmitter and manually init graph ─
 	UNiagaraEmitter* Emitter = NewObject<UNiagaraEmitter>(
 		GetTransientPackage(),
 		*EmitterName,
-		RF_Public | RF_Standalone | RF_Transactional
-	);
-	
+		RF_Public | RF_Standalone | RF_Transactional);
+
 	if (!Emitter)
 		return nullptr;
-	
-return Emitter;
+
+#if WITH_EDITOR
+	// Initialise graph source so FNiagaraStackGraphUtilities can operate on it.
+	FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData();
+	if (EmitterData)
+	{
+		// Create a shared UNiagaraScriptSource + embedded UNiagaraGraph
+		UNiagaraScriptSource* Source = NewObject<UNiagaraScriptSource>(
+			Emitter, NAME_None, RF_Transactional);
+		UNiagaraGraph* Graph = NewObject<UNiagaraGraph>(
+			Source, NAME_None, RF_Transactional);
+		Source->NodeGraph = Graph;
+
+		// Attach source to all scripts
+		EmitterData->GraphSource = Source;
+		if (EmitterData->SpawnScriptProps.Script)
+			EmitterData->SpawnScriptProps.Script->SetLatestSource(Source);
+		if (EmitterData->UpdateScriptProps.Script)
+			EmitterData->UpdateScriptProps.Script->SetLatestSource(Source);
+
+#if WITH_EDITORONLY_DATA
+		if (EmitterData->EmitterSpawnScriptProps.Script)
+			EmitterData->EmitterSpawnScriptProps.Script->SetLatestSource(Source);
+		if (EmitterData->EmitterUpdateScriptProps.Script)
+			EmitterData->EmitterUpdateScriptProps.Script->SetLatestSource(Source);
+#endif
+		if (EmitterData->GetGPUComputeScript())
+			EmitterData->GetGPUComputeScript()->SetLatestSource(Source);
+
+		// Create the minimal output+input node pairs for each script usage.
+		// This replicates what FNiagaraStackGraphUtilities::ResetGraphForOutput does.
+		auto CreateOutputPair = [&](ENiagaraScriptUsage Usage, UNiagaraScript* Script)
+		{
+			if (!Script) return;
+
+			const FGuid UsageId = Script->GetUsageId();
+
+			// Output node
+			FGraphNodeCreator<UNiagaraNodeOutput> OutCreator(*Graph);
+			UNiagaraNodeOutput* OutNode = OutCreator.CreateNode();
+			OutNode->ScriptType   = Usage;
+			OutNode->ScriptTypeId = UsageId;
+			OutNode->Outputs.Add(FNiagaraVariable(
+				FNiagaraTypeDefinition::GetParameterMapDef(), TEXT("Out")));
+			OutCreator.Finalize();
+
+			// Input node (parameter map source)
+			FGraphNodeCreator<UNiagaraNodeInput> InCreator(*Graph);
+			UNiagaraNodeInput* InNode = InCreator.CreateNode();
+			InNode->Input = FNiagaraVariable(
+				FNiagaraTypeDefinition::GetParameterMapDef(), TEXT("InputMap"));
+			InNode->Usage = ENiagaraInputNodeUsage::Parameter;
+			InCreator.Finalize();
+
+			// Connect InputMap output → OutputNode input (via schema)
+			const UEdGraphSchema* Schema = Graph->GetSchema();
+			if (Schema && OutNode->Pins.Num() > 0 && InNode->Pins.Num() > 0)
+			{
+				UEdGraphPin* OutInputPin  = nullptr;
+				UEdGraphPin* InOutputPin  = nullptr;
+				for (UEdGraphPin* Pin : OutNode->Pins)
+				{
+					if (Pin->Direction == EGPD_Input) { OutInputPin = Pin; break; }
+				}
+				for (UEdGraphPin* Pin : InNode->Pins)
+				{
+					if (Pin->Direction == EGPD_Output) { InOutputPin = Pin; break; }
+				}
+				if (OutInputPin && InOutputPin)
+				{
+					Schema->TryCreateConnection(OutInputPin, InOutputPin);
+				}
+			}
+		};
+
+		CreateOutputPair(ENiagaraScriptUsage::ParticleSpawnScript,  EmitterData->SpawnScriptProps.Script);
+		CreateOutputPair(ENiagaraScriptUsage::ParticleUpdateScript, EmitterData->UpdateScriptProps.Script);
+
+#if WITH_EDITORONLY_DATA
+		CreateOutputPair(ENiagaraScriptUsage::EmitterSpawnScript,   EmitterData->EmitterSpawnScriptProps.Script);
+		CreateOutputPair(ENiagaraScriptUsage::EmitterUpdateScript,  EmitterData->EmitterUpdateScriptProps.Script);
+#endif
+
+		UE_LOG(LogVFXAgent, Log,
+			TEXT("CreateFromScratch: manually initialised graph for '%s'"), *EmitterName);
+	}
+	else
+	{
+		UE_LOG(LogVFXAgent, Warning,
+			TEXT("CreateFromScratch: GetLatestEmitterData() is null for '%s' – graph will be unset"), *EmitterName);
+	}
+#endif // WITH_EDITOR
+
+	return Emitter;
 }
 
 // ============================================================================

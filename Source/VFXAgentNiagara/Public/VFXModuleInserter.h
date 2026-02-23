@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "NiagaraCommon.h"
+#include "NiagaraScript.h"
 #include "VFXMotionModuleLibrary.h"
 
 class UNiagaraEmitter;
@@ -42,8 +43,18 @@ public:
 private:
 	static FString NormalizeModulePath(const FString& InPath);
 	static UNiagaraScript* LoadScript(const FString& ModulePath);
+
+	/** Insert a module script into the correct graph layer of the emitter using FNiagaraStackGraphUtilities */
 	static bool InsertScriptViaGraphSource(UNiagaraEmitter* Emitter, UNiagaraScript* Script, const FMotionModuleDescriptor& Module, FString& OutError);
-	static void ApplyDefaultParamsToModuleNode(UNiagaraNodeFunctionCall* ModuleNode, const FMotionModuleDescriptor& Module);
-	static ENiagaraScriptUsage ResolveScriptUsageForInsert(const FString& ModulePath, EModulePhase Phase);
-	static FName GetStackNameForPhase(EModulePhase Phase);
+
+	/** Apply default parameter overrides via Rapid Iteration parameters after inserting a module node */
+	static void ApplyDefaultParamsToModuleNode(
+		UNiagaraNodeFunctionCall* ModuleNode,
+		const FMotionModuleDescriptor& Module,
+		UNiagaraScript* TargetScript,
+		const FString& UniqueEmitterName,
+		ENiagaraScriptUsage ScriptUsage);
+
+	/** Map module phase + path to the correct ENiagaraScriptUsage graph section */
+	static ENiagaraScriptUsage GetScriptUsageForPhase(EModulePhase Phase, const FString& ModulePath);
 };

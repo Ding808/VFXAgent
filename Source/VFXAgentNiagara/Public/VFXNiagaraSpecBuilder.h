@@ -97,6 +97,9 @@ private:
 	static void LogBuildAction(FNiagaraBuildContext& Context, const FString& Action);
 	static void LogBuildActionV2(FNiagaraBuildContextV2& Context, const FString& Action);
 
+	/** Register User.* exposed parameters (PrimaryColor, EmissiveColor, Intensity, Scale) on the system */
+	static void SetupUserParameters(UNiagaraSystem* System, const FVFXEffectSpec& Spec, FNiagaraBuildContext& OutContext);
+
 	static UNiagaraEmitter* CreateFromTemplate(const FString& TemplatePath, const FString& EmitterName);
 	static UNiagaraEmitter* CreateFromScratch(const FString& EmitterName);
 

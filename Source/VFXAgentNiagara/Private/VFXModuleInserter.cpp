@@ -1,42 +1,27 @@
 #include "VFXModuleInserter.h"
 #include "VFXAgentLog.h"
 #include "Misc/Paths.h"
-#include "AssetRegistry/AssetData.h"
-#include "NiagaraCommon.h"
-#include "UObject/UnrealType.h"
+#include "Runtime/Launch/Resources/Version.h"
 
-// Niagara Base
+// Niagara Runtime
+#include "NiagaraCommon.h"
 #include "NiagaraEmitter.h"
 #include "NiagaraSystem.h"
 #include "NiagaraScript.h"
-#include "Runtime/Launch/Resources/Version.h"
+#include "NiagaraTypes.h"
+#include "NiagaraParameterStore.h"
 
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
-#include "NiagaraEmitter.h"
-#endif
+// Niagara Editor (graph layer - accessible because VFXAgentNiagara is an Editor module)
+#include "NiagaraScriptSource.h"
+#include "NiagaraGraph.h"
+#include "NiagaraNodeOutput.h"
+#include "NiagaraNodeFunctionCall.h"
+#include "ViewModels/Stack/NiagaraStackGraphUtilities.h"
+#include "ViewModels/Stack/NiagaraParameterHandle.h"
 
-static bool SetStructObjectField(void* StructPtr, UStruct* StructType, const FName& FieldName, UObject* Value)
-{
-	if (!StructPtr || !StructType)
-	{
-		return false;
-	}
-
-	FProperty* Prop = StructType->FindPropertyByName(FieldName);
-	if (FObjectProperty* ObjProp = CastField<FObjectProperty>(Prop))
-	{
-		ObjProp->SetObjectPropertyValue_InContainer(StructPtr, Value);
-		return true;
-	}
-
-	if (FSoftObjectProperty* SoftObjProp = CastField<FSoftObjectProperty>(Prop))
-	{
-		SoftObjProp->SetPropertyValue_InContainer(StructPtr, FSoftObjectPtr(Value));
-		return true;
-	}
-
-	return false;
-}
+// ============================================================
+// Internal Helpers
+// ============================================================
 
 FModuleInsertResult FVFXModuleInserter::InsertModules(UNiagaraEmitter* Emitter, const TArray<FMotionModuleDescriptor>& Modules, const FString& DebugTag)
 {
@@ -88,39 +73,21 @@ bool FVFXModuleInserter::InsertModuleByPath(UNiagaraEmitter* Emitter, const FMot
 		return false;
 	}
 
-	const FString ModulePath = Module.ModulePath;
-	const EModulePhase Phase = Module.Phase;
-	const int32 Priority = Module.Priority;
-
-	UNiagaraScript* Script = LoadScript(ModulePath);
+	UNiagaraScript* Script = LoadScript(Module.ModulePath);
 	if (!Script)
 	{
-		OutError = FString::Printf(TEXT("Script not found: %s"), *ModulePath);
+		OutError = FString::Printf(TEXT("Script not found: %s"), *Module.ModulePath);
 		return false;
 	}
 
-	const FName StackName = GetStackNameForPhase(Phase);
 	if (!InsertScriptViaGraphSource(Emitter, Script, Module, OutError))
 	{
-		if (OutError.IsEmpty())
-		{
-			const FString StackNameStr = StackName.ToString();
-			OutError = FString::Printf(TEXT("Insert failed in stack: %s"), *StackNameStr);
-		}
 		return false;
 	}
-
-#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
-	if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
-	{
-		// EmitterData->Modify(); // FVersionedNiagaraEmitterData is a struct, not a UObject
-	}
-#endif
 
 	Emitter->Modify();
 	Emitter->PostEditChange();
 	Emitter->MarkPackageDirty();
-	// Emitter->CacheFromCompiledData(); // Removed or replaced in UE 5.x
 
 	if (UNiagaraSystem* OwnerSystem = Emitter->GetTypedOuter<UNiagaraSystem>())
 	{
@@ -131,17 +98,13 @@ bool FVFXModuleInserter::InsertModuleByPath(UNiagaraEmitter* Emitter, const FMot
 #endif
 	}
 
-	UE_LOG(LogVFXAgent, Verbose, TEXT("InsertModuleByPath succeeded for '%s' and triggered dirty/recompile refresh"), *ModulePath);
+	UE_LOG(LogVFXAgent, Verbose, TEXT("InsertModuleByPath OK for '%s'"), *Module.ModulePath);
 	return true;
 }
 
 FString FVFXModuleInserter::NormalizeModulePath(const FString& InPath)
 {
-	if (InPath.IsEmpty())
-	{
-		return InPath;
-	}
-	if (InPath.Contains(TEXT(".")))
+	if (InPath.IsEmpty() || InPath.Contains(TEXT(".")))
 	{
 		return InPath;
 	}
@@ -159,10 +122,8 @@ UNiagaraScript* FVFXModuleInserter::LoadScript(const FString& ModulePath)
 	return LoadObject<UNiagaraScript>(nullptr, *Normalized);
 }
 
-ENiagaraScriptUsage FVFXModuleInserter::ResolveScriptUsageForInsert(const FString& ModulePath, EModulePhase Phase)
+ENiagaraScriptUsage FVFXModuleInserter::GetScriptUsageForPhase(EModulePhase Phase, const FString& ModulePath)
 {
-	const FString LowerPath = ModulePath.ToLower();
-
 	if (Phase == EModulePhase::EventWrite)
 	{
 		return ENiagaraScriptUsage::ParticleEventScript;
@@ -170,124 +131,223 @@ ENiagaraScriptUsage FVFXModuleInserter::ResolveScriptUsageForInsert(const FStrin
 
 	if (Phase == EModulePhase::PreSim)
 	{
-		if (LowerPath.Contains(TEXT("spawnrate")) || LowerPath.Contains(TEXT("spawnburst")) || LowerPath.Contains(TEXT("emitter")))
+		const FString LowerPath = ModulePath.ToLower();
+
+		// SpawnBurstInstant executes once at emitter SPAWN time
+		if (LowerPath.Contains(TEXT("spawnburstinstant")) || LowerPath.Contains(TEXT("spawnburst")))
 		{
 			return ENiagaraScriptUsage::EmitterSpawnScript;
 		}
+
+		// SpawnRate and other per-frame emitter-level spawn control → EmitterUpdateScript
+		if (LowerPath.Contains(TEXT("spawnrate")) ||
+			LowerPath.Contains(TEXT("emitterstate")) ||
+			(LowerPath.Contains(TEXT("/emitter/")) && !LowerPath.Contains(TEXT("spawnburst"))))
+		{
+			return ENiagaraScriptUsage::EmitterUpdateScript;
+		}
+
+		// Default PreSim → Particle Spawn (InitializeParticle, AddVelocity in spawn, etc.)
 		return ENiagaraScriptUsage::ParticleSpawnScript;
 	}
 
+	// Forces / Damping / Integrate / Curves / RenderPrep / Kill → ParticleUpdateScript
 	return ENiagaraScriptUsage::ParticleUpdateScript;
 }
 
-bool FVFXModuleInserter::InsertScriptViaGraphSource(UNiagaraEmitter* Emitter, UNiagaraScript* Script, const FMotionModuleDescriptor& Module, FString& OutError)
+bool FVFXModuleInserter::InsertScriptViaGraphSource(
+	UNiagaraEmitter* Emitter,
+	UNiagaraScript* Script,
+	const FMotionModuleDescriptor& Module,
+	FString& OutError)
 {
-	if (!Emitter)
+	if (!Emitter || !Script)
 	{
-		OutError = TEXT("Null emitter");
+		OutError = TEXT("Null emitter or script");
 		return false;
 	}
 
-	if (!Script)
-	{
-		OutError = TEXT("Null script");
-		return false;
-	}
-
-	const FName StackPropName = GetStackNameForPhase(Module.Phase);
-	
-	void* TargetContainer = Emitter;
-	FArrayProperty* ArrayProp = FindFProperty<FArrayProperty>(Emitter->GetClass(), StackPropName);
+	// Determine the correct graph section for this module phase
+	const ENiagaraScriptUsage TargetUsage = GetScriptUsageForPhase(Module.Phase, Module.ModulePath);
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
-	if (!ArrayProp)
+	FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData();
+	if (!EmitterData)
 	{
-		if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
-		{
-			TargetContainer = EmitterData;
-			ArrayProp = FindFProperty<FArrayProperty>(FVersionedNiagaraEmitterData::StaticStruct(), StackPropName);
-		}
+		OutError = TEXT("GetLatestEmitterData() returned null");
+		return false;
+	}
+
+	// Retrieve the target script for this usage (handles EmitterSpawn/Update too via WITH_EDITORONLY_DATA)
+	UNiagaraScript* TargetScript = EmitterData->GetScript(TargetUsage, FGuid());
+#else
+	UNiagaraScript* TargetScript = nullptr;
+	switch (TargetUsage)
+	{
+		case ENiagaraScriptUsage::ParticleSpawnScript:
+		case ENiagaraScriptUsage::ParticleSpawnScriptInterpolated:
+			TargetScript = Emitter->SpawnScriptProps.Script;
+			break;
+		case ENiagaraScriptUsage::ParticleUpdateScript:
+			TargetScript = Emitter->UpdateScriptProps.Script;
+			break;
+		default:
+			break;
 	}
 #endif
 
-	if (!ArrayProp)
+	if (!TargetScript)
 	{
-		OutError = FString::Printf(TEXT("Emitter does not expose stack property: %s"), *StackPropName.ToString());
+		OutError = FString::Printf(
+			TEXT("No script found for usage %d in emitter '%s'. Make sure the emitter was properly initialised with a graph."),
+			(int32)TargetUsage, *Emitter->GetName());
 		return false;
 	}
 
-	FStructProperty* StructProp = CastField<FStructProperty>(ArrayProp->Inner);
-	if (!StructProp || !StructProp->Struct)
+	// Access the Niagara graph via the script's source (NiagaraEditor module)
+	UNiagaraScriptSource* ScriptSource = Cast<UNiagaraScriptSource>(TargetScript->GetLatestSource());
+	if (!ScriptSource || !ScriptSource->NodeGraph)
 	{
-		OutError = FString::Printf(TEXT("Stack property '%s' is not a struct array"), *StackPropName.ToString());
+		OutError = FString::Printf(
+			TEXT("Script '%s' has no NodeGraph. Emitter may not have been initialised with a graph (tip: duplicate a template emitter instead of NewObject)."),
+			*TargetScript->GetName());
 		return false;
 	}
 
-	FScriptArrayHelper Helper(ArrayProp, ArrayProp->ContainerPtrToValuePtr<void>(TargetContainer));
-
-	for (int32 Index = 0; Index < Helper.Num(); ++Index)
+	// Find the output node for this usage (NIAGARAEDITOR_API FindEquivalentOutputNode)
+	UNiagaraNodeOutput* OutputNode = ScriptSource->NodeGraph->FindEquivalentOutputNode(TargetUsage);
+	if (!OutputNode)
 	{
-		void* ElemPtr = Helper.GetRawPtr(Index);
-		UObject* ExistingScript = nullptr;
-
-		if (FObjectProperty* ScriptProp = FindFProperty<FObjectProperty>(StructProp->Struct, TEXT("Script")))
-		{
-			ExistingScript = ScriptProp->GetObjectPropertyValue_InContainer(ElemPtr);
-		}
-
-		if (!ExistingScript)
-		{
-			if (FObjectProperty* ScriptObjProp = FindFProperty<FObjectProperty>(StructProp->Struct, TEXT("ScriptObject")))
-			{
-				ExistingScript = ScriptObjProp->GetObjectPropertyValue_InContainer(ElemPtr);
-			}
-		}
-
-		if (ExistingScript == Script)
-		{
-			return true;
-		}
-	}
-
-	const int32 InsertIndex = (Module.Priority >= 0) ? FMath::Min(Module.Priority, Helper.Num()) : Helper.Num();
-	Helper.InsertValues(InsertIndex, 1);
-	void* NewElemPtr = Helper.GetRawPtr(InsertIndex);
-
-	const bool bAssigned =
-		SetStructObjectField(NewElemPtr, StructProp->Struct, TEXT("Script"), Script) ||
-		SetStructObjectField(NewElemPtr, StructProp->Struct, TEXT("ScriptObject"), Script) ||
-		SetStructObjectField(NewElemPtr, StructProp->Struct, TEXT("GeneratorScript"), Script) ||
-		SetStructObjectField(NewElemPtr, StructProp->Struct, TEXT("EventScript"), Script);
-
-	if (!bAssigned)
-	{
-		Helper.RemoveValues(InsertIndex, 1);
-		OutError = FString::Printf(TEXT("Failed to write script into stack '%s' element"), *StackPropName.ToString());
+		OutError = FString::Printf(
+			TEXT("No output node found for usage %d in graph '%s'"),
+			(int32)TargetUsage, *ScriptSource->NodeGraph->GetName());
 		return false;
 	}
 
-	ApplyDefaultParamsToModuleNode(nullptr, Module);
+	// Insert module via the NIAGARAEDITOR_API overload (handles duplicates / ordering)
+	const int32 InsertIndex = (Module.Priority >= 0) ? Module.Priority : INDEX_NONE;
+	UNiagaraNodeFunctionCall* FuncCallNode = FNiagaraStackGraphUtilities::AddScriptModuleToStack(
+		Script,
+		*OutputNode,
+		InsertIndex,
+		Module.DisplayName.IsEmpty() ? FString() : Module.DisplayName);
+
+	if (!FuncCallNode)
+	{
+		// AddScriptModuleToStack returning null usually means the module is already in the stack
+		UE_LOG(LogVFXAgent, Log,
+			TEXT("AddScriptModuleToStack returned null for '%s' (module may already exist in stack) – continuing"),
+			*Script->GetName());
+		return true;
+	}
+
+	UE_LOG(LogVFXAgent, Log,
+		TEXT("  [GraphInsert] '%s' → usage %d (index %d)"),
+		*FuncCallNode->GetFunctionName(), (int32)TargetUsage, InsertIndex);
+
+	// Apply default parameter overrides via Rapid Iteration parameters
+	ApplyDefaultParamsToModuleNode(
+		FuncCallNode,
+		Module,
+		TargetScript,
+		Emitter->GetUniqueEmitterName(),
+		TargetUsage);
+
 	return true;
 }
 
-void FVFXModuleInserter::ApplyDefaultParamsToModuleNode(UNiagaraNodeFunctionCall* ModuleNode, const FMotionModuleDescriptor& Module)
+// ============================================================
+// Rapid Iteration Parameter Overrides
+// ============================================================
+
+void FVFXModuleInserter::ApplyDefaultParamsToModuleNode(
+	UNiagaraNodeFunctionCall* ModuleNode,
+	const FMotionModuleDescriptor& Module,
+	UNiagaraScript*              TargetScript,
+	const FString&               UniqueEmitterName,
+	ENiagaraScriptUsage          ScriptUsage)
 {
-	(void)ModuleNode;
-	if (Module.DefaultParams.Num() > 0 || Module.DefaultParamsInt.Num() > 0 || Module.DefaultParamsBool.Num() > 0 || Module.DefaultParamsVector.Num() > 0)
+	if (!ModuleNode || !TargetScript)
 	{
-		UE_LOG(LogVFXAgent, Verbose, TEXT("Param default overrides are skipped in reflection insertion path."));
+		return;
+	}
+
+	const bool bHasAnyParam =
+		Module.DefaultParams.Num()       > 0 ||
+		Module.DefaultParamsInt.Num()    > 0 ||
+		Module.DefaultParamsBool.Num()   > 0 ||
+		Module.DefaultParamsVector.Num() > 0;
+
+	if (!bHasAnyParam)
+	{
+		return;
+	}
+
+	// Build an aliased Rapid Iteration variable for a given input name + type.
+	// The naming convention: Constants.<EmitterName>.<ModuleFunctionName>.<InputName>
+	auto BuildRIVar = [&](const FString& ParamName, const FNiagaraTypeDefinition& TypeDef) -> FNiagaraVariable
+	{
+		// 1. Create the module-namespace handle: "Module.<ParamName>"
+		FNiagaraParameterHandle InputHandle =
+			FNiagaraParameterHandle::CreateModuleParameterHandle(FName(*ParamName));
+		// 2. Alias it to the concrete function name: "<FuncName>.<ParamName>"
+		FNiagaraParameterHandle AliasedHandle =
+			FNiagaraParameterHandle::CreateAliasedModuleParameterHandle(InputHandle, ModuleNode);
+		// 3. Wrap in a variable and convert to the RI constant naming scheme
+		FNiagaraVariable InputVar(TypeDef, AliasedHandle.GetParameterHandleString());
+		return FNiagaraUtilities::ConvertVariableToRapidIterationConstantName(
+			InputVar, *UniqueEmitterName, ScriptUsage);
+	};
+
+	// ── Float ───────────────────────────────────────────────────────────────
+	for (const auto& Pair : Module.DefaultParams)
+	{
+		FNiagaraVariable RIVar = BuildRIVar(Pair.Key, FNiagaraTypeDefinition::GetFloatDef());
+		const float Val = Pair.Value;
+		RIVar.SetValue<float>(Val);
+		TargetScript->RapidIterationParameters.SetParameterData(
+			RIVar.GetData(), RIVar, /*bAdd=*/true);
+		UE_LOG(LogVFXAgent, Verbose, TEXT("    RI float '%s' = %f"),
+			*RIVar.GetName().ToString(), Val);
+	}
+
+	// ── Int ─────────────────────────────────────────────────────────────────
+	for (const auto& Pair : Module.DefaultParamsInt)
+	{
+		FNiagaraVariable RIVar = BuildRIVar(Pair.Key, FNiagaraTypeDefinition::GetIntDef());
+		const int32 Val = Pair.Value;
+		RIVar.SetValue<int32>(Val);
+		TargetScript->RapidIterationParameters.SetParameterData(
+			RIVar.GetData(), RIVar, /*bAdd=*/true);
+		UE_LOG(LogVFXAgent, Verbose, TEXT("    RI int '%s' = %d"),
+			*RIVar.GetName().ToString(), Val);
+	}
+
+	// ── Bool ────────────────────────────────────────────────────────────────
+	for (const auto& Pair : Module.DefaultParamsBool)
+	{
+		FNiagaraVariable RIVar = BuildRIVar(Pair.Key, FNiagaraTypeDefinition::GetBoolDef());
+		FNiagaraBool BoolVal(Pair.Value);
+		RIVar.SetValue<FNiagaraBool>(BoolVal);
+		TargetScript->RapidIterationParameters.SetParameterData(
+			RIVar.GetData(), RIVar, /*bAdd=*/true);
+		UE_LOG(LogVFXAgent, Verbose, TEXT("    RI bool '%s' = %s"),
+			*RIVar.GetName().ToString(), Pair.Value ? TEXT("true") : TEXT("false"));
+	}
+
+	// ── Vector (FVector3f) ──────────────────────────────────────────────────
+	for (const auto& Pair : Module.DefaultParamsVector)
+	{
+		FNiagaraVariable RIVar = BuildRIVar(Pair.Key, FNiagaraTypeDefinition::GetVec3Def());
+		const FVector3f Val(
+			static_cast<float>(Pair.Value.X),
+			static_cast<float>(Pair.Value.Y),
+			static_cast<float>(Pair.Value.Z));
+		RIVar.SetValue<FVector3f>(Val);
+		TargetScript->RapidIterationParameters.SetParameterData(
+			RIVar.GetData(), RIVar, /*bAdd=*/true);
+		UE_LOG(LogVFXAgent, Verbose, TEXT("    RI vec '%s' = %s"),
+			*RIVar.GetName().ToString(), *Pair.Value.ToString());
 	}
 }
 
-FName FVFXModuleInserter::GetStackNameForPhase(EModulePhase Phase)
-{
-	switch (Phase)
-	{
-		case EModulePhase::PreSim:
-			return TEXT("ParticleSpawnScriptProps");
-		case EModulePhase::EventWrite:
-			return TEXT("EventHandlerScriptProps");
-		default:
-			return TEXT("ParticleUpdateScriptProps");
-	}
-}
