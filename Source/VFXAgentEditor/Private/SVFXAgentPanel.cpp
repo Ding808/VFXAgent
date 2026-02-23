@@ -1222,7 +1222,7 @@ void SVFXAgentPanel::ExecuteGenerate(const FString& Prompt)
         FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Orchestrator, TEXT("V2 pipeline started"));
 
         FVFXMultiCandidatePipeline::RunAsync(HttpProvider, Prompt, Config,
-            [this, OutputPath](const FMultiCandidatePipelineResult& Result)
+            [this, OutputPath, AssetName, HttpProvider](const FMultiCandidatePipelineResult& Result)
             {
                 bRequestInFlight = false;
                 UpdateStatusDisplay();
@@ -1286,34 +1286,76 @@ void SVFXAgentPanel::ExecuteGenerate(const FString& Prompt)
                     Result.AllCandidates.Num(), Result.SelectedCandidate.Score));
                 AddThinkingStep(TEXT("Building Niagara System from selected spec..."));
 
-                // Build the selected spec
+                // Build the selected spec via Python (Architecture V3)
+                // We pass the selected spec JSON back to the LLM asking for a Python script,
+                // then execute it with FVFXPythonExecutor — no C++ Niagara assembly.
                 FEffectSpecV2 Parsed;
                 FString ParseError;
                 if (FEffectSpecV2Parser::ParseFromJson(Result.SelectedCandidate.RawJson, Parsed, ParseError))
                 {
-                    FAssetBuildResult BuildResult;
-                    if (FAssetBuildPipelineV2::BuildFromV2Spec(Parsed, OutputPath, BuildResult))
+                    AddThinkingStep(TEXT("Requesting Python script from AI for selected spec..."));
+
+                    // Build a contextual prompt that includes the scored spec
+                    const FString PythonPrompt = FString::Printf(
+                        TEXT("Using the following VFX effect specification as your creative brief, ")
+                        TEXT("generate the Niagara System Python script.\n\n")
+                        TEXT("Effect name: %s\n")
+                        TEXT("Output path: /Game/VFXAgent/Generated/%s\n")
+                        TEXT("Layers: %d\n")
+                        TEXT("Quality score: %.0f%%\n\n")
+                        TEXT("Spec summary:\n%s"),
+                        *AssetName, *AssetName,
+                        Parsed.Layers.Num(),
+                        Result.SelectedCandidate.Score * 100.0f,
+                        *Result.SelectedCandidate.RawJson.Left(1500));
+
+                    bRequestInFlight = true;
+                    UpdateStatusDisplay();
+
+                    HttpProvider->RequestPythonScriptAsync(PythonPrompt,
+                        [this, OutputPath, AssetName, ScorePct = Result.SelectedCandidate.Score * 100.0f, NumLayers = Parsed.Layers.Num()]
+                        (bool bPySuccess, const FString& PythonCode, const FString& PyError)
                     {
-                        LastGeneratedSystemPath = BuildResult.SystemPath;
-                        FString Summary = FString::Printf(
-                            TEXT("Successfully created Niagara System!\n\nAsset: %s\nLayers: %d\nScore: %.0f%%"),
-                            *LastGeneratedSystemPath,
-                            Parsed.Layers.Num(),
-                            Result.SelectedCandidate.Score * 100.0f);
-                        CompleteThinkingBubble(TEXT(""));
-                        AddAssetLinkBubble(LastGeneratedSystemPath, Summary);
-                        AddAgentBubble(TEXT("You can now modify this effect by describing changes, or reference another system to work with."));
-                    }
-                    else
-                    {
-                        FString Errors;
-                        for (const FString& Err : BuildResult.Errors)
+                        bRequestInFlight = false;
+                        UpdateStatusDisplay();
+
+                        if (!bPySuccess || !PyError.IsEmpty())
                         {
-                            Errors += TEXT("\n  - ") + Err;
+                            CompleteThinkingBubble(TEXT(""));
+                            AddErrorBubble(FString::Printf(TEXT("Python script request failed: %s"), *PyError));
+                            return;
                         }
-                        CompleteThinkingBubble(TEXT(""));
-                        AddErrorBubble(FString::Printf(TEXT("Build failed:%s"), *Errors));
-                    }
+
+                        const FString CleanCode = FVFXPythonExecutor::SanitizeLLMPythonOutput(PythonCode);
+                        if (CleanCode.IsEmpty())
+                        {
+                            CompleteThinkingBubble(TEXT(""));
+                            AddErrorBubble(TEXT("LLM returned an empty Python script for the selected spec."));
+                            return;
+                        }
+
+                        AddThinkingStep(TEXT("Executing Python script..."));
+                        const bool bExecSuccess = FVFXPythonExecutor::ExecutePythonScript(CleanCode);
+
+                        if (bExecSuccess)
+                        {
+                            LastGeneratedSystemPath = FString::Printf(TEXT("/Game/VFXAgent/Generated/%s"), *AssetName);
+                            FString Summary = FString::Printf(
+                                TEXT("Successfully created Niagara System!\n\nAsset: %s\nLayers: %d\nScore: %.0f%%"),
+                                *LastGeneratedSystemPath, NumLayers, ScorePct);
+                            CompleteThinkingBubble(TEXT(""));
+                            AddAssetLinkBubble(LastGeneratedSystemPath, Summary);
+                            AddAgentBubble(TEXT("You can now modify this effect by describing changes, or reference another system to work with."));
+                        }
+                        else
+                        {
+                            CompleteThinkingBubble(TEXT(""));
+                            AddErrorBubble(
+                                TEXT("Python script execution failed.\n"
+                                     "Check the Output Log for Python tracebacks.\n"
+                                     "Ensure 'Python Editor Script Plugin' is enabled (Edit \u2192 Plugins)."));
+                        }
+                    });
                 }
                 else
                 {
