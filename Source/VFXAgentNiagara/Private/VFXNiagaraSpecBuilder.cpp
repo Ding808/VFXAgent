@@ -659,6 +659,14 @@ UNiagaraSystem* FVFXNiagaraSpecBuilder::BuildFromSpecV2(const FEffectSpecV2& Spe
 		}
 	}
 
+	// CRITICAL: Niagara must recompile after graph-layer modifications, otherwise the GPU/CPU
+	// scripts remain empty and the effect produces no particles.
+	if (System)
+	{
+		System->Modify();
+		System->RequestCompile(/*bForce=*/false);
+	}
+
 	OutContext.bSuccess = true;
 	return System;
 }
@@ -777,6 +785,30 @@ UNiagaraEmitter* FVFXNiagaraSpecBuilder::BuildEmitterV2(const FLayerSpecV2& Laye
 void FVFXNiagaraSpecBuilder::ConfigureEmitterMotionV2(UNiagaraEmitter* Emitter, const FLayerSpecV2& Layer, FNiagaraBuildContextV2& Context)
 {
 	TArray<FMotionModuleDescriptor> Modules;
+
+	// 0a. Emitter State – controls loop vs one-shot lifecycle (EmitterUpdate stack)
+	//     Phase=PreSim + path containing 'emitterstate' → routed to EmitterUpdateScript
+	{
+		FMotionModuleDescriptor EmitterStateMod;
+		EmitterStateMod.DisplayName = TEXT("Emitter State");
+		EmitterStateMod.ModulePath  = TEXT("/Niagara/Modules/Emitter/EmitterState.EmitterState");
+		EmitterStateMod.Phase       = EModulePhase::PreSim;
+		EmitterStateMod.Priority    = 0;
+		EmitterStateMod.bRequired   = true;
+		Modules.Add(EmitterStateMod);
+	}
+
+	// 0b. Particle State – ages particles and kills them when lifetime expires (ParticleUpdate stack)
+	//     Phase=KillCull (non-PreSim) → routed to ParticleUpdateScript
+	{
+		FMotionModuleDescriptor ParticleStateMod;
+		ParticleStateMod.DisplayName = TEXT("Particle State");
+		ParticleStateMod.ModulePath  = TEXT("/Niagara/Modules/Update/ParticleState.ParticleState");
+		ParticleStateMod.Phase       = EModulePhase::KillCull;
+		ParticleStateMod.Priority    = 0;
+		ParticleStateMod.bRequired   = true;
+		Modules.Add(ParticleStateMod);
+	}
 
 	// 1. Initialize
 	FMotionModuleDescriptor InitModule;
