@@ -76,6 +76,13 @@ void ExecuteGenerateFromMedia(const FString& Prompt);
 void ExecuteRecipePipeline(const FString& Prompt, const FString& OutputPath, const FString& AssetName);
 void ExecuteDirectorPipeline(const FString& Prompt, const FString& OutputPath, const FString& AssetName);
 
+// --- Python auto-fix retry loop ---
+// Executes PythonCode; on failure asks the LLM to fix and retries up to MaxAttempts times.
+// Attempt counts from 1. All UI status updates are handled internally.
+void StartPythonRetryLoop(const FString& Code, class UHttpLLMProvider* Provider,
+    const FString& AssetName, float ScorePct, int32 NumLayers,
+    int32 Attempt, int32 MaxAttempts);
+
 // --- LLM Provider ---
 void RefreshLLMSettingsFromConfig();
 FString GetModelDisplayName() const;

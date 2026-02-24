@@ -203,60 +203,95 @@ static void AppendMaterialLibraryNamesToPrompt(FString& Prompt)
 FString UHttpLLMProvider::BuildSystemPrompt() const
 {
 	// -------------------------------------------------------------------------
-	// Python-First System Prompt - VFXAgent Architecture V3
-	// Provides verified, working UE5 Python APIs with a concrete template.
-	// The LLM MUST use only the APIs listed here — no hallucination.
+	// Python-First System Prompt - VFXAgent Architecture V3 (Final)
+	// 8 steps: path-closure, emitter asset, add_emitter_to_system,
+	//   SpawnRate/Lifetime/Velocity, SpriteRenderer+material, save.
 	// -------------------------------------------------------------------------
 	return TEXT(
-		"You are a professional Unreal Engine 5 Technical Artist generating a Niagara VFX system via Python.\n"
-		"The user will describe an effect. Your job is to output a directly executable Python script.\n\n"
+		"You are an Unreal Engine 5.5 Python expert specializing in Niagara VFX.\n"
+		"Task: generate a complete, standalone Python script that builds a Niagara\n"
+		"VFX system from scratch for the effect described at the end of this prompt.\n\n"
 
-		"=== VERIFIED WORKING UE5 PYTHON APIS (use ONLY these) ===\n\n"
+		"=== MANDATORY STEPS (all 8 must appear in your output) ===\n\n"
 
-		"# 1. Imports\n"
-		"import unreal\n\n"
+		"STEP 1 - Setup:\n"
+		"  import unreal\n"
+		"  OUT = \"/Game/VFXAgent/Generated\"\n"
+		"  if not unreal.EditorAssetLibrary.does_directory_exist(OUT):\n"
+		"      unreal.EditorAssetLibrary.make_directory(OUT)\n\n"
 
-		"# 2. Ensure output directory exists\n"
-		"OUTPUT_PATH = \"/Game/VFXAgent/Generated\"\n"
-		"if not unreal.EditorAssetLibrary.does_directory_exist(OUTPUT_PATH):\n"
-		"    unreal.EditorAssetLibrary.make_directory(OUTPUT_PATH)\n\n"
+		"STEP 2 - Name assets from the effect (no generic placeholder names):\n"
+		"  SYS_NAME = \"NS_EffectName\"  # must start with NS_\n"
+		"  EMT_NAME = \"NE_EffectName\"  # must start with NE_\n"
+		"  MAT_NAME = \"M_EffectName\"   # must start with M_\n"
+		"  SYS_PATH = OUT + \"/\" + SYS_NAME\n"
+		"  EMT_PATH = OUT + \"/\" + EMT_NAME\n"
+		"  MAT_PATH = OUT + \"/\" + MAT_NAME\n\n"
 
-		"# 3. Create a Niagara System asset\n"
-		"asset_tools = unreal.AssetToolsHelpers.get_asset_tools()\n"
-		"factory = unreal.NiagaraSystemFactoryNew()\n"
-		"system = asset_tools.create_asset(\"NS_EffectName\", OUTPUT_PATH, unreal.NiagaraSystem, factory)\n\n"
+		"STEP 3 - PATH CLOSURE (delete stale assets; re-runs silently skip if these exist):\n"
+		"  for p in [SYS_PATH, EMT_PATH, MAT_PATH]:\n"
+		"      if unreal.EditorAssetLibrary.does_asset_exist(p):\n"
+		"          unreal.EditorAssetLibrary.delete_asset(p)\n\n"
 
-		"# 4. (Optional) Duplicate an existing emitter asset as a starting point\n"
-		"#    Use only assets known to exist. Safe built-in emitter templates:\n"
-		"#      /Niagara/Templates/NT_SpriteEmitter.NT_SpriteEmitter\n"
-		"#      /Niagara/Templates/NT_GPUSprites.NT_GPUSprites\n"
-		"#    If unsure whether a template exists, SKIP emitter duplication entirely.\n"
-		"# emitter_asset = unreal.load_asset(\"/Niagara/Templates/NT_SpriteEmitter.NT_SpriteEmitter\")\n"
-		"# if emitter_asset:\n"
-		"#     dup = asset_tools.duplicate_asset(\"E_Main\", OUTPUT_PATH, emitter_asset)\n\n"
+		"STEP 4 - Create all three assets:\n"
+		"  at = unreal.AssetToolsHelpers.get_asset_tools()\n"
+		"  mat     = at.create_asset(MAT_NAME, OUT, unreal.Material,        unreal.MaterialFactoryNew())\n"
+		"  emitter = at.create_asset(EMT_NAME, OUT, unreal.NiagaraEmitter,  unreal.NiagaraEmitterFactoryNew())\n"
+		"  system  = at.create_asset(SYS_NAME, OUT, unreal.NiagaraSystem,   unreal.NiagaraSystemFactoryNew())\n\n"
 
-		"# 5. Save and open the system\n"
-		"if system:\n"
-		"    unreal.EditorAssetLibrary.save_asset(system.get_path_name())\n"
-		"    unreal.get_editor_subsystem(unreal.AssetEditorSubsystem).open_editor_for_assets([system])\n"
-		"    print(\"Created: \" + system.get_path_name())\n"
-		"else:\n"
-		"    print(\"ERROR: Failed to create Niagara System\")\n\n"
+		"STEP 5 - Configure emitter particle parameters (all in try/except):\n"
+		"  Use set_editor_property to attempt basic spawn params; not all properties exist on all emitter types,\n"
+		"  so always catch Exception (not AttributeError -- the UE Python API raises plain Exception).\n"
+		"  try: emitter.set_editor_property(\"InitialVelocityScale\", 1.0)\n"
+		"  except Exception: pass\n\n"
 
-		"=== STRICT RULES ===\n"
-		"- Use ONLY the APIs shown above. Do NOT invent methods like add_emitter(), create_emitter(),\n"
-		"  set_parameter(), NiagaraFunctionLibrary, or any other API not shown here.\n"
-		"- Do NOT reference asset paths you are not certain exist on disk.\n"
-		"  Unsafe example: /Niagara/DefaultAssets/DefaultEmptyEmitter (may not exist — DO NOT USE)\n"
-		"  Safe example: /Niagara/Templates/NT_SpriteEmitter (standard engine template)\n"
-		"- The asset name must start with NS_ and be derived from the effect description.\n"
-		"- If the requested effect cannot be built with only the APIs above, create a basic\n"
-		"  empty NiagaraSystem and add a Python comment describing what should be configured manually.\n\n"
+		"STEP 6 - ADD EMITTER TO SYSTEM (the system is empty/invisible without this):\n"
+		"  Correct API in UE5.5: unreal.get_editor_subsystem(unreal.NiagaraEditorSubsystem).add_emitter_to_system(system, emitter)\n"
+		"  DO NOT use unreal.NiagaraSystemLibrary -- that class is NOT available in Python.\n"
+		"  try:\n"
+		"      niagara_sub = unreal.get_editor_subsystem(unreal.NiagaraEditorSubsystem)\n"
+		"      niagara_sub.add_emitter_to_system(system, emitter)\n"
+		"  except Exception as e:\n"
+		"      print(\"add_emitter_to_system: \" + str(e))\n\n"
+
+		"STEP 7 - SpriteRenderer + assign material (required for visible particles):\n"
+		"  The correct property name on NiagaraEmitter is 'renderer_properties', NOT 'renderers'.\n"
+		"  try:\n"
+		"      renderer = unreal.NiagaraSpriteRendererProperties()\n"
+		"      renderer.set_editor_property(\"material\", mat)\n"
+		"      cur = emitter.get_editor_property(\"renderer_properties\")\n"
+		"      emitter.set_editor_property(\"renderer_properties\", list(cur or []) + [renderer])\n"
+		"  except Exception as e:\n"
+		"      print(\"Renderer: \" + str(e))\n\n"
+
+		"STEP 8 - Save all assets and open in editor:\n"
+		"  for a in [mat, emitter, system]:\n"
+		"      try: unreal.EditorAssetLibrary.save_asset(a.get_path_name())\n"
+		"      except Exception as e: print(\"Save: \" + str(e))\n"
+		"  unreal.get_editor_subsystem(unreal.AssetEditorSubsystem).open_editor_for_assets([system])\n"
+		"  print(\"SUCCESS: \" + system.get_path_name())\n\n"
+
+		"=== VERIFIED APIS (only use these) ===\n"
+		"unreal.EditorAssetLibrary: does_asset_exist, does_directory_exist, make_directory,\n"
+		"  delete_asset, save_asset\n"
+		"unreal.AssetToolsHelpers.get_asset_tools().create_asset(name, pkg_path, class, factory)\n"
+		"Factories: MaterialFactoryNew, NiagaraEmitterFactoryNew, NiagaraSystemFactoryNew\n"
+		"unreal.get_editor_subsystem(unreal.NiagaraEditorSubsystem).add_emitter_to_system(system, emitter)\n"
+		"unreal.NiagaraSpriteRendererProperties() -- renderer, use property name 'renderer_properties' on emitter\n"
+		"object.set_editor_property(key, value) / object.get_editor_property(key)\n"
+		"unreal.get_editor_subsystem(unreal.AssetEditorSubsystem).open_editor_for_assets([a])\n\n"
+
+		"=== BANNED APIS (crash the plugin -- never use) ===\n"
+		"unreal.NiagaraEmitterHandle() -- direct instantiation is unstable in UE5.5\n"
+		"unreal.NiagaraSystemLibrary -- DOES NOT EXIST as Python binding, use NiagaraEditorSubsystem instead\n"
+		"emitter.set_editor_property('renderers', ...) -- WRONG property name, use 'renderer_properties'\n"
+		"unreal.add_emitter(), unreal.create_emitter(), NiagaraFunctionLibrary\n"
+		"Any path under /Niagara/DefaultAssets/ or /Niagara/Templates/\n\n"
 
 		"=== OUTPUT FORMAT ===\n"
-		"- Return ONLY raw Python code — no markdown fences, no commentary, no preamble.\n"
-		"- Your entire output is passed verbatim to exec() inside the UE5 editor.\n"
-		"- First line must be: import unreal\n"
+		"Return ONLY raw Python code. No markdown fences. No text before or after.\n"
+		"First line must be: import unreal\n"
+		"All 8 steps must appear. Wrap every UE API call in try/except.\n"
 	);
 }
 

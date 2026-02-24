@@ -1313,7 +1313,7 @@ void SVFXAgentPanel::ExecuteGenerate(const FString& Prompt)
                     UpdateStatusDisplay();
 
                     HttpProvider->RequestPythonScriptAsync(PythonPrompt,
-                        [this, OutputPath, AssetName, ScorePct = Result.SelectedCandidate.Score * 100.0f, NumLayers = Parsed.Layers.Num()]
+                        [this, HttpProvider, OutputPath, AssetName, ScorePct = Result.SelectedCandidate.Score * 100.0f, NumLayers = Parsed.Layers.Num()]
                         (bool bPySuccess, const FString& PythonCode, const FString& PyError)
                     {
                         bRequestInFlight = false;
@@ -1334,27 +1334,10 @@ void SVFXAgentPanel::ExecuteGenerate(const FString& Prompt)
                             return;
                         }
 
-                        AddThinkingStep(TEXT("Executing Python script..."));
-                        FString PyExecError;
-                        const bool bExecSuccess = FVFXPythonExecutor::ExecutePythonScript(CleanCode, PyExecError);
+                        AddThinkingStep(TEXT("LLM returned Python script. Starting execution..."));
 
-                        if (bExecSuccess)
-                        {
-                            LastGeneratedSystemPath = FString::Printf(TEXT("/Game/VFXAgent/Generated/%s"), *AssetName);
-                            FString Summary = FString::Printf(
-                                TEXT("Successfully created Niagara System!\n\nAsset: %s\nLayers: %d\nScore: %.0f%%"),
-                                *LastGeneratedSystemPath, NumLayers, ScorePct);
-                            CompleteThinkingBubble(TEXT(""));
-                            AddAssetLinkBubble(LastGeneratedSystemPath, Summary);
-                            AddAgentBubble(TEXT("You can now modify this effect by describing changes, or reference another system to work with."));
-                        }
-                        else
-                        {
-                            CompleteThinkingBubble(TEXT(""));
-                            AddErrorBubble(FString::Printf(
-                                TEXT("Python script execution failed:\n%s"),
-                                *PyExecError));
-                        }
+                        // Auto-fix retry loop: execute, and on failure ask the LLM to fix, up to 3 times
+                        StartPythonRetryLoop(CleanCode, HttpProvider, AssetName, ScorePct, NumLayers, 1, 3);
                     });
                 }
                 else
@@ -1717,7 +1700,7 @@ void SVFXAgentPanel::ExecuteRecipePipeline(const FString& Prompt, const FString&
         // ----------------------------------------------------------------
         UHttpLLMProvider* HttpProvider = static_cast<UHttpLLMProvider*>(LLMProviderObject);
         HttpProvider->RequestPythonScriptAsync(Prompt,
-            [this, Prompt, AssetName, OutputPath](bool bSuccess, const FString& PythonCode, const FString& Error)
+            [this, HttpProvider, Prompt, AssetName, OutputPath](bool bSuccess, const FString& PythonCode, const FString& Error)
         {
             if (!bSuccess || !Error.IsEmpty())
             {
@@ -1728,7 +1711,7 @@ void SVFXAgentPanel::ExecuteRecipePipeline(const FString& Prompt, const FString&
                 return;
             }
 
-            AddThinkingStep(TEXT("LLM returned Python script. Executing..."));
+            AddThinkingStep(TEXT("LLM returned Python script. Starting execution..."));
             FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Executing LLM Python script..."), CachedLLMBackend);
 
             // Sanitize: strip markdown fences the LLM may have added
@@ -1743,29 +1726,11 @@ void SVFXAgentPanel::ExecuteRecipePipeline(const FString& Prompt, const FString&
                 return;
             }
 
-            // Execute the Python script — this creates the Niagara asset in-engine
-            FString PyExecError;
-            const bool bExecSuccess = FVFXPythonExecutor::ExecutePythonScript(CleanCode, PyExecError);
             bRequestInFlight = false;
             UpdateStatusDisplay();
 
-            if (bExecSuccess)
-            {
-                LastGeneratedSystemPath = FString::Printf(TEXT("/Game/VFXAgent/Generated/%s"), *AssetName);
-                FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Python script executed — VFX asset created."));
-                CompleteThinkingBubble(TEXT(""));
-                AddAssetLinkBubble(LastGeneratedSystemPath,
-                    FString::Printf(TEXT("VFX generation complete!\n\nThe Python script ran successfully.\nCheck /Game/VFXAgent/Generated/ for the new Niagara System asset.\n\nGenerated for: %s"), *Prompt));
-                AddAgentBubble(TEXT("You can describe changes to refine this effect, or start a new generation."));
-            }
-            else
-            {
-                FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara, TEXT("Python script execution failed."));
-                CompleteThinkingBubble(TEXT(""));
-                AddErrorBubble(FString::Printf(
-                    TEXT("Python script execution failed:\n%s"),
-                    *PyExecError));
-            }
+            // Auto-fix retry loop: execute; if it fails, ask the LLM to fix and retry (up to 3 times)
+            StartPythonRetryLoop(CleanCode, HttpProvider, AssetName, 0.0f, 0, 1, 3);
         });
     }
     else
@@ -2306,6 +2271,99 @@ FVFXRecipe SVFXAgentPanel::EnhanceRecipeForPrompt(const FVFXRecipe& Recipe, cons
     }
 
     return Out;
+}
+
+// ============================================================================
+// StartPythonRetryLoop — auto-fix loop for generated Python scripts
+// ============================================================================
+void SVFXAgentPanel::StartPythonRetryLoop(
+    const FString& Code,
+    UHttpLLMProvider* Provider,
+    const FString& AssetName,
+    float ScorePct,
+    int32 NumLayers,
+    int32 Attempt,
+    int32 MaxAttempts)
+{
+    // ---- Status: tell the user which attempt we're on ----
+    AddThinkingStep(FString::Printf(
+        TEXT("Building Niagara system... (attempt %d/%d)"), Attempt, MaxAttempts));
+
+    FString ExecError;
+    const bool bOk = FVFXPythonExecutor::ExecutePythonScript(Code, ExecError);
+
+    if (bOk)
+    {
+        // Success
+        LastGeneratedSystemPath = FString::Printf(TEXT("/Game/VFXAgent/Generated/%s"), *AssetName);
+        FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara, TEXT("Python script executed successfully."));
+        CompleteThinkingBubble(TEXT(""));
+        AddAssetLinkBubble(LastGeneratedSystemPath,
+            FString::Printf(TEXT("VFX generation complete!\n\nAsset: %s\nScore: %.0f%%\n\nLayers: %d"),
+                *LastGeneratedSystemPath, ScorePct, NumLayers));
+        AddAgentBubble(TEXT("You can modify this effect by describing changes, or start a new generation."));
+        return;
+    }
+
+    // Exhausted retries
+    if (Attempt >= MaxAttempts)
+    {
+        FPipelineLog::Get().Push(EPipelineLogLevel::Error, EPipelineStage::Niagara,
+            FString::Printf(TEXT("Python script failed after %d attempt(s)."), MaxAttempts));
+        CompleteThinkingBubble(TEXT(""));
+        AddErrorBubble(FString::Printf(
+            TEXT("Python script failed after %d attempt(s):\n%s"), MaxAttempts, *ExecError));
+        return;
+    }
+
+    // ---- Status: bug detected, requesting fix ----
+    AddThinkingStep(FString::Printf(
+        TEXT("Bug detected — requesting AI fix (attempt %d/%d)..."), Attempt, MaxAttempts));
+
+    // Build a targeted fix prompt
+    const FString FixPrompt = FString::Printf(
+        TEXT("The following Unreal Engine 5.5 Python script failed with this error:\n\n")
+        TEXT("ERROR:\n%s\n\n")
+        TEXT("FAILED SCRIPT:\n%s\n\n")
+        TEXT("Fix only the broken lines. Return ONLY the corrected Python code.\n")
+        TEXT("Rules:\n")
+        TEXT("- First line: import unreal\n")
+        TEXT("- Keep all 8 mandatory steps (path closure, emitter asset, add_emitter_to_system, SpriteRenderer, save)\n")
+        TEXT("- Wrap EVERY unreal.* call in try/except Exception: pass\n")
+        TEXT("- Do NOT use NiagaraEmitterHandle, set_editor_property('SpawnRate',...) directly on emitter\n")
+        TEXT("- Return ONLY raw Python. No markdown. No explanation."),
+        *ExecError, *Code);
+
+    bRequestInFlight = true;
+    UpdateStatusDisplay();
+
+    TWeakPtr<SVFXAgentPanel> WeakSelf(StaticCastSharedRef<SVFXAgentPanel>(AsShared()));
+    TWeakObjectPtr<UHttpLLMProvider> WeakProvider(Provider);
+
+    Provider->RequestPythonScriptAsync(FixPrompt,
+        [WeakSelf, WeakProvider, AssetName, ScorePct, NumLayers, Attempt, MaxAttempts]
+        (bool bFixOk, const FString& FixedCode, const FString& LLMErr)
+    {
+        TSharedPtr<SVFXAgentPanel> Self = WeakSelf.Pin();
+        if (!Self.IsValid()) return;
+
+        UHttpLLMProvider* ProviderPtr = WeakProvider.Get();
+        Self->bRequestInFlight = false;
+        Self->UpdateStatusDisplay();
+
+        if (!bFixOk || FixedCode.IsEmpty())
+        {
+            Self->CompleteThinkingBubble(TEXT(""));
+            Self->AddErrorBubble(FString::Printf(
+                TEXT("AI fix request failed: %s"), *LLMErr));
+            return;
+        }
+
+        const FString CleanFixed = FVFXPythonExecutor::SanitizeLLMPythonOutput(FixedCode);
+        Self->StartPythonRetryLoop(
+            CleanFixed, ProviderPtr, AssetName, ScorePct, NumLayers,
+            Attempt + 1, MaxAttempts);
+    });
 }
 
 // ============================================================================
