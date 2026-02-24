@@ -226,10 +226,12 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 		"- generate_mesh('prompt') for Meshy integration.\n\n"
 		"If you call generate_mesh_async, callback must be schema-only: def callback(payload),\n"
 		"with payload keys run_id/task_id/status/asset_path/error/elapsed.\n\n"
-		"Minimal callback usage example:\n"
-		"def on_mesh_ready(payload): unreal.log(str(payload.get('status', '')))\n"))
+		"One-shot callback usage example:\n"
+		"def on_mesh_done(data):\n"
+		"    if data.get('status') == 'completed' and data.get('asset_path'):\n"
+		"        unreal.log(f\"mesh ready: {data.get('asset_path')}\")\n"))
 		+ FString::Printf(
-			TEXT("task_id = unreal.VFXAgentPythonBridge.generate_mesh_async('%s', 'glb', 'on_mesh_ready')\\n\\n"),
+			TEXT("task_id = vfx_agent.generate_mesh_with_callback('%s', callback_name='on_mesh_done')\\n\\n"),
 			VFXAgentPromptDefaults::MeshAsyncExamplePrompt)
 		+ FString(TEXT(
 

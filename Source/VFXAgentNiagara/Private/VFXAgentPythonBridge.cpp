@@ -1,6 +1,7 @@
 #include "VFXAgentPythonBridge.h"
 #include "MeshyModelServices.h"
 #include "NiagaraSpecExecutor.h"
+#include "VFXPythonExecutor.h"
 #include "VFXAgentLog.h"
 #include "Misc/ConfigCacheIni.h"
 #include "AssetRegistry/AssetRegistryModule.h"
@@ -84,6 +85,18 @@ namespace
 			return;
 		}
 
+		FString CallbackGuardReason;
+		if (!FVFXPythonExecutor::CanInvokeCallbackFunction(CallbackName, CallbackGuardReason))
+		{
+			const FString GuardMessage = FString::Printf(
+				TEXT("VFXAgent async callback skipped: callback='%s' is not invokable (%s)."),
+				*CallbackName,
+				*CallbackGuardReason);
+			UE_LOG(LogVFXAgent, Warning, TEXT("%s"), *GuardMessage);
+			FVFXPythonExecutor::AppendRuntimeError(GuardMessage);
+			return;
+		}
+
 		IPythonScriptPlugin* PythonPlugin = IPythonScriptPlugin::Get();
 		if (!PythonPlugin || !PythonPlugin->IsPythonAvailable())
 		{
@@ -100,7 +113,13 @@ namespace
 			TEXT("    _payload = json.loads('%s')\n")
 			TEXT("    %s(_payload)\n")
 			TEXT("except Exception as _cb_err:\n")
-			TEXT("    unreal.log_error(f'VFXAgent async callback failed (schema-only): {_cb_err}')\n"),
+			TEXT("    _msg = f'VFXAgent async callback failed (schema-only): {_cb_err}'\n")
+			TEXT("    unreal.log_error(_msg)\n")
+			TEXT("    try:\n")
+			TEXT("        if hasattr(unreal, 'VFXAgentPythonBridge'):\n")
+			TEXT("            unreal.VFXAgentPythonBridge.push_python_error_to_buffer(_msg)\n")
+			TEXT("    except Exception:\n")
+			TEXT("        pass\n"),
 			*EscapeForPythonSingleQuoted(PayloadJson),
 			*CallbackName);
 
@@ -709,4 +728,9 @@ FString UVFXAgentPythonBridge::GetMeshyEndpoint()
 {
 	const FString Endpoint = ReadConfigValue(TEXT("VFXAgent"), TEXT("MeshyEndpoint"));
 	return Endpoint.IsEmpty() ? TEXT("https://api.meshy.ai/v1") : Endpoint;
+}
+
+void UVFXAgentPythonBridge::PushPythonErrorToBuffer(const FString& ErrorMessage)
+{
+	FVFXPythonExecutor::AppendRuntimeError(ErrorMessage);
 }

@@ -4,10 +4,18 @@
 #include "Misc/Paths.h"
 #include "Misc/ConfigCacheIni.h"
 #include "UObject/UnrealType.h"
+#include "Misc/ScopeLock.h"
 
 // UE5 Python scripting bridge
 #include "IPythonScriptPlugin.h"
 #include "PythonScriptTypes.h"
+
+namespace
+{
+	FCriticalSection GRuntimeErrorBufferMutex;
+	TArray<FString> GRuntimeErrorBuffer;
+	constexpr int32 GMaxBufferedRuntimeErrors = 32;
+}
 
 static FString EscapeForPythonSingleQuoted(const FString& Input)
 {
@@ -118,9 +126,18 @@ static FString BuildExecutorBootstrapContext()
 		TEXT("            elapsed = payload.get('elapsed', 0.0)\n")
 		TEXT("            unreal.log(f'[VFXAgent] mesh callback run_id={run_id} task_id={task_id} status={status} asset={asset_path} elapsed={elapsed}')\n")
 		TEXT("            if error:\n")
-		TEXT("                unreal.log_warning(f'[VFXAgent] mesh callback error: {error}')\n")
+		TEXT("                _msg = f'[VFXAgent] mesh callback error: {error}'\n")
+		TEXT("                unreal.log_warning(_msg)\n")
+		TEXT("                if hasattr(unreal, 'VFXAgentPythonBridge'):\n")
+		TEXT("                    unreal.VFXAgentPythonBridge.push_python_error_to_buffer(_msg)\n")
 		TEXT("        except Exception as _cb_parse_err:\n")
-		TEXT("            unreal.log_warning(f'[VFXAgent] mesh callback payload parse failed: {_cb_parse_err}')\n")
+		TEXT("            _msg = f'[VFXAgent] mesh callback payload parse failed: {_cb_parse_err}'\n")
+		TEXT("            unreal.log_error(_msg)\n")
+		TEXT("            try:\n")
+		TEXT("                if hasattr(unreal, 'VFXAgentPythonBridge'):\n")
+		TEXT("                    unreal.VFXAgentPythonBridge.push_python_error_to_buffer(_msg)\n")
+		TEXT("            except Exception:\n")
+		TEXT("                pass\n")
 		TEXT("if 'vfx_agent' not in globals():\n")
 		TEXT("    class _VFXAgentBridge:\n")
 		TEXT("        @staticmethod\n")
@@ -240,6 +257,7 @@ bool FVFXPythonExecutor::ExecutePythonScript(const FString& PythonCode, FString&
 
 		UE_LOG(LogVFXAgent, Error,
 			TEXT("VFXPythonExecutor: Python script FAILED.\n%s"), *OutError);
+		AppendRuntimeError(FString::Printf(TEXT("Python execution failed: %s"), *OutError));
 	}
 
 	return bSuccess;
@@ -310,4 +328,84 @@ FString FVFXPythonExecutor::SanitizeLLMPythonOutput(const FString& RawLLMOutput)
 	}
 
 	return Code;
+}
+
+bool FVFXPythonExecutor::CanInvokeCallbackFunction(const FString& CallbackName, FString& OutReason)
+{
+	OutReason.Empty();
+
+	const FString TrimmedName = CallbackName.TrimStartAndEnd();
+	if (TrimmedName.IsEmpty())
+	{
+		OutReason = TEXT("callback name is empty");
+		return false;
+	}
+
+	IPythonScriptPlugin* PythonPlugin = IPythonScriptPlugin::Get();
+	if (!PythonPlugin)
+	{
+		OutReason = TEXT("python plugin unavailable");
+		return false;
+	}
+
+	if (!PythonPlugin->IsPythonAvailable())
+	{
+		OutReason = TEXT("python runtime unavailable");
+		return false;
+	}
+
+	FPythonCommandEx Cmd;
+	Cmd.Command = FString::Printf(
+		TEXT("_cb = globals().get('%s', None)\n")
+		TEXT("if not callable(_cb):\n")
+		TEXT("    raise RuntimeError('callback_not_callable')\n"),
+		*EscapeForPythonSingleQuoted(TrimmedName));
+	Cmd.ExecutionMode = EPythonCommandExecutionMode::ExecuteFile;
+	Cmd.FileExecutionScope = EPythonFileExecutionScope::Public;
+
+	const bool bOk = PythonPlugin->ExecPythonCommandEx(Cmd);
+	if (!bOk)
+	{
+		OutReason = Cmd.CommandResult.IsEmpty() ? TEXT("callback is not callable in current Python state") : Cmd.CommandResult;
+		return false;
+	}
+
+	return true;
+}
+
+void FVFXPythonExecutor::AppendRuntimeError(const FString& ErrorMessage)
+{
+	const FString Trimmed = ErrorMessage.TrimStartAndEnd();
+	if (Trimmed.IsEmpty())
+	{
+		return;
+	}
+
+	FScopeLock Lock(&GRuntimeErrorBufferMutex);
+	GRuntimeErrorBuffer.Add(FString::Printf(TEXT("[%s] %s"), *FDateTime::UtcNow().ToString(TEXT("%Y-%m-%d %H:%M:%S")), *Trimmed));
+	while (GRuntimeErrorBuffer.Num() > GMaxBufferedRuntimeErrors)
+	{
+		GRuntimeErrorBuffer.RemoveAt(0);
+	}
+}
+
+FString FVFXPythonExecutor::ConsumeRuntimeErrorsForPrompt(int32 MaxEntries)
+{
+	FScopeLock Lock(&GRuntimeErrorBufferMutex);
+	if (GRuntimeErrorBuffer.Num() == 0)
+	{
+		return FString();
+	}
+
+	const int32 SafeMaxEntries = FMath::Max(1, MaxEntries);
+	const int32 StartIndex = FMath::Max(0, GRuntimeErrorBuffer.Num() - SafeMaxEntries);
+
+	FString Out;
+	for (int32 Index = StartIndex; Index < GRuntimeErrorBuffer.Num(); ++Index)
+	{
+		Out += TEXT("- ") + GRuntimeErrorBuffer[Index] + TEXT("\n");
+	}
+
+	GRuntimeErrorBuffer.Empty();
+	return Out;
 }

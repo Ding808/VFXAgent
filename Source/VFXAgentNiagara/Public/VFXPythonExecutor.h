@@ -57,4 +57,20 @@ public:
 	 * Call this before passing LLM output to ExecutePythonScript.
 	 */
 	static FString SanitizeLLMPythonOutput(const FString& RawLLMOutput);
+
+	/**
+	 * Returns true only when Python runtime is available and a global callable
+	 * with the provided name exists in the current Python state.
+	 */
+	static bool CanInvokeCallbackFunction(const FString& CallbackName, FString& OutReason);
+
+	/**
+	 * Append a runtime error message to a small in-memory buffer.
+	 */
+	static void AppendRuntimeError(const FString& ErrorMessage);
+
+	/**
+	 * Returns buffered runtime errors as a prompt-ready text block and clears them.
+	 */
+	static FString ConsumeRuntimeErrorsForPrompt(int32 MaxEntries = 8);
 };

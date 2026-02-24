@@ -281,7 +281,8 @@ static FString BuildPythonGenerationPrompt(
     const FString& OutputPath,
     const FString& TemplateSystemPath,
     const FVFXRecipe& Recipe,
-    const FVFXEffectSpec& CompiledSpec)
+    const FVFXEffectSpec& CompiledSpec,
+    const FString& RuntimeErrorContext)
 {
     FString RecipeJson;
     FJsonObjectConverter::UStructToJsonObjectString(Recipe, RecipeJson);
@@ -301,9 +302,13 @@ static FString BuildPythonGenerationPrompt(
         TEXT("- unreal.VFXAgentPythonBridge.save_compile_simple(system_object_path)\\n")
         TEXT("- unreal.VFXAgentPythonBridge.generate_mesh_async(prompt, format, callback_name) for non-blocking mesh jobs\\n")
         TEXT("  callback_name must resolve to: def callback(payload), where payload has run_id/task_id/status/asset_path/error/elapsed\\n")
-        TEXT("  minimal example: def on_mesh_ready(payload): unreal.log(str(payload.get('status', '')))\\n")
-        TEXT("  task_id = unreal.VFXAgentPythonBridge.generate_mesh_async('%s', 'glb', 'on_mesh_ready')\\n")
+        TEXT("  one-shot example:\\n")
+        TEXT("  def on_mesh_done(data):\\n")
+        TEXT("      if data.get('status') == 'completed' and data.get('asset_path'):\\n")
+        TEXT("          unreal.log(f\"mesh ready: {data.get('asset_path')}\")\\n")
+        TEXT("  task_id = vfx_agent.generate_mesh_with_callback('%s', callback_name='on_mesh_done')\\n")
         TEXT("- unreal.VFXAgentPythonBridge.get_mesh_task_status(task_id) for polling status\\n")
+        TEXT("Recent runtime callback/execution errors from previous attempts:\\n%s\\n")
         TEXT("You MUST create/assign materials INSIDE this Python script (do not rely on C++ post-fix material assignment).\\n")
         TEXT("When NiagaraEditorSubsystem is available, add emitters and bind materials in script in one flow.\\n")
         TEXT("Do not hard-code a different output folder or system name.\\n\\n")
@@ -313,6 +318,7 @@ static FString BuildPythonGenerationPrompt(
         TEXT("Recipe JSON:\\n%s\\n\\n")
         TEXT("Compiled Spec JSON:\\n%s\\n"),
         VFXAgentPromptDefaults::MeshAsyncExamplePrompt,
+        RuntimeErrorContext.IsEmpty() ? TEXT("(none)") : *RuntimeErrorContext,
         *UserSystemName,
         *OutputPath,
         *TemplateSystemPath,
@@ -601,7 +607,8 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
 
     Provider->Configure(ParseBackend(BackendString), Endpoint, Model, ApiKey, TimeoutSeconds);
 
-    const FString PythonPrompt = BuildPythonGenerationPrompt(SafeSystemName, SafeOutputPath, TemplateSystemPath, Recipe, Spec);
+    const FString RuntimeErrorContext = FVFXPythonExecutor::ConsumeRuntimeErrorsForPrompt();
+    const FString PythonPrompt = BuildPythonGenerationPrompt(SafeSystemName, SafeOutputPath, TemplateSystemPath, Recipe, Spec, RuntimeErrorContext);
 
     FString RawPythonScript;
     FString PythonRequestError;

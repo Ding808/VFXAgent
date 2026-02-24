@@ -87,4 +87,7 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
 	static FString GetMeshyEndpoint();
+
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static void PushPythonErrorToBuffer(const FString& ErrorMessage);
 };
