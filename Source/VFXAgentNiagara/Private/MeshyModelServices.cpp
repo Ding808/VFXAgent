@@ -14,6 +14,7 @@
 #include "Serialization/JsonReader.h"
 #include "Misc/Base64.h"
 #include "Misc/DateTime.h"
+#include "Tickable.h"
 
 namespace
 {
@@ -487,6 +488,227 @@ namespace
 		OutError = TEXT("Meshy response has no downloadable file data");
 		return false;
 	}
+
+	struct FMeshyAsyncTaskRecord
+	{
+		FMeshyAsyncTaskSnapshot Snapshot;
+		FOnMeshyTaskFinished OnFinished;
+		FString ApiKey;
+		FString StatusUrl;
+		FString SaveFolder;
+		FString FileBaseName;
+		FString DefaultExt;
+		double NextPollAt = 0.0;
+		double PollTimeoutAt = 0.0;
+		double PollInterval = DefaultPollingIntervalSeconds;
+		double StartedAt = 0.0;
+		FString LastLoggedStatus;
+		bool bRequestInFlight = false;
+	};
+
+	class FMeshyTaskPoller : public FTickableGameObject
+	{
+	public:
+		static FMeshyTaskPoller& Get()
+		{
+			static FMeshyTaskPoller Instance;
+			return Instance;
+		}
+
+		void AddTask(FMeshyAsyncTaskRecord&& Record)
+		{
+			Tasks.Add(Record.Snapshot.TaskId, MoveTemp(Record));
+		}
+
+		bool QueryTask(const FString& TaskId, FMeshyAsyncTaskSnapshot& OutSnapshot) const
+		{
+			if (const FMeshyAsyncTaskRecord* Found = Tasks.Find(TaskId))
+			{
+				OutSnapshot = Found->Snapshot;
+				return true;
+			}
+			return false;
+		}
+
+		virtual void Tick(float DeltaTime) override
+		{
+			const double Now = FPlatformTime::Seconds();
+			for (TPair<FString, FMeshyAsyncTaskRecord>& Pair : Tasks)
+			{
+				FMeshyAsyncTaskRecord& Record = Pair.Value;
+				if (Record.Snapshot.bCompleted || Record.bRequestInFlight)
+				{
+					continue;
+				}
+
+				if (Now >= Record.PollTimeoutAt)
+				{
+					FinishTask(Record, false, TEXT("timeout"), FString());
+					continue;
+				}
+
+				if (Now < Record.NextPollAt)
+				{
+					continue;
+				}
+
+				StartPollRequest(Pair.Key, Record);
+			}
+		}
+
+		virtual TStatId GetStatId() const override
+		{
+			RETURN_QUICK_DECLARE_CYCLE_STAT(FMeshyTaskPoller, STATGROUP_Tickables);
+		}
+
+		virtual bool IsTickable() const override
+		{
+			return Tasks.Num() > 0;
+		}
+
+	private:
+		void StartPollRequest(const FString& TaskId, FMeshyAsyncTaskRecord& Record)
+		{
+			Record.bRequestInFlight = true;
+
+			TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+			Request->SetVerb(TEXT("GET"));
+			Request->SetURL(Record.StatusUrl);
+			Request->SetHeader(TEXT("Accept"), TEXT("application/json"));
+			if (!Record.ApiKey.IsEmpty())
+			{
+				Request->SetHeader(TEXT("Authorization"), FString::Printf(TEXT("Bearer %s"), *Record.ApiKey));
+			}
+
+			Request->OnProcessRequestComplete().BindLambda(
+				[this, TaskId](FHttpRequestPtr Req, FHttpResponsePtr Resp, bool bOk)
+				{
+					FMeshyAsyncTaskRecord* Found = Tasks.Find(TaskId);
+					if (!Found)
+					{
+						return;
+					}
+
+					Found->bRequestInFlight = false;
+					Found->NextPollAt = FPlatformTime::Seconds() + FMath::Max(0.1, Found->PollInterval);
+
+					if (!bOk || !Resp.IsValid() || !EHttpResponseCodes::IsOk(Resp->GetResponseCode()))
+					{
+						Found->Snapshot.Status = TEXT("poll_failed");
+						return;
+					}
+
+					const FString ResponseText = Resp->GetContentAsString();
+					TSharedPtr<FJsonObject> Root;
+					if (!TryParseJson(ResponseText, Root))
+					{
+						Found->Snapshot.Status = TEXT("invalid_response");
+						return;
+					}
+
+					FString Status;
+					if (!TryExtractStatus(Root, Status))
+					{
+						Found->Snapshot.Status = TEXT("running");
+						if (!Found->LastLoggedStatus.Equals(Found->Snapshot.Status, ESearchCase::CaseSensitive))
+						{
+							const double Elapsed = FMath::Max(0.0, FPlatformTime::Seconds() - Found->StartedAt);
+							FPipelineLog::Get().Push(
+								EPipelineLogLevel::Info,
+								EPipelineStage::ImageTo3D,
+								FString::Printf(TEXT("MeshyTaskSnapshot run_id=%s task_id=%s status=%s elapsed=%.2fs"),
+									*Found->Snapshot.RunId,
+									*Found->Snapshot.TaskId,
+									*Found->Snapshot.Status,
+									Elapsed),
+								TEXT("Meshy"));
+							Found->LastLoggedStatus = Found->Snapshot.Status;
+						}
+						return;
+					}
+
+					Found->Snapshot.Status = Status;
+					if (!Found->LastLoggedStatus.Equals(Found->Snapshot.Status, ESearchCase::CaseSensitive))
+					{
+						const double Elapsed = FMath::Max(0.0, FPlatformTime::Seconds() - Found->StartedAt);
+						FPipelineLog::Get().Push(
+							EPipelineLogLevel::Info,
+							EPipelineStage::ImageTo3D,
+							FString::Printf(TEXT("MeshyTaskSnapshot run_id=%s task_id=%s status=%s elapsed=%.2fs"),
+								*Found->Snapshot.RunId,
+								*Found->Snapshot.TaskId,
+								*Found->Snapshot.Status,
+								Elapsed),
+							TEXT("Meshy"));
+						Found->LastLoggedStatus = Found->Snapshot.Status;
+					}
+					if (IsTerminalFailureStatus(Status))
+					{
+						FString ErrorMessage;
+						TryGetStringPath(Root, TEXT("message"), ErrorMessage);
+						if (ErrorMessage.IsEmpty())
+						{
+							TryGetStringPath(Root, TEXT("error"), ErrorMessage);
+						}
+						FinishTask(*Found, false, ErrorMessage.IsEmpty() ? TEXT("task failed") : ErrorMessage, FString());
+						return;
+					}
+
+					if (IsTerminalSuccessStatus(Status))
+					{
+						FString SavedPath;
+						FString SaveError;
+						if (!TrySaveFromPayload(Root, Found->SaveFolder, Found->FileBaseName, Found->DefaultExt, Found->ApiKey, SavedPath, SaveError))
+						{
+							FinishTask(*Found, false, SaveError, FString());
+							return;
+						}
+
+						FinishTask(*Found, true, FString(), SavedPath);
+					}
+				});
+
+			if (!Request->ProcessRequest())
+			{
+				Record.bRequestInFlight = false;
+				Record.NextPollAt = FPlatformTime::Seconds() + FMath::Max(0.1, Record.PollInterval);
+			}
+		}
+
+		void FinishTask(FMeshyAsyncTaskRecord& Record, bool bSuccess, const FString& Error, const FString& OutputPath)
+		{
+			const double Elapsed = FMath::Max(0.0, FPlatformTime::Seconds() - Record.StartedAt);
+
+			Record.Snapshot.bCompleted = true;
+			Record.Snapshot.bSucceeded = bSuccess;
+			Record.Snapshot.Error = Error;
+			Record.Snapshot.Result.bSuccess = bSuccess;
+			Record.Snapshot.Result.OutputPath = OutputPath;
+			Record.Snapshot.Result.Error = Error;
+			Record.Snapshot.Result.Summary = bSuccess ? TEXT("completed") : TEXT("failed");
+			Record.Snapshot.Status = bSuccess ? TEXT("completed") : TEXT("failed");
+
+			FPipelineLog::Get().Push(
+				bSuccess ? EPipelineLogLevel::Info : EPipelineLogLevel::Error,
+				EPipelineStage::ImageTo3D,
+				FString::Printf(
+					TEXT("MeshyTaskSnapshot run_id=%s task_id=%s status=%s elapsed=%.2fs output=%s error=%s"),
+					*Record.Snapshot.RunId,
+					*Record.Snapshot.TaskId,
+					*Record.Snapshot.Status,
+					Elapsed,
+					*OutputPath,
+					*Error),
+				TEXT("Meshy"));
+
+			if (Record.OnFinished.IsBound())
+			{
+				Record.OnFinished.Execute(Record.Snapshot);
+			}
+		}
+
+		TMap<FString, FMeshyAsyncTaskRecord> Tasks;
+	};
 }
 
 FModelServiceResult FMeshyImageGenService::GenerateTexture(const FTextureRequestV1& Request)
@@ -671,4 +893,110 @@ FModelServiceResult FMeshyImageTo3DService::GenerateModel(const FModelRequestV1&
 	Result.Summary = FString::Printf(TEXT("Meshy 3D task %s completed"), *TaskId);
 	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::ImageTo3D, Result.Summary, TEXT("Meshy"));
 	return Result;
+}
+
+bool FMeshyImageTo3DService::StartGenerateModelAsync(
+	const FModelRequestV1& Request,
+	const FString& SourceImage,
+	const FOnMeshyTaskFinished& OnFinished,
+	FString& OutTaskId,
+	FString& OutError,
+	const FString& InRunId)
+{
+	OutTaskId.Reset();
+	OutError.Reset();
+
+	const FString ApiKey = GetMeshyApiKey();
+	const FString Endpoint = GetMeshyEndpoint();
+	if (Endpoint.IsEmpty() || ApiKey.IsEmpty())
+	{
+		OutError = TEXT("Meshy endpoint/api key not configured");
+		return false;
+	}
+
+	const FString SubmitPath = ReadSetting(TEXT("MeshyImageTo3DSubmitPath"), TEXT("/image-to-3d"));
+	const FString StatusPathTemplate = ReadSetting(TEXT("MeshyImageTo3DStatusPath"), TEXT("/image-to-3d/{task_id}"));
+	const double PollInterval = ReadSettingDouble(TEXT("MeshyPollingIntervalSeconds"), DefaultPollingIntervalSeconds);
+	const double PollTimeout = ReadSettingDouble(TEXT("MeshyPollingTimeoutSeconds"), DefaultPollingTimeoutSeconds);
+
+	const FString MeshName = Request.Name.IsEmpty() ? TEXT("MeshyMesh") : Request.Name;
+	const FString Format = Request.Format.IsEmpty() ? TEXT("glb") : Request.Format.ToLower();
+
+	TSharedPtr<FJsonObject> SubmitBody = MakeShared<FJsonObject>();
+	SubmitBody->SetStringField(TEXT("prompt"), MeshName);
+	SubmitBody->SetStringField(TEXT("name"), MeshName);
+	SubmitBody->SetStringField(TEXT("format"), Format);
+
+	if (!SourceImage.IsEmpty())
+	{
+		if (SourceImage.StartsWith(TEXT("http://")) || SourceImage.StartsWith(TEXT("https://")))
+		{
+			SubmitBody->SetStringField(TEXT("image_url"), SourceImage);
+		}
+		else if (FPaths::FileExists(SourceImage))
+		{
+			TArray<uint8> ImageData;
+			if (FFileHelper::LoadFileToArray(ImageData, *SourceImage))
+			{
+				SubmitBody->SetStringField(TEXT("source_image_base64"), FBase64::Encode(ImageData));
+			}
+		}
+	}
+
+	FString SubmitBodyText;
+	{
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&SubmitBodyText);
+		FJsonSerializer::Serialize(SubmitBody.ToSharedRef(), Writer);
+	}
+
+	const FString SubmitUrl = JoinUrl(Endpoint, SubmitPath);
+	int32 SubmitCode = 0;
+	FString SubmitResponse;
+	TArray<uint8> SubmitBytes;
+	if (!TryRequestBlocking(TEXT("POST"), SubmitUrl, ApiKey, &SubmitBodyText, 30.0, SubmitCode, SubmitResponse, SubmitBytes, OutError))
+	{
+		OutError = FString::Printf(TEXT("Meshy model async submit failed: %s"), *OutError);
+		return false;
+	}
+
+	TSharedPtr<FJsonObject> SubmitJson;
+	if (!TryParseJson(SubmitResponse, SubmitJson))
+	{
+		OutError = TEXT("Meshy async submit response is not valid JSON");
+		return false;
+	}
+
+	if (!TryExtractTaskId(SubmitJson, OutTaskId) || OutTaskId.IsEmpty())
+	{
+		OutError = FString::Printf(TEXT("Meshy async submit did not return task id: %s"), *SubmitResponse.Left(256));
+		return false;
+	}
+
+	FMeshyAsyncTaskRecord Record;
+	Record.Snapshot.RunId = InRunId;
+	Record.Snapshot.TaskId = OutTaskId;
+	Record.Snapshot.Status = TEXT("submitted");
+	Record.ApiKey = ApiKey;
+	Record.StatusUrl = JoinUrl(Endpoint, ReplaceTaskIdToken(StatusPathTemplate, OutTaskId));
+	Record.SaveFolder = EnsureDir(FPaths::Combine(FPaths::ProjectSavedDir(), TEXT("VFXAgent"), TEXT("GeneratedMeshes")));
+	Record.FileBaseName = MeshName;
+	Record.DefaultExt = Format;
+	Record.PollInterval = FMath::Max(0.25, PollInterval);
+	Record.StartedAt = FPlatformTime::Seconds();
+	Record.LastLoggedStatus = TEXT("submitted");
+	Record.NextPollAt = FPlatformTime::Seconds() + 0.1;
+	Record.PollTimeoutAt = FPlatformTime::Seconds() + FMath::Max(5.0, PollTimeout);
+	Record.OnFinished = OnFinished;
+
+	FMeshyTaskPoller::Get().AddTask(MoveTemp(Record));
+
+	FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::ImageTo3D,
+		FString::Printf(TEXT("MeshyTaskSnapshot run_id=%s task_id=%s status=submitted elapsed=0.00s"), *Record.Snapshot.RunId, *OutTaskId),
+		TEXT("Meshy"));
+	return true;
+}
+
+bool FMeshyImageTo3DService::QueryTask(const FString& TaskId, FMeshyAsyncTaskSnapshot& OutSnapshot)
+{
+	return FMeshyTaskPoller::Get().QueryTask(TaskId, OutSnapshot);
 }

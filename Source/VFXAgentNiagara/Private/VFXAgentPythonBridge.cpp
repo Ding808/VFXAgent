@@ -18,12 +18,68 @@
 #include "Engine/StaticMesh.h"
 #include "Misc/Paths.h"
 #include "HAL/FileManager.h"
+#include "IPythonScriptPlugin.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonSerializer.h"
 
 namespace
 {
 	FString GActiveSystemObjectPath;
 	FString GPreferredMeshEmitterName;
 	bool GLastMeshBindUsedPreferred = false;
+	FString GCurrentRunId;
+
+	FString BuildRunId()
+	{
+		const FString Timestamp = FDateTime::UtcNow().ToString(TEXT("%Y%m%d_%H%M%S"));
+		const FString ShortGuid = FGuid::NewGuid().ToString(EGuidFormats::Digits).Left(8);
+		return FString::Printf(TEXT("run_%s_%s"), *Timestamp, *ShortGuid);
+	}
+
+	FString EscapeForPythonSingleQuoted(const FString& Input)
+	{
+		FString Out = Input;
+		Out = Out.Replace(TEXT("\\"), TEXT("\\\\"));
+		Out = Out.Replace(TEXT("'"), TEXT("\\'"));
+		Out = Out.Replace(TEXT("\r\n"), TEXT("\\n"));
+		Out = Out.Replace(TEXT("\n"), TEXT("\\n"));
+		Out = Out.Replace(TEXT("\r"), TEXT("\\n"));
+		return Out;
+	}
+
+	void InvokePythonMeshCallback(
+		const FString& CallbackName,
+		const FString& TaskId,
+		const FString& AssetPath,
+		bool bSuccess,
+		const FString& Error)
+	{
+		if (CallbackName.TrimStartAndEnd().IsEmpty())
+		{
+			return;
+		}
+
+		IPythonScriptPlugin* PythonPlugin = IPythonScriptPlugin::Get();
+		if (!PythonPlugin || !PythonPlugin->IsPythonAvailable())
+		{
+			UE_LOG(LogVFXAgent, Warning, TEXT("VFXAgentPythonBridge::InvokePythonMeshCallback skipped (python unavailable)."));
+			return;
+		}
+
+		const FString Script = FString::Printf(
+			TEXT("import unreal\n")
+			TEXT("try:\n")
+			TEXT("    %s('%s', '%s', %s, '%s')\n")
+			TEXT("except Exception as _cb_err:\n")
+			TEXT("    unreal.log_error(f'VFXAgent async callback failed: {_cb_err}')\n"),
+			*CallbackName,
+			*EscapeForPythonSingleQuoted(TaskId),
+			*EscapeForPythonSingleQuoted(AssetPath),
+			bSuccess ? TEXT("True") : TEXT("False"),
+			*EscapeForPythonSingleQuoted(Error));
+
+		PythonPlugin->ExecPythonCommand(*Script);
+	}
 
 	UObject* ImportAssetFromFileForBridge(const FString& SourceFile, const FString& DestPath)
 	{
@@ -295,6 +351,7 @@ FString UVFXAgentPythonBridge::CreateSystem(const FString& TargetPath, const FSt
 	GActiveSystemObjectPath = System->GetPathName();
 	GPreferredMeshEmitterName.Reset();
 	GLastMeshBindUsedPreferred = false;
+	GCurrentRunId = BuildRunId();
 	return System->GetPathName();
 }
 
@@ -311,6 +368,7 @@ bool UVFXAgentPythonBridge::SetActiveSystemContext(const FString& SystemObjectPa
 	GActiveSystemObjectPath = Normalized;
 	GPreferredMeshEmitterName.Reset();
 	GLastMeshBindUsedPreferred = false;
+	GCurrentRunId = BuildRunId();
 	return true;
 }
 
@@ -490,6 +548,100 @@ FString UVFXAgentPythonBridge::GenerateMesh(const FString& Prompt, const FString
 		return ReturnPath;
 	}
 	return Result.Summary;
+}
+
+FString UVFXAgentPythonBridge::GenerateMeshAsync(
+	const FString& Prompt,
+	const FString& Format,
+	const FString& OnReadyPythonCallback)
+{
+	FModelRequestV1 Request;
+	Request.Name = Prompt.IsEmpty() ? TEXT("GeneratedMesh") : Prompt;
+	Request.Format = Format.IsEmpty() ? TEXT("glb") : Format;
+
+	const FString SystemContextPath = GActiveSystemObjectPath;
+	const FString CallbackName = OnReadyPythonCallback;
+	if (GCurrentRunId.IsEmpty())
+	{
+		GCurrentRunId = BuildRunId();
+	}
+    const FString RunId = GCurrentRunId;
+
+	FString TaskId;
+	FString Error;
+	const bool bStarted = FMeshyImageTo3DService::StartGenerateModelAsync(
+		Request,
+		FString(),
+		FOnMeshyTaskFinished::CreateLambda(
+			[SystemContextPath, CallbackName](const FMeshyAsyncTaskSnapshot& Snapshot)
+			{
+				FString FinalAssetPath = Snapshot.Result.OutputPath;
+
+				if (Snapshot.bSucceeded && !Snapshot.Result.OutputPath.IsEmpty() && !SystemContextPath.IsEmpty())
+				{
+					UNiagaraSystem* TargetSystem = LoadSystemByPath(SystemContextPath);
+					if (TargetSystem)
+					{
+						const FString MeshDestPath = TEXT("/Game/VFXAgent/Generated/Meshes");
+						if (UObject* Imported = ImportAssetFromFileForBridge(Snapshot.Result.OutputPath, MeshDestPath))
+						{
+							if (UStaticMesh* StaticMesh = Cast<UStaticMesh>(Imported))
+							{
+								if (BindStaticMeshToSystem(TargetSystem, StaticMesh))
+								{
+									FinalAssetPath = StaticMesh->GetPathName();
+								}
+							}
+						}
+					}
+				}
+
+				InvokePythonMeshCallback(
+					CallbackName,
+					Snapshot.TaskId,
+					FinalAssetPath,
+					Snapshot.bSucceeded,
+					Snapshot.Error);
+			}),
+		TaskId,
+		Error,
+		RunId);
+
+	if (!bStarted)
+	{
+		UE_LOG(LogVFXAgent, Warning, TEXT("VFXAgentPythonBridge::GenerateMeshAsync failed: %s"), *Error);
+		return FString();
+	}
+
+	UE_LOG(LogVFXAgent, Log,
+		TEXT("VFXAgentPythonBridge::GenerateMeshAsync started task_id=%s callback=%s"),
+		*TaskId,
+		*CallbackName);
+	return TaskId;
+}
+
+FString UVFXAgentPythonBridge::GetMeshTaskStatus(const FString& TaskId)
+{
+	FMeshyAsyncTaskSnapshot Snapshot;
+	if (!FMeshyImageTo3DService::QueryTask(TaskId, Snapshot))
+	{
+		return TEXT("{\"found\":false}");
+	}
+
+	TSharedPtr<FJsonObject> Root = MakeShared<FJsonObject>();
+	Root->SetBoolField(TEXT("found"), true);
+	Root->SetStringField(TEXT("run_id"), Snapshot.RunId);
+	Root->SetStringField(TEXT("task_id"), Snapshot.TaskId);
+	Root->SetStringField(TEXT("status"), Snapshot.Status);
+	Root->SetBoolField(TEXT("completed"), Snapshot.bCompleted);
+	Root->SetBoolField(TEXT("succeeded"), Snapshot.bSucceeded);
+	Root->SetStringField(TEXT("output_path"), Snapshot.Result.OutputPath);
+	Root->SetStringField(TEXT("error"), Snapshot.Error);
+
+	FString Json;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Json);
+	FJsonSerializer::Serialize(Root.ToSharedRef(), Writer);
+	return Json;
 }
 
 FString UVFXAgentPythonBridge::GetMeshyEndpoint()

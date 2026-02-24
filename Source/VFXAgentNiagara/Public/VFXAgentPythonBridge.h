@@ -38,5 +38,14 @@ public:
 	static FString GenerateMesh(const FString& Prompt, const FString& Format = TEXT("glb"));
 
 	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static FString GenerateMeshAsync(
+		const FString& Prompt,
+		const FString& Format = TEXT("glb"),
+		const FString& OnReadyPythonCallback = TEXT(""));
+
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static FString GetMeshTaskStatus(const FString& TaskId);
+
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
 	static FString GetMeshyEndpoint();
 };

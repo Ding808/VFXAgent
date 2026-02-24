@@ -298,6 +298,8 @@ static FString BuildPythonGenerationPrompt(
         TEXT("- unreal.VFXAgentPythonBridge.create_emitter(system_object_path, template_name, emitter_name)\\n")
         TEXT("- unreal.VFXAgentPythonBridge.bind_emitter_material(system_object_path, emitter_name, material_path)\\n")
         TEXT("- unreal.VFXAgentPythonBridge.save_compile_simple(system_object_path)\\n")
+        TEXT("- unreal.VFXAgentPythonBridge.generate_mesh_async(prompt, format, callback_name) for non-blocking mesh jobs\\n")
+        TEXT("- unreal.VFXAgentPythonBridge.get_mesh_task_status(task_id) for polling status\\n")
         TEXT("You MUST create/assign materials INSIDE this Python script (do not rely on C++ post-fix material assignment).\\n")
         TEXT("When NiagaraEditorSubsystem is available, add emitters and bind materials in script in one flow.\\n")
         TEXT("Do not hard-code a different output folder or system name.\\n\\n")
