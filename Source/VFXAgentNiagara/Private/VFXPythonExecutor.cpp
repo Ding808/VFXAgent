@@ -101,6 +101,14 @@ static FString BuildExecutorBootstrapContext()
 		TEXT("        TARGET_SYSTEM = unreal.load_asset(system_object_path)\n")
 		TEXT("    except Exception:\n")
 		TEXT("        TARGET_SYSTEM = None\n")
+		TEXT("if 'safe_get_path_name' not in globals():\n")
+		TEXT("    def safe_get_path_name(obj):\n")
+		TEXT("        if obj is None:\n")
+		TEXT("            return ''\n")
+		TEXT("        try:\n")
+		TEXT("            return str(obj.get_path_name())\n")
+		TEXT("        except Exception:\n")
+		TEXT("            return ''\n")
 		TEXT("if 'material_library_path' not in globals():\n")
 		TEXT("    material_library_path = '%s'\n")
 		TEXT("if 'llm_api_key' not in globals():\n")
@@ -224,7 +232,26 @@ bool FVFXPythonExecutor::ExecutePythonScript(const FString& PythonCode, FString&
 	Cmd.Command = FinalPythonCode;
 	Cmd.ExecutionMode = EPythonCommandExecutionMode::ExecuteFile;
 	Cmd.FileExecutionScope = EPythonFileExecutionScope::Public;
-	const bool bSuccess = PythonPlugin->ExecPythonCommandEx(Cmd);
+	bool bSuccess = PythonPlugin->ExecPythonCommandEx(Cmd);
+
+	if (bSuccess)
+	{
+		FString PythonErrorOutput;
+		for (const FPythonLogOutputEntry& Entry : Cmd.LogOutput)
+		{
+			if (Entry.Type == EPythonLogOutputType::Error)
+			{
+				PythonErrorOutput += Entry.Output + TEXT("\n");
+			}
+		}
+
+		PythonErrorOutput.TrimEndInline();
+		if (!PythonErrorOutput.IsEmpty())
+		{
+			bSuccess = false;
+			OutError = PythonErrorOutput;
+		}
+	}
 
 	if (bSuccess)
 	{
@@ -233,11 +260,11 @@ bool FVFXPythonExecutor::ExecutePythonScript(const FString& PythonCode, FString&
 	else
 	{
 		// CommandResult contains the Python traceback / exception string on failure
-		if (!Cmd.CommandResult.IsEmpty())
+		if (OutError.IsEmpty() && !Cmd.CommandResult.IsEmpty())
 		{
 			OutError = Cmd.CommandResult;
 		}
-		else
+		else if (OutError.IsEmpty())
 		{
 			// Fall back to collecting error entries from LogOutput
 			for (const FPythonLogOutputEntry& Entry : Cmd.LogOutput)
