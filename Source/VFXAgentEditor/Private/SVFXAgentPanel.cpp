@@ -1363,7 +1363,7 @@ void SVFXAgentPanel::ExecuteModify(const FString& Prompt)
     UpdateStatusDisplay();
     AddThinkingStep(TEXT("Analyzing modification request..."));
 
-    if (LastRecipe.Emitters.Num() == 0 && ReferencedNiagaraSystemPath.IsEmpty())
+    if (LastRecipe.Emitters.Num() == 0 && ReferencedNiagaraSystemPath.IsEmpty() && LastGeneratedSystemPath.IsEmpty())
     {
         CompleteThinkingBubble(TEXT(""));
         AddErrorBubble(TEXT("No previous generation or referenced system to modify. Please generate a VFX first or reference an existing Niagara System."));
@@ -1381,105 +1381,70 @@ void SVFXAgentPanel::ExecuteModify(const FString& Prompt)
     bRequestInFlight = true;
     UpdateStatusDisplay();
 
-    AddThinkingStep(TEXT("Sending refinement request to AI..."));
+    AddThinkingStep(TEXT("Sending modification request to AI (V3 Python-first)..."));
 
-    HttpProvider->RefineRecipeAsync(LastRecipe, Prompt, [this](const FVFXRecipe& NewRecipe, const FString& Error)
+    // ----------------------------------------------------------------
+    // VFXAgent Architecture V3: Python-First Modification
+    // Build an augmented prompt that tells the LLM to load the existing
+    // asset and modify it in-place, then execute via StartPythonRetryLoop.
+    // ----------------------------------------------------------------
+
+    // Determine the target asset: prefer explicitly referenced system,
+    // fall back to the most recently generated one.
+    const FString ExistingPath = !ReferencedNiagaraSystemPath.IsEmpty()
+        ? ReferencedNiagaraSystemPath
+        : LastGeneratedSystemPath;
+
+    const FString OutPath  = BuildDefaultOutputPath();
+    const FString AssetName = !ExistingPath.IsEmpty()
+        ? FPaths::GetBaseFilename(ExistingPath)   // re-use the same asset name
+        : BuildDefaultAssetName(LastPrompt);
+
+    // Craft a prompt that instructs the LLM to modify the existing asset
+    FString AugmentedPrompt = Prompt;
+    if (!ExistingPath.IsEmpty())
     {
-        bRequestInFlight = false;
-        UpdateStatusDisplay();
+        AugmentedPrompt = FString::Printf(
+            TEXT("EXISTING SYSTEM: %s\n\n")
+            TEXT("MODIFICATION REQUEST: %s\n\n")
+            TEXT("Your Python script MUST load the existing system first:\n")
+            TEXT("  system = unreal.load_asset('%s')\n")
+            TEXT("Then modify it in-place (add/remove/tweak emitters and parameters).\n")
+            TEXT("Save the asset at the same path; do NOT create a new asset at a different name."),
+            *ExistingPath, *Prompt, *ExistingPath);
+    }
 
-        if (!Error.IsEmpty())
+    HttpProvider->RequestPythonScriptAsync(AugmentedPrompt,
+        [this, HttpProvider, AssetName](bool bSuccess, const FString& PythonCode, const FString& Error)
+    {
+        if (!bSuccess || !Error.IsEmpty())
         {
+            bRequestInFlight = false;
+            UpdateStatusDisplay();
             CompleteThinkingBubble(TEXT(""));
-            AddErrorBubble(FString::Printf(TEXT("Modification failed: %s"), *Error));
+            AddErrorBubble(FString::Printf(TEXT("LLM request failed: %s"), *Error));
             return;
         }
 
-        UpdateLastRecipe(NewRecipe);
+        AddThinkingStep(TEXT("LLM returned Python script. Starting execution..."));
+        FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::Niagara,
+            TEXT("Executing LLM Python modification script..."), CachedLLMBackend);
 
-        AddThinkingStep(TEXT("Recipe updated, rebuilding Niagara System..."));
-
-        UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
-        if (Generator)
+        const FString CleanCode = FVFXPythonExecutor::SanitizeLLMPythonOutput(PythonCode);
+        if (CleanCode.IsEmpty())
         {
-            const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-            const bool bDisallowTemplates = Settings ? Settings->bDisallowTemplates : true;
-            const bool bUseTemplates = !bDisallowTemplates && Settings && Settings->bUseTemplates;
-            const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-
-            FVFXRecipe FinalRecipe = NewRecipe;
-            if (!bUseTemplates)
-            {
-                for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
-                {
-                    Emitter.TemplateName.Empty();
-                }
-            }
-
-            UNiagaraSystem* ExistingSystem = nullptr;
-            if (!ReferencedNiagaraSystemPath.IsEmpty())
-            {
-                ExistingSystem = Cast<UNiagaraSystem>(StaticLoadObject(UNiagaraSystem::StaticClass(), nullptr, *ReferencedNiagaraSystemPath));
-            }
-            else if (!LastGeneratedSystemPath.IsEmpty())
-            {
-                ExistingSystem = Cast<UNiagaraSystem>(StaticLoadObject(UNiagaraSystem::StaticClass(), nullptr, *LastGeneratedSystemPath));
-            }
-
-            if (ExistingSystem)
-            {
-                // Modify existing system with Undo support
-                GEditor->BeginTransaction(FText::FromString(TEXT("VFX Agent Modification")));
-                ExistingSystem->Modify();
-
-                bool bSuccess = Generator->UpdateNiagaraSystem(ExistingSystem, FinalRecipe);
-                
-                if (bSuccess)
-                {
-                    ExistingSystem->RequestCompile(true);
-                    ExistingSystem->WaitForCompilationComplete(true, true);
-                    ExistingSystem->PostEditChange();
-
-                    GEditor->EndTransaction();
-                    CompleteThinkingBubble(TEXT(""));
-                    AddAssetLinkBubble(ExistingSystem->GetPathName(),
-                        FString::Printf(TEXT("Modified existing effect successfully!\n\nAsset: %s\nEmitters: %d"),
-                        *ExistingSystem->GetPathName(), FinalRecipe.Emitters.Num()));
-                }
-                else
-                {
-                    GEditor->CancelTransaction(0);
-                    CompleteThinkingBubble(TEXT(""));
-                    AddErrorBubble(TEXT("Failed to update the existing Niagara System."));
-                }
-            }
-            else
-            {
-                // Generate new system
-                const FString OutputPath = BuildDefaultOutputPath();
-                const FString AssetName = BuildDefaultAssetName(LastPrompt);
-
-                UNiagaraSystem* System = Generator->GenerateNiagaraSystem(AssetName, OutputPath, FinalRecipe, TemplatePath);
-                if (System)
-                {
-                    LastGeneratedSystemPath = OutputPath / AssetName;
-                    CompleteThinkingBubble(TEXT(""));
-                    AddAssetLinkBubble(LastGeneratedSystemPath,
-                        FString::Printf(TEXT("Modified effect rebuilt successfully!\n\nAsset: %s\nEmitters: %d"),
-                        *LastGeneratedSystemPath, FinalRecipe.Emitters.Num()));
-                }
-                else
-                {
-                    CompleteThinkingBubble(TEXT(""));
-                    AddErrorBubble(TEXT("Failed to rebuild the Niagara System after modification."));
-                }
-            }
-        }
-        else
-        {
+            bRequestInFlight = false;
+            UpdateStatusDisplay();
             CompleteThinkingBubble(TEXT(""));
-            AddErrorBubble(TEXT("Failed to create NiagaraSystemGenerator."));
+            AddErrorBubble(TEXT("LLM returned an empty Python script. Try a more descriptive modification prompt."));
+            return;
         }
+
+        bRequestInFlight = false;
+        UpdateStatusDisplay();
+
+        // Auto-fix retry loop: execute; if it fails, ask the LLM to fix and retry (up to 3 times)
+        StartPythonRetryLoop(CleanCode, HttpProvider, AssetName, 0.0f, 0, 1, 3);
     });
 }
 
@@ -1604,7 +1569,7 @@ void SVFXAgentPanel::ExecuteGenerateFromMedia(const FString& Prompt)
     AddThinkingStep(TEXT("Sending to AI for visual analysis..."));
     FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM, TEXT("Generating recipe from media..."), CachedLLMBackend);
 
-    HttpProvider->GenerateRecipeFromImageAsync(MediaPath, Prompt, [this, OutputPath, AssetName](const FVFXRecipe& Recipe, const FString& Error)
+    HttpProvider->GenerateRecipeFromImageAsync(MediaPath, Prompt, [this, HttpProvider, OutputPath, AssetName](const FVFXRecipe& Recipe, const FString& Error)
     {
         if (!Error.IsEmpty())
         {
@@ -1629,49 +1594,60 @@ void SVFXAgentPanel::ExecuteGenerateFromMedia(const FString& Prompt)
             return;
         }
 
-        AddThinkingStep(TEXT("Building Niagara System..."));
+        AddThinkingStep(TEXT("Requesting Python generation script from AI..."));
+        FPipelineLog::Get().Push(EPipelineLogLevel::Info, EPipelineStage::LLM,
+            TEXT("Requesting Python script from image-derived recipe..."), CachedLLMBackend);
 
-        UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
-        if (!Generator)
+        // ----------------------------------------------------------------
+        // VFXAgent Architecture V3: Python-First Generation
+        // Build a description from the image-derived recipe so the LLM
+        // can produce a concrete Python script rather than a JSON recipe.
+        // ----------------------------------------------------------------
+        FString RecipeDesc;
+        if (!LastPrompt.IsEmpty())
         {
-            bRequestInFlight = false;
-            UpdateStatusDisplay();
-            CompleteThinkingBubble(TEXT(""));
-            AddErrorBubble(TEXT("Failed to create NiagaraSystemGenerator."));
-            return;
+            RecipeDesc += FString::Printf(TEXT("Reference visual description: %s. "), *LastPrompt);
         }
-
-        const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-        const bool bDisallowTemplates = Settings ? Settings->bDisallowTemplates : true;
-        const bool bUseTemplates = !bDisallowTemplates && Settings && Settings->bUseTemplates;
-        const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-
-        FVFXRecipe FinalRecipe = EnhancedRecipe;
-        if (!bUseTemplates)
+        RecipeDesc += FString::Printf(TEXT("Generate a Niagara VFX effect with %d emitters"), EnhancedRecipe.Emitters.Num());
+        if (EnhancedRecipe.Emitters.Num() > 0)
         {
-            for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
+            RecipeDesc += TEXT(": ");
+            for (int32 i = 0; i < EnhancedRecipe.Emitters.Num(); i++)
             {
-                Emitter.TemplateName.Empty();
+                RecipeDesc += EnhancedRecipe.Emitters[i].Name;
+                if (i < EnhancedRecipe.Emitters.Num() - 1) { RecipeDesc += TEXT(", "); }
             }
         }
+        RecipeDesc += TEXT(".");
 
-        UNiagaraSystem* System = Generator->GenerateNiagaraSystem(AssetName, OutputPath, FinalRecipe, TemplatePath);
-        bRequestInFlight = false;
-        UpdateStatusDisplay();
+        HttpProvider->RequestPythonScriptAsync(RecipeDesc,
+            [this, HttpProvider, AssetName](bool bPySuccess, const FString& PythonCode, const FString& PyError)
+        {
+            if (!bPySuccess || !PyError.IsEmpty())
+            {
+                bRequestInFlight = false;
+                UpdateStatusDisplay();
+                CompleteThinkingBubble(TEXT(""));
+                AddErrorBubble(FString::Printf(TEXT("Python script request failed: %s"), *PyError));
+                return;
+            }
 
-        if (System)
-        {
-            LastGeneratedSystemPath = OutputPath / AssetName;
-            CompleteThinkingBubble(TEXT(""));
-            AddAssetLinkBubble(LastGeneratedSystemPath,
-                FString::Printf(TEXT("Generated VFX from reference media!\n\nAsset: %s\nEmitters: %d"),
-                    *LastGeneratedSystemPath, FinalRecipe.Emitters.Num()));
-        }
-        else
-        {
-            CompleteThinkingBubble(TEXT(""));
-            AddErrorBubble(TEXT("Failed to generate Niagara System from media analysis."));
-        }
+            const FString CleanCode = FVFXPythonExecutor::SanitizeLLMPythonOutput(PythonCode);
+            if (CleanCode.IsEmpty())
+            {
+                bRequestInFlight = false;
+                UpdateStatusDisplay();
+                CompleteThinkingBubble(TEXT(""));
+                AddErrorBubble(TEXT("LLM returned an empty Python script for the media-based generation."));
+                return;
+            }
+
+            AddThinkingStep(TEXT("LLM returned Python script. Starting execution..."));
+            bRequestInFlight = false;
+            UpdateStatusDisplay();
+
+            StartPythonRetryLoop(CleanCode, HttpProvider, AssetName, 0.0f, 0, 1, 3);
+        });
     });
 }
 // ============================================================================
@@ -1735,64 +1711,12 @@ void SVFXAgentPanel::ExecuteRecipePipeline(const FString& Prompt, const FString&
     }
     else
     {
-        // Synchronous fallback (mock provider)
-        FVFXRecipe Recipe = LLMProvider->GenerateRecipe(Prompt);
-        FVFXRecipe EnhancedRecipe = EnhanceRecipeForPrompt(Recipe, Prompt);
-        LastRecipe = EnhancedRecipe;
-
-        if (EnhancedRecipe.Emitters.Num() == 0)
-        {
-            bRequestInFlight = false;
-            UpdateStatusDisplay();
-            CompleteThinkingBubble(TEXT(""));
-            AddErrorBubble(TEXT("Mock LLM returned no emitters."));
-            return;
-        }
-
-        AddThinkingStep(FString::Printf(TEXT("Recipe generated (mock): %d emitters"), EnhancedRecipe.Emitters.Num()));
-
-        UNiagaraSystemGenerator* Generator = NewObject<UNiagaraSystemGenerator>(GetTransientPackage(), NAME_None, RF_Transient);
-        if (Generator)
-        {
-            const UVFXAgentSettings* Settings = GetDefault<UVFXAgentSettings>();
-            const bool bDisallowTemplates = Settings ? Settings->bDisallowTemplates : true;
-            const bool bUseTemplates = !bDisallowTemplates && Settings && Settings->bUseTemplates;
-            const FString TemplatePath = (Settings && bUseTemplates) ? Settings->DefaultTemplatePath : FString();
-
-            FVFXRecipe FinalRecipe = EnhancedRecipe;
-            if (!bUseTemplates)
-            {
-                for (FVFXEmitterRecipe& Emitter : FinalRecipe.Emitters)
-                {
-                    Emitter.TemplateName.Empty();
-                }
-            }
-
-            UNiagaraSystem* System = Generator->GenerateNiagaraSystem(AssetName, OutputPath, FinalRecipe, TemplatePath);
-            bRequestInFlight = false;
-            UpdateStatusDisplay();
-
-            if (System)
-            {
-                LastGeneratedSystemPath = OutputPath / AssetName;
-                CompleteThinkingBubble(TEXT(""));
-                AddAssetLinkBubble(LastGeneratedSystemPath,
-                    FString::Printf(TEXT("Generated Niagara System (mock)!\n\nAsset: %s\nEmitters: %d"),
-                        *LastGeneratedSystemPath, FinalRecipe.Emitters.Num()));
-            }
-            else
-            {
-                CompleteThinkingBubble(TEXT(""));
-                AddErrorBubble(TEXT("Failed to generate Niagara System."));
-            }
-        }
-        else
-        {
-            bRequestInFlight = false;
-            UpdateStatusDisplay();
-            CompleteThinkingBubble(TEXT(""));
-            AddErrorBubble(TEXT("Failed to create NiagaraSystemGenerator."));
-        }
+        // V3 architecture requires an HTTP LLM provider (mock path is no longer supported)
+        bRequestInFlight = false;
+        UpdateStatusDisplay();
+        CompleteThinkingBubble(TEXT(""));
+        AddErrorBubble(TEXT("VFX generation requires an HTTP LLM provider (V3 Python-first architecture). "
+            "Please configure an HTTP provider in Settings. The mock/offline path is no longer supported."));
     }
 }
 
