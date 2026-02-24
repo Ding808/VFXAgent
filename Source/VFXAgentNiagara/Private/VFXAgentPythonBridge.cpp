@@ -28,6 +28,7 @@ namespace
 	FString GPreferredMeshEmitterName;
 	bool GLastMeshBindUsedPreferred = false;
 	FString GCurrentRunId;
+	bool GLoggedMeshCallbackSchemaMigration = false;
 
 	FString BuildRunId()
 	{
@@ -47,12 +48,36 @@ namespace
 		return Out;
 	}
 
+	FString BuildCallbackPayloadJson(
+		const FString& RunId,
+		const FString& TaskId,
+		const FString& Status,
+		const FString& AssetPath,
+		const FString& Error,
+		double ElapsedSeconds)
+	{
+		TSharedPtr<FJsonObject> Root = MakeShared<FJsonObject>();
+		Root->SetStringField(TEXT("run_id"), RunId);
+		Root->SetStringField(TEXT("task_id"), TaskId);
+		Root->SetStringField(TEXT("status"), Status);
+		Root->SetStringField(TEXT("asset_path"), AssetPath);
+		Root->SetStringField(TEXT("error"), Error);
+		Root->SetNumberField(TEXT("elapsed"), ElapsedSeconds);
+
+		FString Json;
+		TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Json);
+		FJsonSerializer::Serialize(Root.ToSharedRef(), Writer);
+		return Json;
+	}
+
 	void InvokePythonMeshCallback(
 		const FString& CallbackName,
+		const FString& RunId,
 		const FString& TaskId,
+		const FString& Status,
 		const FString& AssetPath,
-		bool bSuccess,
-		const FString& Error)
+		const FString& Error,
+		double ElapsedSeconds)
 	{
 		if (CallbackName.TrimStartAndEnd().IsEmpty())
 		{
@@ -66,17 +91,18 @@ namespace
 			return;
 		}
 
+		const FString PayloadJson = BuildCallbackPayloadJson(RunId, TaskId, Status, AssetPath, Error, ElapsedSeconds);
+
 		const FString Script = FString::Printf(
 			TEXT("import unreal\n")
+			TEXT("import json\n")
 			TEXT("try:\n")
-			TEXT("    %s('%s', '%s', %s, '%s')\n")
+			TEXT("    _payload = json.loads('%s')\n")
+			TEXT("    %s(_payload)\n")
 			TEXT("except Exception as _cb_err:\n")
-			TEXT("    unreal.log_error(f'VFXAgent async callback failed: {_cb_err}')\n"),
-			*CallbackName,
-			*EscapeForPythonSingleQuoted(TaskId),
-			*EscapeForPythonSingleQuoted(AssetPath),
-			bSuccess ? TEXT("True") : TEXT("False"),
-			*EscapeForPythonSingleQuoted(Error));
+			TEXT("    unreal.log_error(f'VFXAgent async callback failed (schema-only): {_cb_err}')\n"),
+			*EscapeForPythonSingleQuoted(PayloadJson),
+			*CallbackName);
 
 		PythonPlugin->ExecPythonCommand(*Script);
 	}
@@ -501,6 +527,11 @@ bool UVFXAgentPythonBridge::SaveCompileSimple(const FString& SystemObjectPath)
 
 FString UVFXAgentPythonBridge::GenerateMesh(const FString& Prompt, const FString& Format)
 {
+	return GenerateMeshAsync(Prompt, Format, TEXT(""));
+}
+
+FString UVFXAgentPythonBridge::GenerateMeshBlocking(const FString& Prompt, const FString& Format)
+{
 	FModelRequestV1 Request;
 	Request.Name = Prompt.IsEmpty() ? TEXT("GeneratedMesh") : Prompt;
 	Request.Format = Format.IsEmpty() ? TEXT("glb") : Format;
@@ -561,6 +592,12 @@ FString UVFXAgentPythonBridge::GenerateMeshAsync(
 
 	const FString SystemContextPath = GActiveSystemObjectPath;
 	const FString CallbackName = OnReadyPythonCallback;
+	if (!CallbackName.TrimStartAndEnd().IsEmpty() && !GLoggedMeshCallbackSchemaMigration)
+	{
+		GLoggedMeshCallbackSchemaMigration = true;
+		UE_LOG(LogVFXAgent, Warning,
+			TEXT("VFXAgentPythonBridge mesh async callback is schema-only. Update callback to accept one payload dict: {run_id, task_id, status, asset_path, error, elapsed}."));
+	}
 	if (GCurrentRunId.IsEmpty())
 	{
 		GCurrentRunId = BuildRunId();
@@ -598,10 +635,12 @@ FString UVFXAgentPythonBridge::GenerateMeshAsync(
 
 				InvokePythonMeshCallback(
 					CallbackName,
+					Snapshot.RunId,
 					Snapshot.TaskId,
+					Snapshot.Status,
 					FinalAssetPath,
-					Snapshot.bSucceeded,
-					Snapshot.Error);
+					Snapshot.Error,
+					Snapshot.ElapsedSeconds);
 			}),
 		TaskId,
 		Error,
@@ -622,26 +661,48 @@ FString UVFXAgentPythonBridge::GenerateMeshAsync(
 
 FString UVFXAgentPythonBridge::GetMeshTaskStatus(const FString& TaskId)
 {
-	FMeshyAsyncTaskSnapshot Snapshot;
-	if (!FMeshyImageTo3DService::QueryTask(TaskId, Snapshot))
-	{
-		return TEXT("{\"found\":false}");
-	}
+	const FMeshyTaskInfo TaskInfo = GetMeshTaskInfo(TaskId);
 
 	TSharedPtr<FJsonObject> Root = MakeShared<FJsonObject>();
-	Root->SetBoolField(TEXT("found"), true);
-	Root->SetStringField(TEXT("run_id"), Snapshot.RunId);
-	Root->SetStringField(TEXT("task_id"), Snapshot.TaskId);
-	Root->SetStringField(TEXT("status"), Snapshot.Status);
-	Root->SetBoolField(TEXT("completed"), Snapshot.bCompleted);
-	Root->SetBoolField(TEXT("succeeded"), Snapshot.bSucceeded);
-	Root->SetStringField(TEXT("output_path"), Snapshot.Result.OutputPath);
-	Root->SetStringField(TEXT("error"), Snapshot.Error);
+	Root->SetBoolField(TEXT("found"), !TaskInfo.TaskID.IsEmpty());
+	Root->SetStringField(TEXT("run_id"), TaskInfo.RunId);
+	Root->SetStringField(TEXT("task_id"), TaskInfo.TaskID);
+	Root->SetStringField(TEXT("status"), TaskInfo.Status);
+	Root->SetBoolField(TEXT("completed"), TaskInfo.bCompleted);
+	Root->SetBoolField(TEXT("succeeded"), TaskInfo.bSucceeded);
+	Root->SetStringField(TEXT("output_path"), TaskInfo.OutputPath);
+	Root->SetStringField(TEXT("error"), TaskInfo.Error);
 
 	FString Json;
 	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&Json);
 	FJsonSerializer::Serialize(Root.ToSharedRef(), Writer);
 	return Json;
+}
+
+FMeshyTaskInfo UVFXAgentPythonBridge::GetMeshTaskInfo(const FString& TaskId)
+{
+	FMeshyTaskInfo Info;
+	FMeshyAsyncTaskSnapshot Snapshot;
+	if (!FMeshyImageTo3DService::QueryTask(TaskId, Snapshot))
+	{
+		return Info;
+	}
+
+	Info.RunId = Snapshot.RunId;
+	Info.TaskID = Snapshot.TaskId;
+	Info.Status = Snapshot.Status;
+	Info.OutputPath = Snapshot.Result.OutputPath;
+	Info.Error = Snapshot.Error;
+	Info.ElapsedSeconds = static_cast<float>(Snapshot.ElapsedSeconds);
+	Info.bCompleted = Snapshot.bCompleted;
+	Info.bSucceeded = Snapshot.bSucceeded;
+
+	if (!Info.OutputPath.IsEmpty())
+	{
+		Info.ResultMesh = LoadObject<UStaticMesh>(nullptr, *Info.OutputPath);
+	}
+
+	return Info;
 }
 
 FString UVFXAgentPythonBridge::GetMeshyEndpoint()

@@ -1,5 +1,6 @@
 #include "HttpLLMProvider.h"
 #include "VFXAgentLog.h"
+#include "VFXAgentPromptDefaults.h"
 
 #include "Dom/JsonObject.h"
 #include "JsonObjectConverter.h"
@@ -205,7 +206,7 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 	// -------------------------------------------------------------------------
 	// Python-First System Prompt - UE5.5 compatibility-first baseline
 	// -------------------------------------------------------------------------
-	return TEXT(
+	return FString(TEXT(
 		"You are an Unreal Engine 5.5 Python expert specializing in Niagara VFX.\n"
 		"Task: generate a standalone Python script that creates a Niagara System and guarantees\n"
 		"the final system is NON-EMPTY (has at least one emitter handle).\n\n"
@@ -223,6 +224,14 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 		"- bind_emitter_material(system_object_path, emitter_name, material_path)\n"
 		"- save_compile_simple(system_object_path)\n"
 		"- generate_mesh('prompt') for Meshy integration.\n\n"
+		"If you call generate_mesh_async, callback must be schema-only: def callback(payload),\n"
+		"with payload keys run_id/task_id/status/asset_path/error/elapsed.\n\n"
+		"Minimal callback usage example:\n"
+		"def on_mesh_ready(payload): unreal.log(str(payload.get('status', '')))\n"))
+		+ FString::Printf(
+			TEXT("task_id = unreal.VFXAgentPythonBridge.generate_mesh_async('%s', 'glb', 'on_mesh_ready')\\n\\n"),
+			VFXAgentPromptDefaults::MeshAsyncExamplePrompt)
+		+ FString(TEXT(
 
 		"MANDATORY FLOW:\n"
 		"1) import unreal and ensure target_path exists.\n"
@@ -250,7 +259,7 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 		"OUTPUT FORMAT:\n"
 		"Return ONLY raw Python code. No markdown.\n"
 		"First line must be: import unreal\n"
-	);
+	));
 }
 
 FString UHttpLLMProvider::BuildDirectorSystemPrompt() const

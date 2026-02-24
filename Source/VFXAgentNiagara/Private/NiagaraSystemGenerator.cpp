@@ -3,6 +3,7 @@
 #include "VFXRecipeCompiler.h"
 #include "VFXPythonExecutor.h"
 #include "HttpLLMProvider.h"
+#include "VFXAgentPromptDefaults.h"
 #include "VFXAgentLog.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
@@ -299,6 +300,9 @@ static FString BuildPythonGenerationPrompt(
         TEXT("- unreal.VFXAgentPythonBridge.bind_emitter_material(system_object_path, emitter_name, material_path)\\n")
         TEXT("- unreal.VFXAgentPythonBridge.save_compile_simple(system_object_path)\\n")
         TEXT("- unreal.VFXAgentPythonBridge.generate_mesh_async(prompt, format, callback_name) for non-blocking mesh jobs\\n")
+        TEXT("  callback_name must resolve to: def callback(payload), where payload has run_id/task_id/status/asset_path/error/elapsed\\n")
+        TEXT("  minimal example: def on_mesh_ready(payload): unreal.log(str(payload.get('status', '')))\\n")
+        TEXT("  task_id = unreal.VFXAgentPythonBridge.generate_mesh_async('%s', 'glb', 'on_mesh_ready')\\n")
         TEXT("- unreal.VFXAgentPythonBridge.get_mesh_task_status(task_id) for polling status\\n")
         TEXT("You MUST create/assign materials INSIDE this Python script (do not rely on C++ post-fix material assignment).\\n")
         TEXT("When NiagaraEditorSubsystem is available, add emitters and bind materials in script in one flow.\\n")
@@ -308,6 +312,7 @@ static FString BuildPythonGenerationPrompt(
         TEXT("Optional template path: %s\\n\\n")
         TEXT("Recipe JSON:\\n%s\\n\\n")
         TEXT("Compiled Spec JSON:\\n%s\\n"),
+        VFXAgentPromptDefaults::MeshAsyncExamplePrompt,
         *UserSystemName,
         *OutputPath,
         *TemplateSystemPath,

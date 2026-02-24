@@ -8,6 +8,7 @@ struct VFXAGENTNIAGARA_API FMeshyAsyncTaskSnapshot
 	FString RunId;
 	FString TaskId;
 	FString Status;
+	double ElapsedSeconds = 0.0;
 	bool bCompleted = false;
 	bool bSucceeded = false;
 	FModelServiceResult Result;

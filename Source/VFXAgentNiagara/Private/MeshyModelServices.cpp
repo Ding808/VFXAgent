@@ -681,6 +681,7 @@ namespace
 
 			Record.Snapshot.bCompleted = true;
 			Record.Snapshot.bSucceeded = bSuccess;
+			Record.Snapshot.ElapsedSeconds = Elapsed;
 			Record.Snapshot.Error = Error;
 			Record.Snapshot.Result.bSuccess = bSuccess;
 			Record.Snapshot.Result.OutputPath = OutputPath;
