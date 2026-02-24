@@ -22,6 +22,9 @@
 #include "HttpModule.h"
 #include "HttpManager.h"
 #include "JsonObjectConverter.h"
+#include "Dom/JsonObject.h"
+#include "Serialization/JsonSerializer.h"
+#include "Serialization/JsonWriter.h"
 #include "Runtime/Launch/Resources/Version.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
@@ -87,6 +90,34 @@ static FString BuildSystemObjectPath(const FString& OutputPath, const FString& S
 {
     const FString PackagePath = OutputPath / SystemName;
     return FString::Printf(TEXT("%s.%s"), *PackagePath, *SystemName);
+}
+
+static bool DoesNiagaraSystemAssetExist(const FString& OutputPath, const FString& SystemName)
+{
+    const FString ObjPath = BuildSystemObjectPath(OutputPath, SystemName);
+    return LoadObject<UNiagaraSystem>(nullptr, *ObjPath) != nullptr;
+}
+
+static FString ResolveUniqueSystemName(const FString& OutputPath, const FString& RequestedName)
+{
+    if (!DoesNiagaraSystemAssetExist(OutputPath, RequestedName))
+    {
+        return RequestedName;
+    }
+
+    for (int32 Index = 1; Index <= 999; ++Index)
+    {
+        const FString Candidate = FString::Printf(TEXT("%s_%03d"), *RequestedName, Index);
+        if (!DoesNiagaraSystemAssetExist(OutputPath, Candidate))
+        {
+            UE_LOG(LogVFXAgent, Warning,
+                TEXT("Target Niagara system already exists. Auto-resolved name: %s -> %s"),
+                *RequestedName, *Candidate);
+            return Candidate;
+        }
+    }
+
+    return FString::Printf(TEXT("%s_%lld"), *RequestedName, static_cast<long long>(FDateTime::UtcNow().ToUnixTimestamp()));
 }
 
 static FString EscapeForPythonString(const FString& Input)
@@ -155,6 +186,35 @@ static bool TryGetVFXAgentSettingFloat(const TCHAR* Key, float& OutValue)
     }
 
     return false;
+}
+
+static bool TryGetVFXAgentSettingBool(const TCHAR* Key, bool& OutValue)
+{
+    const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+    const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+    for (const FString& File : ConfigFiles)
+    {
+        if (GConfig && GConfig->GetBool(Section, Key, OutValue, File))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+static void ForceScanAssetPaths(const FString& OutputPath)
+{
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+    TArray<FString> PathsToScan;
+    PathsToScan.Add(TEXT("/Niagara"));
+    PathsToScan.Add(TEXT("/Engine"));
+    if (!OutputPath.IsEmpty())
+    {
+        PathsToScan.Add(OutputPath);
+    }
+
+    AssetRegistryModule.Get().SearchAllAssets(true);
+    AssetRegistryModule.Get().ScanPathsSynchronous(PathsToScan, true, false);
 }
 
 static EVFXAgentLLMBackend ParseBackend(const FString& BackendString)
@@ -232,6 +292,14 @@ static FString BuildPythonGenerationPrompt(
         TEXT("Generate a UE5.5 Niagara Python script for this VFX.\\n")
         TEXT("IMPORTANT: The runtime will inject Python globals target_path, system_name, system_object_path.\\n")
         TEXT("You MUST use these globals when creating/saving the Niagara system asset.\\n")
+        TEXT("Prefer bridge commands over raw low-level operations:\\n")
+        TEXT("- unreal.VFXAgentPythonBridge.prepare_editor_context(path)\\n")
+        TEXT("- unreal.VFXAgentPythonBridge.create_system(target_path, system_name)\\n")
+        TEXT("- unreal.VFXAgentPythonBridge.create_emitter(system_object_path, template_name, emitter_name)\\n")
+        TEXT("- unreal.VFXAgentPythonBridge.bind_emitter_material(system_object_path, emitter_name, material_path)\\n")
+        TEXT("- unreal.VFXAgentPythonBridge.save_compile_simple(system_object_path)\\n")
+        TEXT("You MUST create/assign materials INSIDE this Python script (do not rely on C++ post-fix material assignment).\\n")
+        TEXT("When NiagaraEditorSubsystem is available, add emitters and bind materials in script in one flow.\\n")
         TEXT("Do not hard-code a different output folder or system name.\\n\\n")
         TEXT("Target system name: %s\\n")
         TEXT("Target output folder: %s\\n")
@@ -243,6 +311,43 @@ static FString BuildPythonGenerationPrompt(
         *TemplateSystemPath,
         *RecipeJson,
         *SpecJson);
+}
+
+static FString BuildPythonRepairPayloadJson(
+    const FString& SystemName,
+    const FString& OutputPath,
+    const FString& SystemObjectPath,
+    const FString& PreviousScript,
+    const FString& Traceback)
+{
+    TSharedPtr<FJsonObject> Root = MakeShared<FJsonObject>();
+    Root->SetStringField(TEXT("system_name"), SystemName);
+    Root->SetStringField(TEXT("output_path"), OutputPath);
+    Root->SetStringField(TEXT("system_object_path"), SystemObjectPath);
+    Root->SetStringField(TEXT("python_traceback"), Traceback);
+    Root->SetStringField(TEXT("previous_script"), PreviousScript);
+
+    FString JsonText;
+    TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&JsonText);
+    FJsonSerializer::Serialize(Root.ToSharedRef(), Writer);
+    return JsonText;
+}
+
+static FString BuildPythonRepairPrompt(
+    const FString& UserSystemName,
+    const FString& OutputPath,
+    const FString& SystemObjectPath,
+    const FString& PreviousScript,
+    const FString& Traceback)
+{
+    const FString Payload = BuildPythonRepairPayloadJson(UserSystemName, OutputPath, SystemObjectPath, PreviousScript, Traceback);
+    return FString::Printf(
+        TEXT("Repair the Unreal Engine 5.5 Python script based on this execution failure report.\\n")
+        TEXT("Return ONLY raw Python code (no markdown).\\n")
+        TEXT("Use runtime globals: target_path, system_name, system_object_path.\\n")
+        TEXT("Do not call duplicate_asset/create_asset blindly if assets already exist; load existing assets when possible.\\n")
+        TEXT("Failure report JSON:\\n%s\\n"),
+        *Payload);
 }
 
 static UNiagaraSystem* TryLoadGeneratedSystem(const FString& SystemObjectPath, const FString& OutputPath, const FString& SystemName)
@@ -431,8 +536,9 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     const FVFXRecipe& Recipe,
     const FString& TemplateSystemPath)
 {
-    const FString SafeSystemName = SanitizeGeneratedName(SystemName, TEXT("GeneratedSystem"));
+    const FString BaseSystemName = SanitizeGeneratedName(SystemName, TEXT("GeneratedSystem"));
     const FString SafeOutputPath = NormalizeOutputAssetPath(OutputPath);
+    const FString SafeSystemName = ResolveUniqueSystemName(SafeOutputPath, BaseSystemName);
     const FString SystemObjectPath = BuildSystemObjectPath(SafeOutputPath, SafeSystemName);
     UE_LOG(LogVFXAgent, Log, TEXT("Starting Recipe-Driven Niagara Generation for: %s (sanitized=%s)"), *SystemName, *SafeSystemName);
 
@@ -457,12 +563,14 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     FString ApiKey;
     FString BackendString;
     float TimeoutSeconds = 120.0f;
+    bool bPythonLifecycleOnly = true;
 
     TryGetVFXAgentSettingString(TEXT("LLMEndpoint"), Endpoint);
     TryGetVFXAgentSettingString(TEXT("LLMModel"), Model);
     TryGetVFXAgentSettingString(TEXT("LLMApiKey"), ApiKey);
     TryGetVFXAgentSettingString(TEXT("LLMBackend"), BackendString);
     TryGetVFXAgentSettingFloat(TEXT("LLMTimeoutSeconds"), TimeoutSeconds);
+    TryGetVFXAgentSettingBool(TEXT("PythonLifecycleOnly"), bPythonLifecycleOnly);
 
     UHttpLLMProvider* Provider = NewObject<UHttpLLMProvider>(GetTransientPackage());
     if (!Provider)
@@ -472,6 +580,18 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     }
 
     Provider->AddToRoot();
+    struct FProviderRootGuard
+    {
+        UHttpLLMProvider* Provider = nullptr;
+        ~FProviderRootGuard()
+        {
+            if (Provider)
+            {
+                Provider->RemoveFromRoot();
+            }
+        }
+    } ProviderGuard{ Provider };
+
     Provider->Configure(ParseBackend(BackendString), Endpoint, Model, ApiKey, TimeoutSeconds);
 
     const FString PythonPrompt = BuildPythonGenerationPrompt(SafeSystemName, SafeOutputPath, TemplateSystemPath, Recipe, Spec);
@@ -479,7 +599,6 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     FString RawPythonScript;
     FString PythonRequestError;
     const bool bGotScript = RequestPythonScriptBlocking(Provider, PythonPrompt, TimeoutSeconds, RawPythonScript, PythonRequestError);
-    Provider->RemoveFromRoot();
 
     if (!bGotScript)
     {
@@ -494,17 +613,78 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
         return nullptr;
     }
 
-    const FString RuntimePythonScript = StripEditorOpenCalls(CleanPythonScript);
-
-    const FString FinalScript = FString::Printf(
+    FString CurrentScript = FString::Printf(
         TEXT("target_path = '%s'\nsystem_name = '%s'\nsystem_object_path = '%s'\n\n%s"),
         *EscapeForPythonString(SafeOutputPath),
         *EscapeForPythonString(SafeSystemName),
         *EscapeForPythonString(SystemObjectPath),
-        *RuntimePythonScript);
+        *StripEditorOpenCalls(CleanPythonScript));
+
+    int32 MaxRepairAttempts = 2;
+    if (int32 ConfigRepairAttempts = 0;
+        GConfig && GConfig->GetInt(TEXT("/Script/VFXAgentEditor.VFXAgentSettings"), TEXT("PythonAutoRepairAttempts"), ConfigRepairAttempts, GEditorIni))
+    {
+        MaxRepairAttempts = FMath::Clamp(ConfigRepairAttempts, 0, 5);
+    }
 
     FString PythonExecError;
-    if (!FVFXPythonExecutor::ExecutePythonScript(FinalScript, PythonExecError))
+    bool bExecOk = false;
+    ForceScanAssetPaths(SafeOutputPath);
+    for (int32 Attempt = 0; Attempt <= MaxRepairAttempts; ++Attempt)
+    {
+        PythonExecError.Reset();
+        bExecOk = FVFXPythonExecutor::ExecutePythonScript(CurrentScript, PythonExecError);
+        if (bExecOk)
+        {
+            break;
+        }
+
+        UE_LOG(LogVFXAgent, Warning,
+            TEXT("Python execution failed (attempt %d/%d) for '%s'. Traceback: %s"),
+            Attempt + 1,
+            MaxRepairAttempts + 1,
+            *SafeSystemName,
+            *PythonExecError);
+
+        if (Attempt >= MaxRepairAttempts)
+        {
+            break;
+        }
+
+        const FString RepairPrompt = BuildPythonRepairPrompt(
+            SafeSystemName,
+            SafeOutputPath,
+            SystemObjectPath,
+            CurrentScript,
+            PythonExecError);
+
+        FString RepairedRawScript;
+        FString RepairRequestError;
+        if (!RequestPythonScriptBlocking(Provider, RepairPrompt, TimeoutSeconds, RepairedRawScript, RepairRequestError))
+        {
+            UE_LOG(LogVFXAgent, Error,
+                TEXT("Failed to request repaired Python script (attempt %d): %s"),
+                Attempt + 1,
+                *RepairRequestError);
+            break;
+        }
+
+        const FString RepairedClean = FVFXPythonExecutor::SanitizeLLMPythonOutput(RepairedRawScript);
+        if (RepairedClean.IsEmpty())
+        {
+            UE_LOG(LogVFXAgent, Error, TEXT("Repair attempt %d returned empty Python script."), Attempt + 1);
+            break;
+        }
+
+        CurrentScript = FString::Printf(
+            TEXT("target_path = '%s'\nsystem_name = '%s'\nsystem_object_path = '%s'\n\n%s"),
+            *EscapeForPythonString(SafeOutputPath),
+            *EscapeForPythonString(SafeSystemName),
+            *EscapeForPythonString(SystemObjectPath),
+            *StripEditorOpenCalls(RepairedClean));
+    }
+
+    if (!bExecOk)
     {
         UE_LOG(LogVFXAgent, Error, TEXT("Python execution failed for generated system '%s': %s"), *SafeSystemName, *PythonExecError);
         return nullptr;
@@ -515,6 +695,12 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     {
         UE_LOG(LogVFXAgent, Error, TEXT("Python script executed but Niagara system could not be loaded: %s"), *SystemObjectPath);
         return nullptr;
+    }
+
+    if (bPythonLifecycleOnly)
+    {
+        UE_LOG(LogVFXAgent, Log, TEXT("PythonLifecycleOnly=true. Returning reloaded system without C++ post-processing: %s"), *SystemObjectPath);
+        return ResultSystem;
     }
 
     if (ResultSystem->GetEmitterHandles().Num() == 0)
@@ -591,8 +777,12 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     
     ResultSystem->Modify();
 
-    // Assign materials from the library (no material generation)
-    AssignMaterialsFromLibrary(Recipe, ResultSystem);
+    // Keep C++ material assignment only as a fallback safety net for scripts that did not bind materials.
+    const bool bUseCppMaterialFallback = false;
+    if (bUseCppMaterialFallback)
+    {
+        AssignMaterialsFromLibrary(Recipe, ResultSystem);
+    }
 
     // Apply collision event handlers (module-stack level) after system creation
     if (Recipe.Events.Num() > 0)

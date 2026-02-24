@@ -212,7 +212,17 @@ FString UHttpLLMProvider::BuildSystemPrompt() const
 
 		"RUNTIME CONTEXT:\n"
 		"The caller injects globals target_path, system_name, system_object_path.\n"
+		"The caller also injects TARGET_SYSTEM, TARGET_PATH, SYSTEM_NAME, SYSTEM_OBJECT_PATH, MESHY_API_KEY.\n"
 		"You MUST use target_path and system_name.\n\n"
+
+		"PREFERRED API STYLE:\n"
+		"Use unreal.VFXAgentPythonBridge high-level commands whenever possible:\n"
+		"- prepare_editor_context('/Niagara')\n"
+		"- create_system(target_path, system_name)\n"
+		"- create_emitter(system_object_path, template_name, emitter_name)\n"
+		"- bind_emitter_material(system_object_path, emitter_name, material_path)\n"
+		"- save_compile_simple(system_object_path)\n"
+		"- generate_mesh('prompt') for Meshy integration.\n\n"
 
 		"MANDATORY FLOW:\n"
 		"1) import unreal and ensure target_path exists.\n"
