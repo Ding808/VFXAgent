@@ -40,9 +40,19 @@ bool FVFXPythonExecutor::ExecutePythonScript(const FString& PythonCode, FString&
 		TEXT("VFXPythonExecutor: Executing LLM-generated Python script (%d chars)..."),
 		PythonCode.Len());
 
+	const FString BootstrapGlobals =
+		TEXT("if 'target_path' not in globals():\n")
+		TEXT("    target_path = '/Game/VFXAgent/Generated'\n")
+		TEXT("if 'system_name' not in globals():\n")
+		TEXT("    system_name = 'NS_VFXAgent_Auto'\n")
+		TEXT("if 'system_object_path' not in globals():\n")
+		TEXT("    system_object_path = f'{target_path}/{system_name}.{system_name}'\n\n");
+
+	const FString FinalPythonCode = BootstrapGlobals + PythonCode;
+
 	// ExecuteFile mode runs a literal multi-statement Python script (same as exec())
 	FPythonCommandEx Cmd;
-	Cmd.Command = PythonCode;
+	Cmd.Command = FinalPythonCode;
 	Cmd.ExecutionMode = EPythonCommandExecutionMode::ExecuteFile;
 	Cmd.FileExecutionScope = EPythonFileExecutionScope::Public;
 	const bool bSuccess = PythonPlugin->ExecPythonCommandEx(Cmd);

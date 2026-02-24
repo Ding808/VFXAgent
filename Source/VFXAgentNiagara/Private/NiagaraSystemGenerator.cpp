@@ -1,6 +1,8 @@
 #include "NiagaraSystemGenerator.h"
 #include "NiagaraSpecExecutor.h"
 #include "VFXRecipeCompiler.h"
+#include "VFXPythonExecutor.h"
+#include "HttpLLMProvider.h"
 #include "VFXAgentLog.h"
 #include "NiagaraSystem.h"
 #include "NiagaraEmitter.h"
@@ -13,8 +15,13 @@
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "Modules/ModuleManager.h"
 #include "Misc/ConfigCacheIni.h"
+#include "Misc/Paths.h"
+#include "Misc/PackageName.h"
 #include "UObject/UnrealType.h"
 #include "ScopedTransaction.h"
+#include "HttpModule.h"
+#include "HttpManager.h"
+#include "JsonObjectConverter.h"
 #include "Runtime/Launch/Resources/Version.h"
 
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
@@ -53,6 +60,368 @@ static FString SanitizeGeneratedName(const FString& SourceString, const FString&
     return Clean;
 }
 
+static FString NormalizeOutputAssetPath(const FString& InputPath)
+{
+    FString Output = InputPath;
+    Output.TrimStartAndEndInline();
+
+    if (Output.IsEmpty())
+    {
+        Output = TEXT("/Game/VFXAgent/Generated");
+    }
+
+    if (!Output.StartsWith(TEXT("/Game")))
+    {
+        Output = FString::Printf(TEXT("/Game/%s"), *Output);
+    }
+
+    while (Output.EndsWith(TEXT("/")))
+    {
+        Output.LeftChopInline(1, EAllowShrinking::No);
+    }
+
+    return Output;
+}
+
+static FString BuildSystemObjectPath(const FString& OutputPath, const FString& SystemName)
+{
+    const FString PackagePath = OutputPath / SystemName;
+    return FString::Printf(TEXT("%s.%s"), *PackagePath, *SystemName);
+}
+
+static FString EscapeForPythonString(const FString& Input)
+{
+    FString Out = Input;
+    Out = Out.Replace(TEXT("\\"), TEXT("\\\\"));
+    Out = Out.Replace(TEXT("'"), TEXT("\\'"));
+    return Out;
+}
+
+static bool TryGetVFXAgentSettingString(const TCHAR* Key, FString& OutValue)
+{
+    const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+    const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+    for (const FString& File : ConfigFiles)
+    {
+        if (GConfig && GConfig->GetString(Section, Key, OutValue, File))
+        {
+            return true;
+        }
+    }
+
+    FString VFXAgentIni;
+    if (FConfigCacheIni::LoadGlobalIniFile(VFXAgentIni, TEXT("VFXAgent"), nullptr, true, true))
+    {
+        if (GConfig && GConfig->GetString(Section, Key, OutValue, VFXAgentIni))
+        {
+            return true;
+        }
+    }
+
+    const FString DefaultVFXAgentIni = FPaths::Combine(FPaths::ProjectConfigDir(), TEXT("DefaultVFXAgent.ini"));
+    if (GConfig && GConfig->GetString(Section, Key, OutValue, DefaultVFXAgentIni))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+static bool TryGetVFXAgentSettingFloat(const TCHAR* Key, float& OutValue)
+{
+    const TCHAR* Section = TEXT("/Script/VFXAgentEditor.VFXAgentSettings");
+    const FString ConfigFiles[] = { GEditorIni, GGameIni, GEngineIni };
+    for (const FString& File : ConfigFiles)
+    {
+        if (GConfig && GConfig->GetFloat(Section, Key, OutValue, File))
+        {
+            return true;
+        }
+    }
+
+    FString VFXAgentIni;
+    if (FConfigCacheIni::LoadGlobalIniFile(VFXAgentIni, TEXT("VFXAgent"), nullptr, true, true))
+    {
+        if (GConfig && GConfig->GetFloat(Section, Key, OutValue, VFXAgentIni))
+        {
+            return true;
+        }
+    }
+
+    const FString DefaultVFXAgentIni = FPaths::Combine(FPaths::ProjectConfigDir(), TEXT("DefaultVFXAgent.ini"));
+    if (GConfig && GConfig->GetFloat(Section, Key, OutValue, DefaultVFXAgentIni))
+    {
+        return true;
+    }
+
+    return false;
+}
+
+static EVFXAgentLLMBackend ParseBackend(const FString& BackendString)
+{
+    const FString Lower = BackendString.ToLower();
+    if (Lower.Contains(TEXT("ollama")))
+    {
+        return EVFXAgentLLMBackend::OllamaGenerate;
+    }
+    if (Lower.Contains(TEXT("responses")))
+    {
+        return EVFXAgentLLMBackend::OpenAIResponses;
+    }
+    return EVFXAgentLLMBackend::OpenAIChatCompletions;
+}
+
+static bool RequestPythonScriptBlocking(UHttpLLMProvider* Provider, const FString& Prompt, float TimeoutSeconds, FString& OutScript, FString& OutError)
+{
+    if (!Provider)
+    {
+        OutError = TEXT("LLM provider is null.");
+        return false;
+    }
+
+    bool bDone = false;
+    bool bSuccess = false;
+    FString Script;
+    FString Error;
+
+    Provider->RequestPythonScriptAsync(Prompt,
+        [&bDone, &bSuccess, &Script, &Error](bool bInSuccess, const FString& InScript, const FString& InError)
+        {
+            bSuccess = bInSuccess;
+            Script = InScript;
+            Error = InError;
+            bDone = true;
+        });
+
+    const double StartTime = FPlatformTime::Seconds();
+    const double EffectiveTimeout = FMath::Max(5.0, static_cast<double>(TimeoutSeconds));
+    while (!bDone)
+    {
+        if ((FPlatformTime::Seconds() - StartTime) > EffectiveTimeout)
+        {
+            OutError = FString::Printf(TEXT("RequestPythonScriptAsync timed out after %.1f seconds."), TimeoutSeconds);
+            return false;
+        }
+
+        if (IsInGameThread())
+        {
+            FHttpModule::Get().GetHttpManager().Tick(0.01f);
+        }
+        FPlatformProcess::Sleep(0.01f);
+    }
+
+    OutScript = Script;
+    OutError = Error;
+    return bSuccess;
+}
+
+static FString BuildPythonGenerationPrompt(
+    const FString& UserSystemName,
+    const FString& OutputPath,
+    const FString& TemplateSystemPath,
+    const FVFXRecipe& Recipe,
+    const FVFXEffectSpec& CompiledSpec)
+{
+    FString RecipeJson;
+    FJsonObjectConverter::UStructToJsonObjectString(Recipe, RecipeJson);
+
+    FString SpecJson;
+    FJsonObjectConverter::UStructToJsonObjectString(CompiledSpec, SpecJson);
+
+    return FString::Printf(
+        TEXT("Generate a UE5.5 Niagara Python script for this VFX.\\n")
+        TEXT("IMPORTANT: The runtime will inject Python globals target_path, system_name, system_object_path.\\n")
+        TEXT("You MUST use these globals when creating/saving the Niagara system asset.\\n")
+        TEXT("Do not hard-code a different output folder or system name.\\n\\n")
+        TEXT("Target system name: %s\\n")
+        TEXT("Target output folder: %s\\n")
+        TEXT("Optional template path: %s\\n\\n")
+        TEXT("Recipe JSON:\\n%s\\n\\n")
+        TEXT("Compiled Spec JSON:\\n%s\\n"),
+        *UserSystemName,
+        *OutputPath,
+        *TemplateSystemPath,
+        *RecipeJson,
+        *SpecJson);
+}
+
+static UNiagaraSystem* TryLoadGeneratedSystem(const FString& SystemObjectPath, const FString& OutputPath, const FString& SystemName)
+{
+    if (UNiagaraSystem* Loaded = LoadObject<UNiagaraSystem>(nullptr, *SystemObjectPath))
+    {
+        return Loaded;
+    }
+
+    FAssetRegistryModule& AssetRegistryModule = FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+    FARFilter Filter;
+    Filter.PackagePaths.Add(*OutputPath);
+    Filter.ClassPaths.Add(UNiagaraSystem::StaticClass()->GetClassPathName());
+    Filter.bRecursivePaths = false;
+
+    TArray<FAssetData> Assets;
+    AssetRegistryModule.Get().GetAssets(Filter, Assets);
+    for (const FAssetData& Asset : Assets)
+    {
+        if (Asset.AssetName.ToString().Equals(SystemName, ESearchCase::CaseSensitive))
+        {
+            return Cast<UNiagaraSystem>(Asset.GetAsset());
+        }
+    }
+
+    return nullptr;
+}
+
+static bool TryAttachExistingEmitterAsset(UNiagaraSystem* System, const FString& OutputPath)
+{
+    UE_LOG(LogVFXAgent, Warning, TEXT("TryAttachExistingEmitterAsset is disabled for safety in this environment (path=%s)."), *OutputPath);
+    return false;
+}
+
+static FString StripEditorOpenCalls(const FString& InScript)
+{
+    FString OutScript = InScript;
+    OutScript.ReplaceInline(
+        TEXT("unreal.get_editor_subsystem(unreal.AssetEditorSubsystem).open_editor_for_assets([system])"),
+        TEXT("pass"),
+        ESearchCase::CaseSensitive);
+    return OutScript;
+}
+
+static FString BuildTemplateFallbackPythonScript(const FString& OutputPath, const FString& SystemName)
+{
+    const FString EscapedOutputPath = EscapeForPythonString(OutputPath);
+    const FString EscapedSystemName = EscapeForPythonString(SystemName);
+
+    return FString::Printf(
+        TEXT("import unreal\n")
+        TEXT("target_path = '%s'\n")
+        TEXT("system_name = '%s'\n")
+        TEXT("system_path = f'{target_path}/{system_name}'\n")
+        TEXT("def get_emitter_count(sys_obj):\n")
+        TEXT("    if sys_obj is None:\n")
+        TEXT("        return -1\n")
+        TEXT("    try:\n")
+        TEXT("        return len(list(sys_obj.get_editor_property('emitter_handles') or []))\n")
+        TEXT("    except Exception:\n")
+        TEXT("        pass\n")
+        TEXT("    try:\n")
+        TEXT("        if hasattr(sys_obj, 'get_emitter_handles'):\n")
+        TEXT("            return len(list(sys_obj.get_emitter_handles() or []))\n")
+        TEXT("    except Exception:\n")
+        TEXT("        pass\n")
+        TEXT("    return -1\n")
+        TEXT("\n")
+        TEXT("def class_name_of(asset_data):\n")
+        TEXT("    try:\n")
+        TEXT("        return str(asset_data.asset_class_path.asset_name)\n")
+        TEXT("    except Exception:\n")
+        TEXT("        return str(getattr(asset_data, 'asset_class', ''))\n")
+        TEXT("\n")
+        TEXT("def pick_if_non_empty(path):\n")
+        TEXT("    try:\n")
+        TEXT("        if not unreal.EditorAssetLibrary.does_asset_exist(path):\n")
+        TEXT("            return None\n")
+        TEXT("        loaded = unreal.EditorAssetLibrary.load_asset(path)\n")
+        TEXT("        if loaded is None:\n")
+        TEXT("            return None\n")
+        TEXT("        if get_emitter_count(loaded) > 0:\n")
+        TEXT("            return path\n")
+        TEXT("    except Exception:\n")
+        TEXT("        pass\n")
+        TEXT("    return None\n")
+        TEXT("\n")
+        TEXT("template_path = None\n")
+        TEXT("candidate_paths = [\n")
+        TEXT("    '/Niagara/DefaultAssets/Templates/Systems/NS_Fountain.NS_Fountain',\n")
+        TEXT("    '/Niagara/DefaultAssets/Templates/System/NS_Fountain.NS_Fountain',\n")
+        TEXT("    '/Niagara/DefaultAssets/Templates/Systems/NS_Template.NS_Template',\n")
+        TEXT("    '/Niagara/DefaultAssets/Templates/System/NS_Template.NS_Template',\n")
+        TEXT("    '/Niagara/DefaultAssets/Templates/Systems/NS_Minimal.NS_Minimal',\n")
+        TEXT("    '/Niagara/DefaultAssets/Templates/System/NS_Minimal.NS_Minimal',\n")
+        TEXT("]\n")
+        TEXT("for p in candidate_paths:\n")
+        TEXT("    chosen = pick_if_non_empty(p)\n")
+        TEXT("    if chosen:\n")
+        TEXT("        template_path = chosen\n")
+        TEXT("        break\n")
+        TEXT("\n")
+        TEXT("if template_path is None:\n")
+        TEXT("    try:\n")
+        TEXT("        ar = unreal.AssetRegistryHelpers.get_asset_registry()\n")
+        TEXT("        try:\n")
+        TEXT("            ar.search_all_assets(True)\n")
+        TEXT("        except Exception:\n")
+        TEXT("            pass\n")
+        TEXT("        try:\n")
+        TEXT("            ar.scan_paths_synchronous(['/Niagara', '/Engine'], True, False)\n")
+        TEXT("        except Exception:\n")
+        TEXT("            pass\n")
+        TEXT("\n")
+        TEXT("        for base in ['/Niagara/DefaultAssets/Templates/Systems', '/Niagara/DefaultAssets/Templates/System', '/Niagara/DefaultAssets/Templates', '/Niagara']:\n")
+        TEXT("            try:\n")
+        TEXT("                assets = ar.get_assets_by_path(base, recursive=True)\n")
+        TEXT("            except Exception:\n")
+        TEXT("                assets = []\n")
+        TEXT("            for a in assets:\n")
+        TEXT("                obj_path = str(getattr(a, 'object_path', ''))\n")
+        TEXT("                if not obj_path:\n")
+        TEXT("                    continue\n")
+        TEXT("                if 'NiagaraSystem' not in class_name_of(a):\n")
+        TEXT("                    continue\n")
+        TEXT("                asset_name = str(getattr(a, 'asset_name', '')).lower()\n")
+        TEXT("                if ('template' in asset_name) or ('fountain' in asset_name) or asset_name.startswith('ns_') or ('system' in asset_name):\n")
+        TEXT("                    chosen = pick_if_non_empty(obj_path)\n")
+        TEXT("                    if chosen:\n")
+        TEXT("                        template_path = chosen\n")
+        TEXT("                        break\n")
+        TEXT("            if template_path is not None:\n")
+        TEXT("                break\n")
+        TEXT("\n")
+        TEXT("        if template_path is None:\n")
+        TEXT("            try:\n")
+        TEXT("                assets = ar.get_assets_by_path('/Niagara', recursive=True)\n")
+        TEXT("            except Exception:\n")
+        TEXT("                assets = []\n")
+        TEXT("            for a in assets:\n")
+        TEXT("                obj_path = str(getattr(a, 'object_path', ''))\n")
+        TEXT("                if not obj_path:\n")
+        TEXT("                    continue\n")
+        TEXT("                if 'NiagaraSystem' not in class_name_of(a):\n")
+        TEXT("                    continue\n")
+        TEXT("                chosen = pick_if_non_empty(obj_path)\n")
+        TEXT("                if chosen:\n")
+        TEXT("                    template_path = chosen\n")
+        TEXT("                    break\n")
+        TEXT("    except Exception:\n")
+        TEXT("        pass\n")
+
+        TEXT("if template_path is None:\n")
+        TEXT("    raise RuntimeError('No Niagara system template found for fallback.')\n")
+        TEXT("if unreal.EditorAssetLibrary.does_asset_exist(system_path):\n")
+        TEXT("    unreal.EditorAssetLibrary.delete_asset(system_path)\n")
+        TEXT("if not unreal.EditorAssetLibrary.duplicate_asset(template_path, system_path):\n")
+        TEXT("    raise RuntimeError(f'Duplicate fallback template failed: {template_path} -> {system_path}')\n")
+        TEXT("if not unreal.EditorAssetLibrary.save_asset(system_path):\n")
+        TEXT("    raise RuntimeError(f'Save fallback system failed: {system_path}')\n")
+        TEXT("loaded = unreal.EditorAssetLibrary.load_asset(system_path)\n")
+        TEXT("if loaded is None:\n")
+        TEXT("    raise RuntimeError(f'Load fallback system failed: {system_path}')\n")
+        TEXT("count = -1\n")
+        TEXT("try:\n")
+        TEXT("    count = len(list(loaded.get_editor_property('emitter_handles') or []))\n")
+        TEXT("except Exception:\n")
+        TEXT("    pass\n")
+        TEXT("print(f'SUCCESS: {system_path} emitters={count} template={template_path}')\n"),
+        *EscapedOutputPath,
+        *EscapedSystemName);
+}
+
+static bool TryReplaceWithTemplateSystemFallback(const FString& OutputPath, const FString& SystemName, FString& OutError)
+{
+    const FString Script = BuildTemplateFallbackPythonScript(OutputPath, SystemName);
+    return FVFXPythonExecutor::ExecutePythonScript(Script, OutError);
+}
+
 // NOTE: Removed automatic repair/retry logic that appended "_Fixed" to the system name.
 // Generation now performs a single Create + Save/Compile + SelfCheck pass.
 
@@ -63,6 +432,8 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     const FString& TemplateSystemPath)
 {
     const FString SafeSystemName = SanitizeGeneratedName(SystemName, TEXT("GeneratedSystem"));
+    const FString SafeOutputPath = NormalizeOutputAssetPath(OutputPath);
+    const FString SystemObjectPath = BuildSystemObjectPath(SafeOutputPath, SafeSystemName);
     UE_LOG(LogVFXAgent, Log, TEXT("Starting Recipe-Driven Niagara Generation for: %s (sanitized=%s)"), *SystemName, *SafeSystemName);
 
     TArray<FString> Warnings;
@@ -81,11 +452,138 @@ UNiagaraSystem* UNiagaraSystemGenerator::GenerateNiagaraSystem(
     FScopedTransaction Transaction(FText::FromString("Generating Niagara System"));
     
     FVFXRepairReport Report;
-    UNiagaraSystem* ResultSystem = FSystemAssembler::Assemble(Spec, Report);
+    FString Endpoint;
+    FString Model;
+    FString ApiKey;
+    FString BackendString;
+    float TimeoutSeconds = 120.0f;
+
+    TryGetVFXAgentSettingString(TEXT("LLMEndpoint"), Endpoint);
+    TryGetVFXAgentSettingString(TEXT("LLMModel"), Model);
+    TryGetVFXAgentSettingString(TEXT("LLMApiKey"), ApiKey);
+    TryGetVFXAgentSettingString(TEXT("LLMBackend"), BackendString);
+    TryGetVFXAgentSettingFloat(TEXT("LLMTimeoutSeconds"), TimeoutSeconds);
+
+    UHttpLLMProvider* Provider = NewObject<UHttpLLMProvider>(GetTransientPackage());
+    if (!Provider)
+    {
+        UE_LOG(LogVFXAgent, Error, TEXT("Failed to create UHttpLLMProvider."));
+        return nullptr;
+    }
+
+    Provider->AddToRoot();
+    Provider->Configure(ParseBackend(BackendString), Endpoint, Model, ApiKey, TimeoutSeconds);
+
+    const FString PythonPrompt = BuildPythonGenerationPrompt(SafeSystemName, SafeOutputPath, TemplateSystemPath, Recipe, Spec);
+
+    FString RawPythonScript;
+    FString PythonRequestError;
+    const bool bGotScript = RequestPythonScriptBlocking(Provider, PythonPrompt, TimeoutSeconds, RawPythonScript, PythonRequestError);
+    Provider->RemoveFromRoot();
+
+    if (!bGotScript)
+    {
+        UE_LOG(LogVFXAgent, Error, TEXT("Failed to request Python script from LLM: %s"), *PythonRequestError);
+        return nullptr;
+    }
+
+    const FString CleanPythonScript = FVFXPythonExecutor::SanitizeLLMPythonOutput(RawPythonScript);
+    if (CleanPythonScript.IsEmpty())
+    {
+        UE_LOG(LogVFXAgent, Error, TEXT("LLM returned empty Python script for system: %s"), *SafeSystemName);
+        return nullptr;
+    }
+
+    const FString RuntimePythonScript = StripEditorOpenCalls(CleanPythonScript);
+
+    const FString FinalScript = FString::Printf(
+        TEXT("target_path = '%s'\nsystem_name = '%s'\nsystem_object_path = '%s'\n\n%s"),
+        *EscapeForPythonString(SafeOutputPath),
+        *EscapeForPythonString(SafeSystemName),
+        *EscapeForPythonString(SystemObjectPath),
+        *RuntimePythonScript);
+
+    FString PythonExecError;
+    if (!FVFXPythonExecutor::ExecutePythonScript(FinalScript, PythonExecError))
+    {
+        UE_LOG(LogVFXAgent, Error, TEXT("Python execution failed for generated system '%s': %s"), *SafeSystemName, *PythonExecError);
+        return nullptr;
+    }
+
+    UNiagaraSystem* ResultSystem = TryLoadGeneratedSystem(SystemObjectPath, SafeOutputPath, SafeSystemName);
     if (!ResultSystem)
     {
-        UE_LOG(LogVFXAgent, Error, TEXT("Failed to assemble system from recipe: %s"), *SafeSystemName);
+        UE_LOG(LogVFXAgent, Error, TEXT("Python script executed but Niagara system could not be loaded: %s"), *SystemObjectPath);
         return nullptr;
+    }
+
+    if (ResultSystem->GetEmitterHandles().Num() == 0)
+    {
+        UE_LOG(LogVFXAgent, Warning, TEXT("Python generated an empty Niagara system. Applying C++ fallback emitters."));
+
+        const TArray<FVFXEmitterSpec>& EmitterSpecs = Spec.Emitters;
+        if (EmitterSpecs.Num() > 0)
+        {
+            int32 AddedCount = 0;
+            for (int32 SpecIndex = 0; SpecIndex < EmitterSpecs.Num(); ++SpecIndex)
+            {
+                const FVFXEmitterSpec& EmitterSpec = EmitterSpecs[SpecIndex];
+                FString EmitterName = EmitterSpec.Name;
+                if (EmitterName.IsEmpty())
+                {
+                    EmitterName = FString::Printf(TEXT("Emitter_%d"), SpecIndex);
+                }
+
+                if (FNiagaraSpecExecutor::AddBasicEmitterToSystem(ResultSystem, EmitterName))
+                {
+                    FNiagaraSpecExecutor::ConfigureEmitter(ResultSystem, EmitterName, EmitterSpec);
+                    ++AddedCount;
+                }
+            }
+
+            if (AddedCount == 0)
+            {
+                if (!TryAttachExistingEmitterAsset(ResultSystem, SafeOutputPath))
+                {
+                    UE_LOG(LogVFXAgent, Error, TEXT("Fallback failed to add any emitters."));
+                    return nullptr;
+                }
+            }
+        }
+        else
+        {
+            if (!FNiagaraSpecExecutor::AddBasicEmitterToSystem(ResultSystem, TEXT("FallbackEmitter")))
+            {
+                if (!TryAttachExistingEmitterAsset(ResultSystem, SafeOutputPath))
+                {
+                    UE_LOG(LogVFXAgent, Warning, TEXT("C++ fallback failed to add default emitter; will try template replacement fallback."));
+                }
+            }
+        }
+    }
+
+    if (ResultSystem->GetEmitterHandles().Num() == 0)
+    {
+        FString FallbackError;
+        UE_LOG(LogVFXAgent, Warning, TEXT("Niagara system is still empty after C++ fallback. Replacing with template system fallback."));
+        if (!TryReplaceWithTemplateSystemFallback(SafeOutputPath, SafeSystemName, FallbackError))
+        {
+            UE_LOG(LogVFXAgent, Error, TEXT("Template replacement fallback failed: %s"), *FallbackError);
+            return nullptr;
+        }
+
+        ResultSystem = TryLoadGeneratedSystem(SystemObjectPath, SafeOutputPath, SafeSystemName);
+        if (!ResultSystem)
+        {
+            UE_LOG(LogVFXAgent, Error, TEXT("Template replacement fallback executed but system could not be reloaded: %s"), *SystemObjectPath);
+            return nullptr;
+        }
+
+        if (ResultSystem->GetEmitterHandles().Num() == 0)
+        {
+            UE_LOG(LogVFXAgent, Error, TEXT("Template replacement fallback completed but generated system is still empty: %s"), *SystemObjectPath);
+            return nullptr;
+        }
     }
     
     // Ensure the system is marked as standalone to prevent GC during generation
