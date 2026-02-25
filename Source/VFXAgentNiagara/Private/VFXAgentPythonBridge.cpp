@@ -946,3 +946,44 @@ TArray<FString> UVFXAgentPythonBridge::GetAvailableUserParameters(UNiagaraSystem
 		Result.Num(), *TargetSystem->GetName());
 	return Result;
 }
+
+// ---------------------------------------------------------------------------
+// Asset Library scanning
+// ---------------------------------------------------------------------------
+
+TArray<FString> UVFXAgentPythonBridge::GetAvailableLibraryEmitters()
+{
+	TArray<FString> Result;
+
+	static const FString LibraryPath = TEXT("/Game/VFXAgent/Library/Emitters");
+
+	FAssetRegistryModule& AssetRegistryModule =
+		FModuleManager::LoadModuleChecked<FAssetRegistryModule>("AssetRegistry");
+
+	// Ensure the directory has been scanned (safe to call even if already done)
+	TArray<FString> PathsToScan;
+	PathsToScan.Add(LibraryPath);
+	AssetRegistryModule.Get().ScanPathsSynchronous(PathsToScan, /*bForceRescan=*/false);
+
+	FARFilter Filter;
+	Filter.PackagePaths.Add(*LibraryPath);
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 1
+	Filter.ClassPaths.Add(UNiagaraEmitter::StaticClass()->GetClassPathName());
+#else
+	Filter.ClassNames.Add(UNiagaraEmitter::StaticClass()->GetFName());
+#endif
+	Filter.bRecursivePaths = true;
+
+	TArray<FAssetData> AssetDatas;
+	AssetRegistryModule.Get().GetAssets(Filter, AssetDatas);
+
+	for (const FAssetData& AssetData : AssetDatas)
+	{
+		Result.Add(AssetData.GetObjectPathString());
+	}
+
+	UE_LOG(LogVFXAgent, Log,
+		TEXT("VFXAgentPythonBridge::GetAvailableLibraryEmitters: found %d emitters under '%s'."),
+		Result.Num(), *LibraryPath);
+	return Result;
+}

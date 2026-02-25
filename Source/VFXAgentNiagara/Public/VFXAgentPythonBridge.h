@@ -114,6 +114,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
 	static TArray<FString> GetAvailableUserParameters(UNiagaraSystem* TargetSystem);
 
+	/** Scan /Game/VFXAgent/Library/Emitters/ and return the asset object-paths
+	 *  of all UNiagaraEmitter assets found there.
+	 *  Call this at the start of script generation so the AI knows what
+	 *  pre-built library emitters are available for composition.
+	 *  Example: layers = vfx_agent.bridge.GetAvailableLibraryEmitters() */
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static TArray<FString> GetAvailableLibraryEmitters();
+
 	// -------------------------------------------------------------------------
 	// User Parameter setters (modify exposed User.* parameters on a system)
 	// -------------------------------------------------------------------------

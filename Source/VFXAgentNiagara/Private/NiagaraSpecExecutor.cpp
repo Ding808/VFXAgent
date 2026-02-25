@@ -10,6 +10,7 @@
 #include "NiagaraLightRendererProperties.h"
 #include "NiagaraMeshRendererProperties.h"
 #include "AssetToolsModule.h"
+#include "Misc/PackageName.h"
 #include "UObject/UnrealType.h"
 #include "AssetRegistry/AssetRegistryModule.h"
 #include "NiagaraEditorModule.h"
@@ -2003,17 +2004,47 @@ static void SetEmitterLocalSpace(UNiagaraEmitter* Emitter, bool bLocalSpace)
 UNiagaraSystem* FNiagaraSpecExecutor::CreateNiagaraSystemAsset(const FString& TargetPath, const FString& SystemName)
 {
     IAssetTools& AssetTools = FModuleManager::Get().LoadModuleChecked<FAssetToolsModule>("AssetTools").Get();
-    
-    // Ensure the system name does not contain whitespace or invalid characters
+
+    // Step 1: strict identifier sanitization (replaces illegal chars with _)
     FString SafeSystemName = SanitizeNiagaraIdentifier(SystemName, TEXT("GeneratedSystem"));
-    
-    FString PackageName = FPaths::Combine(TargetPath, SafeSystemName);
-    
-    // Create a new Niagara System using the Factory
+
+    // Step 2: MakeValidFileName removes any remaining OS-illegal characters
+    SafeSystemName = FPaths::MakeValidFileName(SafeSystemName, TEXT('_'));
+    if (SafeSystemName.IsEmpty())
+    {
+        SafeSystemName = TEXT("GeneratedSystem");
+    }
+
+    // Step 3: Auto-increment suffix if an asset with this name already exists,
+    //         so we never overwrite and never crash on duplicate asset paths.
+    FString UniqueName = SafeSystemName;
+    {
+        int32 Suffix = 1;
+        while (FPackageName::DoesPackageExist(TargetPath / UniqueName))
+        {
+            UniqueName = FString::Printf(TEXT("%s_%d"), *SafeSystemName, Suffix++);
+            if (Suffix > 999) break; // safety guard
+        }
+    }
+
+    if (UniqueName != SafeSystemName)
+    {
+        UE_LOG(LogVFXAgent, Log,
+            TEXT("CreateNiagaraSystemAsset: name '%s' already exists, using '%s'."),
+            *SafeSystemName, *UniqueName);
+    }
+
+    // Step 4: Create via factory
     UFactory* Factory = NewObject<UFactory>(GetTransientPackage(), FindObject<UClass>(nullptr, TEXT("/Script/NiagaraEditor.NiagaraSystemFactoryNew")));
     if (!Factory) return nullptr;
 
-    UObject* NewAsset = AssetTools.CreateAsset(SafeSystemName, TargetPath, UNiagaraSystem::StaticClass(), Factory);
+    UObject* NewAsset = AssetTools.CreateAsset(UniqueName, TargetPath, UNiagaraSystem::StaticClass(), Factory);
+    if (NewAsset)
+    {
+        UE_LOG(LogVFXAgent, Log,
+            TEXT("CreateNiagaraSystemAsset: created '%s' at '%s'."),
+            *UniqueName, *TargetPath);
+    }
     return Cast<UNiagaraSystem>(NewAsset);
 }
 
