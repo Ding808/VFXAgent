@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "NiagaraSystem.h"
 #include "VFXAgentPythonBridge.generated.h"
 
 USTRUCT(BlueprintType)
@@ -90,4 +91,44 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
 	static void PushPythonErrorToBuffer(const FString& ErrorMessage);
+
+	// -------------------------------------------------------------------------
+	// Template-based emitter creation
+	// -------------------------------------------------------------------------
+
+	/** Load a built-in Niagara emitter template and add a copy to TargetSystem.
+	 *  TemplateAssetPath  – full UE asset path, e.g.
+	 *    /Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain
+	 *  NewEmitterName     – name assigned to the newly added emitter handle.
+	 *  Returns true on success. */
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static bool AddEmitterFromTemplate(
+		UNiagaraSystem* TargetSystem,
+		const FString& TemplateAssetPath,
+		const FString& NewEmitterName);
+
+	// -------------------------------------------------------------------------
+	// User Parameter setters (modify exposed User.* parameters on a system)
+	// -------------------------------------------------------------------------
+
+	/** Set a float User Parameter on a Niagara System (e.g. "User.SpawnRate"). */
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static bool SetUserParameterFloat(
+		UNiagaraSystem* System,
+		const FString& ParamName,
+		float Value);
+
+	/** Set a vector User Parameter on a Niagara System (e.g. "User.Velocity"). */
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static bool SetUserParameterVector(
+		UNiagaraSystem* System,
+		const FString& ParamName,
+		FVector Value);
+
+	/** Set a linear-color User Parameter on a Niagara System (e.g. "User.Color"). */
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static bool SetUserParameterColor(
+		UNiagaraSystem* System,
+		const FString& ParamName,
+		FLinearColor Value);
 };

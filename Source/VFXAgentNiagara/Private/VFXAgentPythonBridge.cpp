@@ -12,6 +12,9 @@
 #include "NiagaraSpriteRendererProperties.h"
 #include "NiagaraRibbonRendererProperties.h"
 #include "NiagaraMeshRendererProperties.h"
+#include "NiagaraParameterStore.h"
+#include "NiagaraTypeDefinition.h"
+#include "NiagaraCommon.h"
 #include "Materials/MaterialInterface.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "AssetToolsModule.h"
@@ -733,4 +736,138 @@ FString UVFXAgentPythonBridge::GetMeshyEndpoint()
 void UVFXAgentPythonBridge::PushPythonErrorToBuffer(const FString& ErrorMessage)
 {
 	FVFXPythonExecutor::AppendRuntimeError(ErrorMessage);
+}
+
+// ---------------------------------------------------------------------------
+// Template-based emitter creation
+// ---------------------------------------------------------------------------
+
+bool UVFXAgentPythonBridge::AddEmitterFromTemplate(
+	UNiagaraSystem* TargetSystem,
+	const FString& TemplateAssetPath,
+	const FString& NewEmitterName)
+{
+	if (!TargetSystem)
+	{
+		UE_LOG(LogVFXAgent, Warning,
+			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate failed: TargetSystem is null."));
+		return false;
+	}
+
+	if (TemplateAssetPath.IsEmpty())
+	{
+		UE_LOG(LogVFXAgent, Warning,
+			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate failed: TemplateAssetPath is empty."));
+		return false;
+	}
+
+	// Sanity-check that the template asset exists before delegating
+	const FString NormalizedPath = NormalizeObjectPath(TemplateAssetPath);
+	UNiagaraEmitter* Template = LoadObject<UNiagaraEmitter>(nullptr, *NormalizedPath);
+	if (!Template)
+	{
+		UE_LOG(LogVFXAgent, Warning,
+			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate failed: template asset not found at '%s'."),
+			*TemplateAssetPath);
+		return false;
+	}
+
+	const bool bOk = FNiagaraSpecExecutor::AddEmitterFromTemplate(TargetSystem, NormalizedPath, NewEmitterName);
+	if (!bOk)
+	{
+		UE_LOG(LogVFXAgent, Warning,
+			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate: executor failed for template '%s' emitter '%s'."),
+			*TemplateAssetPath, *NewEmitterName);
+	}
+	else
+	{
+		UE_LOG(LogVFXAgent, Log,
+			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate: added emitter '%s' from template '%s'."),
+			*NewEmitterName, *TemplateAssetPath);
+	}
+	return bOk;
+}
+
+// ---------------------------------------------------------------------------
+// User Parameter setters
+// ---------------------------------------------------------------------------
+
+/** Internal helper: find or add a variable to the exposed parameter store and
+ *  mark the system as modified so the change persists. */
+namespace
+{
+	template<typename T>
+	bool SetExposedParam(UNiagaraSystem* System, const FString& ParamName,
+		const FNiagaraTypeDefinition& TypeDef, T Value)
+	{
+		if (!System)
+		{
+			UE_LOG(LogVFXAgent, Warning,
+				TEXT("SetExposedParam: System is null (param='%s')."), *ParamName);
+			return false;
+		}
+		if (ParamName.IsEmpty())
+		{
+			UE_LOG(LogVFXAgent, Warning, TEXT("SetExposedParam: ParamName is empty."));
+			return false;
+		}
+
+		FNiagaraParameterStore& Store = System->GetExposedParameters();
+		FNiagaraVariable Var(TypeDef, FName(*ParamName));
+		Var.SetValue(Value);
+		Store.SetParameterValue(Value, Var, /*bAddIfMissing=*/true);
+		System->MarkPackageDirty();
+		return true;
+	}
+}
+
+bool UVFXAgentPythonBridge::SetUserParameterFloat(
+	UNiagaraSystem* System,
+	const FString& ParamName,
+	float Value)
+{
+	const bool bOk = SetExposedParam(System, ParamName,
+		FNiagaraTypeDefinition::GetFloatDef(), Value);
+	if (bOk)
+	{
+		UE_LOG(LogVFXAgent, Log,
+			TEXT("VFXAgentPythonBridge::SetUserParameterFloat '%s' = %f"), *ParamName, Value);
+	}
+	return bOk;
+}
+
+bool UVFXAgentPythonBridge::SetUserParameterVector(
+	UNiagaraSystem* System,
+	const FString& ParamName,
+	FVector Value)
+{
+	// Niagara stores vec3 as FVector3f internally
+	const FVector3f Value3f(static_cast<float>(Value.X),
+						   static_cast<float>(Value.Y),
+						   static_cast<float>(Value.Z));
+	const bool bOk = SetExposedParam(System, ParamName,
+		FNiagaraTypeDefinition::GetVec3Def(), Value3f);
+	if (bOk)
+	{
+		UE_LOG(LogVFXAgent, Log,
+			TEXT("VFXAgentPythonBridge::SetUserParameterVector '%s' = (%f, %f, %f)"),
+			*ParamName, Value.X, Value.Y, Value.Z);
+	}
+	return bOk;
+}
+
+bool UVFXAgentPythonBridge::SetUserParameterColor(
+	UNiagaraSystem* System,
+	const FString& ParamName,
+	FLinearColor Value)
+{
+	const bool bOk = SetExposedParam(System, ParamName,
+		FNiagaraTypeDefinition::GetColorDef(), Value);
+	if (bOk)
+	{
+		UE_LOG(LogVFXAgent, Log,
+			TEXT("VFXAgentPythonBridge::SetUserParameterColor '%s' = (R=%f G=%f B=%f A=%f)"),
+			*ParamName, Value.R, Value.G, Value.B, Value.A);
+	}
+	return bOk;
 }
