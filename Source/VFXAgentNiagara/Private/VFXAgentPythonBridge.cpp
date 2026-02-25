@@ -15,6 +15,7 @@
 #include "NiagaraParameterStore.h"
 #include "NiagaraTypeDefinition.h"
 #include "NiagaraCommon.h"
+#include "NiagaraSystemUpdateContext.h"
 #include "Materials/MaterialInterface.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "AssetToolsModule.h"
@@ -160,7 +161,7 @@ namespace
 
 	bool TryBindStaticMeshToEmitter(UNiagaraSystem* System, UStaticMesh* Mesh, const FString& PreferredEmitterName)
 	{
-		if (!System || !Mesh)
+		if (!IsValid(System) || !IsValid(Mesh))
 		{
 			return false;
 		}
@@ -173,14 +174,15 @@ namespace
 			}
 
 			UNiagaraEmitter* Emitter = Handle.GetInstance().Emitter;
-			if (!Emitter)
+			if (!IsValid(Emitter))
 			{
 				continue;
 			}
 
 			TArray<UNiagaraRendererProperties*> Renderers;
 #if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
-			if (FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData())
+			FVersionedNiagaraEmitterData* EmitterData = Emitter->GetLatestEmitterData();
+			if (EmitterData)
 			{
 				Renderers = EmitterData->GetRenderers();
 			}
@@ -204,7 +206,19 @@ namespace
 				MeshRenderer->Meshes[0].Mesh = Mesh;
 				MeshRenderer->Modify();
 				Emitter->Modify();
+#if ENGINE_MAJOR_VERSION == 5 && ENGINE_MINOR_VERSION >= 5
+				// In UE 5.5 the renderer lives inside the versioned emitter data;
+				// PostEditChange on the emitter propagates the change through VersionedData.
+				if (EmitterData)
+				{
+					EmitterData->bInterpolatedSpawning = EmitterData->bInterpolatedSpawning; // no-op, forces dirty
+				}
+#endif
 				Emitter->PostEditChange();
+				// Notify all active instances so the viewport refreshes immediately
+				{
+					FNiagaraSystemUpdateContext UpdateContext(System, /*bResetAge=*/true);
+				}
 				return true;
 			}
 		}
@@ -742,23 +756,25 @@ void UVFXAgentPythonBridge::PushPythonErrorToBuffer(const FString& ErrorMessage)
 // Template-based emitter creation
 // ---------------------------------------------------------------------------
 
-bool UVFXAgentPythonBridge::AddEmitterFromTemplate(
+FString UVFXAgentPythonBridge::AddEmitterFromTemplate(
 	UNiagaraSystem* TargetSystem,
 	const FString& TemplateAssetPath,
 	const FString& NewEmitterName)
 {
-	if (!TargetSystem)
+	// Use IsValid() not just null-check: catches Pending Kill objects (e.g. user
+	// deleted the system in the editor while the async Meshy task was running).
+	if (!IsValid(TargetSystem))
 	{
-		UE_LOG(LogVFXAgent, Warning,
-			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate failed: TargetSystem is null."));
-		return false;
+		UE_LOG(LogVFXAgent, Error,
+			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate failed: TargetSystem is invalid or has been destroyed."));
+		return FString();
 	}
 
 	if (TemplateAssetPath.IsEmpty())
 	{
 		UE_LOG(LogVFXAgent, Warning,
 			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate failed: TemplateAssetPath is empty."));
-		return false;
+		return FString();
 	}
 
 	// Sanity-check that the template asset exists before delegating
@@ -769,7 +785,14 @@ bool UVFXAgentPythonBridge::AddEmitterFromTemplate(
 		UE_LOG(LogVFXAgent, Warning,
 			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate failed: template asset not found at '%s'."),
 			*TemplateAssetPath);
-		return false;
+		return FString();
+	}
+
+	// Snapshot existing handle IDs so we can identify the newly added one
+	TSet<FGuid> ExistingIds;
+	for (const FNiagaraEmitterHandle& H : TargetSystem->GetEmitterHandles())
+	{
+		ExistingIds.Add(H.GetId());
 	}
 
 	const bool bOk = FNiagaraSpecExecutor::AddEmitterFromTemplate(TargetSystem, NormalizedPath, NewEmitterName);
@@ -778,14 +801,36 @@ bool UVFXAgentPythonBridge::AddEmitterFromTemplate(
 		UE_LOG(LogVFXAgent, Warning,
 			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate: executor failed for template '%s' emitter '%s'."),
 			*TemplateAssetPath, *NewEmitterName);
+		return FString();
 	}
-	else
+
+	// Find the actual name the engine assigned (may differ when name was
+	// already taken and the engine appended a numeric suffix).
+	FString ActualName;
+	for (const FNiagaraEmitterHandle& H : TargetSystem->GetEmitterHandles())
 	{
-		UE_LOG(LogVFXAgent, Log,
-			TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate: added emitter '%s' from template '%s'."),
-			*NewEmitterName, *TemplateAssetPath);
+		if (!ExistingIds.Contains(H.GetId()))
+		{
+			ActualName = H.GetName().ToString();
+			break;
+		}
 	}
-	return bOk;
+	if (ActualName.IsEmpty())
+	{
+		// Fallback: the executor found no new handle but still returned true;
+		// return the requested name as best-effort.
+		ActualName = NewEmitterName;
+	}
+
+	// Notify all active instances (e.g. editor viewport previews) to refresh.
+	{
+		FNiagaraSystemUpdateContext UpdateContext(TargetSystem, /*bResetAge=*/true);
+	}
+
+	UE_LOG(LogVFXAgent, Log,
+		TEXT("VFXAgentPythonBridge::AddEmitterFromTemplate: requested='%s' actual='%s' template='%s'."),
+		*NewEmitterName, *ActualName, *TemplateAssetPath);
+	return ActualName;
 }
 
 // ---------------------------------------------------------------------------
@@ -800,10 +845,11 @@ namespace
 	bool SetExposedParam(UNiagaraSystem* System, const FString& ParamName,
 		const FNiagaraTypeDefinition& TypeDef, T Value)
 	{
-		if (!System)
+		// IsValid() catches Pending Kill as well as null — critical for async safety.
+		if (!IsValid(System))
 		{
-			UE_LOG(LogVFXAgent, Warning,
-				TEXT("SetExposedParam: System is null (param='%s')."), *ParamName);
+			UE_LOG(LogVFXAgent, Error,
+				TEXT("SetExposedParam: System is invalid or has been destroyed (param='%s')."), *ParamName);
 			return false;
 		}
 		if (ParamName.IsEmpty())
@@ -817,6 +863,11 @@ namespace
 		Var.SetValue(Value);
 		Store.SetParameterValue(Value, Var, /*bAddIfMissing=*/true);
 		System->MarkPackageDirty();
+
+		// Notify all active instances so the editor viewport refreshes immediately.
+		{
+			FNiagaraSystemUpdateContext UpdateContext(System, /*bResetAge=*/true);
+		}
 		return true;
 	}
 }
@@ -870,4 +921,30 @@ bool UVFXAgentPythonBridge::SetUserParameterColor(
 			*ParamName, Value.R, Value.G, Value.B, Value.A);
 	}
 	return bOk;
+}
+
+// ---------------------------------------------------------------------------
+// Introspection
+// ---------------------------------------------------------------------------
+
+TArray<FString> UVFXAgentPythonBridge::GetAvailableUserParameters(UNiagaraSystem* TargetSystem)
+{
+	TArray<FString> Result;
+	if (!IsValid(TargetSystem))
+	{
+		UE_LOG(LogVFXAgent, Error,
+			TEXT("VFXAgentPythonBridge::GetAvailableUserParameters: TargetSystem is invalid or has been destroyed."));
+		return Result;
+	}
+
+	const FNiagaraParameterStore& Store = TargetSystem->GetExposedParameters();
+	for (const FNiagaraVariableWithOffset& Entry : Store.GetSortedParameterOffsets())
+	{
+		Result.Add(Entry.Variable.GetName().ToString());
+	}
+
+	UE_LOG(LogVFXAgent, Log,
+		TEXT("VFXAgentPythonBridge::GetAvailableUserParameters: found %d parameters on '%s'."),
+		Result.Num(), *TargetSystem->GetName());
+	return Result;
 }

@@ -99,13 +99,20 @@ public:
 	/** Load a built-in Niagara emitter template and add a copy to TargetSystem.
 	 *  TemplateAssetPath  – full UE asset path, e.g.
 	 *    /Niagara/DefaultAssets/Templates/Emitters/Fountain.Fountain
-	 *  NewEmitterName     – name assigned to the newly added emitter handle.
-	 *  Returns true on success. */
+	 *  NewEmitterName     – hint for the emitter handle name (engine may suffix it).
+	 *  Returns the ACTUAL name assigned by the engine, or empty string on failure.
+	 *  Python: actual_name = vfx_agent.bridge.AddEmitterFromTemplate(TARGET_SYSTEM, path, "MyFire") */
 	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
-	static bool AddEmitterFromTemplate(
+	static FString AddEmitterFromTemplate(
 		UNiagaraSystem* TargetSystem,
 		const FString& TemplateAssetPath,
 		const FString& NewEmitterName);
+
+	/** Return all exposed User Parameter names on the system so the AI can
+	 *  inspect what parameters are available before calling SetUserParameter*.
+	 *  Example: print(vfx_agent.bridge.GetAvailableUserParameters(TARGET_SYSTEM)) */
+	UFUNCTION(BlueprintCallable, Category = "VFXAgent|Python")
+	static TArray<FString> GetAvailableUserParameters(UNiagaraSystem* TargetSystem);
 
 	// -------------------------------------------------------------------------
 	// User Parameter setters (modify exposed User.* parameters on a system)
