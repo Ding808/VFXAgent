@@ -13,9 +13,7 @@
 #include "NiagaraRibbonRendererProperties.h"
 #include "NiagaraMeshRendererProperties.h"
 #include "NiagaraParameterStore.h"
-#include "NiagaraTypeDefinition.h"
 #include "NiagaraCommon.h"
-#include "NiagaraSystemUpdateContext.h"
 #include "Materials/MaterialInterface.h"
 #include "Runtime/Launch/Resources/Version.h"
 #include "AssetToolsModule.h"
@@ -938,9 +936,9 @@ TArray<FString> UVFXAgentPythonBridge::GetAvailableUserParameters(UNiagaraSystem
 	}
 
 	const FNiagaraParameterStore& Store = TargetSystem->GetExposedParameters();
-	for (const FNiagaraVariableWithOffset& Entry : Store.GetSortedParameterOffsets())
+	for (const FNiagaraVariableWithOffset& Entry : Store.ReadParameterVariables())
 	{
-		Result.Add(Entry.Variable.GetName().ToString());
+		Result.Add(Entry.GetName().ToString());
 	}
 
 	UE_LOG(LogVFXAgent, Log,
